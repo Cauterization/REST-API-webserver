@@ -1,0 +1,247 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           server
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/server#readme>
+homepage:       https://github.com/githubuser/server#readme
+bug-reports:    https://github.com/githubuser/server/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2022 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/server
+
+library
+  exposed-modules:
+      Database.Config
+      Database.Database
+      Database.Default
+      Database.Postgres
+      Entities.Author
+      Entities.Internal
+      Entities.User
+      Extended.Functor
+      Extended.Postgres
+      Extended.Text
+      HKD.Create
+      HKD.Delete
+      HKD.Display
+      HKD.EmptyData
+      HKD.Field
+      HKD.Filter
+      HKD.Front
+      HKD.Schema
+      HKD.Update
+      HKD.Utils
+      Logger.Handle
+      Logger.IO
+      Server.App
+      Server.Base
+      Server.Router
+      Server.Server
+      Types
+  other-modules:
+      Paths_server
+  hs-source-dirs:
+      src
+  default-extensions:
+      AllowAmbiguousTypes
+      ConstraintKinds
+      DataKinds
+      DefaultSignatures
+      DeriveAnyClass
+      DeriveFunctor
+      DeriveGeneric
+      DerivingStrategies
+      DerivingVia
+      ExistentialQuantification
+      FlexibleContexts
+      FlexibleInstances
+      ImplicitParams
+      ImportQualifiedPost
+      LambdaCase
+      MultiParamTypeClasses
+      OverloadedLabels
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      StandaloneDeriving
+      TypeApplications
+      TypeFamilies
+      TypeOperators
+      UndecidableInstances
+  build-depends:
+      aeson
+    , base >=4.14.2.0
+    , bytestring
+    , containers
+    , cryptonite
+    , directory
+    , exceptions
+    , file-embed
+    , generic-lens
+    , http-types
+    , memory
+    , monad-control
+    , mtl
+    , postgresql-simple
+    , postgresql-simple-migration
+    , random
+    , resource-pool
+    , text
+    , time
+    , wai
+    , wai-extra
+    , warp
+  default-language: Haskell2010
+
+executable server-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_server
+  hs-source-dirs:
+      app
+  default-extensions:
+      AllowAmbiguousTypes
+      ConstraintKinds
+      DataKinds
+      DefaultSignatures
+      DeriveAnyClass
+      DeriveFunctor
+      DeriveGeneric
+      DerivingStrategies
+      DerivingVia
+      ExistentialQuantification
+      FlexibleContexts
+      FlexibleInstances
+      ImplicitParams
+      ImportQualifiedPost
+      LambdaCase
+      MultiParamTypeClasses
+      OverloadedLabels
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      StandaloneDeriving
+      TypeApplications
+      TypeFamilies
+      TypeOperators
+      UndecidableInstances
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Werror -Wno-unused-do-bind -Wno-unused-matches -Wno-unused-foralls -Wno-unused-local-binds
+  build-depends:
+      aeson
+    , base >=4.14.2.0
+    , bytestring
+    , containers
+    , cryptonite
+    , directory
+    , exceptions
+    , file-embed
+    , generic-lens
+    , http-types
+    , memory
+    , monad-control
+    , mtl
+    , postgresql-simple
+    , postgresql-simple-migration
+    , random
+    , resource-pool
+    , server
+    , text
+    , time
+    , wai
+    , wai-extra
+    , warp
+  default-language: Haskell2010
+
+test-suite server-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Mocks.App
+      Mocks.Database
+      Mocks.Database.Author
+      Mocks.Database.Category
+      Mocks.Database.Comment
+      Mocks.Database.Draft
+      Mocks.Database.Internal
+      Mocks.Database.Post
+      Mocks.Database.Tag
+      Mocks.Database.User
+      Test.Author
+      Test.Category
+      Test.Comment
+      Test.Draft
+      Test.Post
+      Test.Tag
+      Test.User
+      Paths_server
+  hs-source-dirs:
+      test
+  default-extensions:
+      AllowAmbiguousTypes
+      ConstraintKinds
+      DataKinds
+      DefaultSignatures
+      DeriveAnyClass
+      DeriveFunctor
+      DeriveGeneric
+      DerivingStrategies
+      DerivingVia
+      ExistentialQuantification
+      FlexibleContexts
+      FlexibleInstances
+      ImplicitParams
+      ImportQualifiedPost
+      LambdaCase
+      MultiParamTypeClasses
+      OverloadedLabels
+      OverloadedStrings
+      RankNTypes
+      RecordWildCards
+      ScopedTypeVariables
+      StandaloneDeriving
+      TypeApplications
+      TypeFamilies
+      TypeOperators
+      UndecidableInstances
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base >=4.14.2.0
+    , bytestring
+    , containers
+    , cryptonite
+    , directory
+    , exceptions
+    , file-embed
+    , generic-lens
+    , http-types
+    , memory
+    , monad-control
+    , mtl
+    , postgresql-simple
+    , postgresql-simple-migration
+    , random
+    , resource-pool
+    , server
+    , text
+    , time
+    , wai
+    , wai-extra
+    , warp
+  default-language: Haskell2010

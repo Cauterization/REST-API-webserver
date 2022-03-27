@@ -1,0 +1,6 @@
+.stack-work/
+config.json
+*.TXT
+*/old/*
+*~
+
