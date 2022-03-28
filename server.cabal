@@ -172,23 +172,6 @@ test-suite server-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Mocks.App
-      Mocks.Database
-      Mocks.Database.Author
-      Mocks.Database.Category
-      Mocks.Database.Comment
-      Mocks.Database.Draft
-      Mocks.Database.Internal
-      Mocks.Database.Post
-      Mocks.Database.Tag
-      Mocks.Database.User
-      Test.Author
-      Test.Category
-      Test.Comment
-      Test.Draft
-      Test.Post
-      Test.Tag
-      Test.User
       Paths_server
   hs-source-dirs:
       test

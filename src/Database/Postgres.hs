@@ -49,6 +49,8 @@ type instance Database.FromRow Postgres = FromRow
 
 instance Database.IsDatabase Postgres where
     
+    type DBConstraints Postgres m = MonadIO m
+
     mkConnectionIODB Database.Config{..} = Pool.createPool
         (connectPostgreSQL $ T.encodeUtf8 cConn)
         close

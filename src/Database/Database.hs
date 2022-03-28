@@ -38,11 +38,14 @@ class (Typeable e, Data (e Display), FromRow db (e Display)
     getE = getEDefault @m
 
 class IsDatabase (db :: *) where
+    type DBConstraints db (m :: * -> *) :: Constraint 
     mkConnectionIODB :: Config -> IO (Connection db)
     runMigrationsDB :: Logger.Logger IO -> Connection db -> IO ()
     getEDefaultDB :: 
-        forall m e id.( Database m ~ db, Entity db e, MonadIO  m, HasPagSize m) 
+        forall m e id.( Database m ~ db, Entity db e, MConstraints m, HasPagSize m) 
         => Connection (Database m) -> [ID id] -> Page -> m [e Display] 
+
+type MConstraints m = DBConstraints (Database m) m
 
 class IsDatabase (Database m) => HasDatabase (m :: * -> *) where
 
@@ -56,6 +59,6 @@ class IsDatabase (Database m) => HasDatabase (m :: * -> *) where
 
     getEDefault :: forall e id. Entity (Database m) e
         => Connection (Database m) -> [ID id] -> Page -> m [e Display] 
-    default getEDefault :: forall e id. (Entity (Database m) e, MonadIO m, HasPagSize m) 
+    default getEDefault :: forall e id. (Entity (Database m) e, MConstraints m, HasPagSize m) 
         => Connection (Database m) -> [ID id] -> Page -> m [e Display] 
     getEDefault = getEDefaultDB
