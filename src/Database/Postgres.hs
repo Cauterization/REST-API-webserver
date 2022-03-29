@@ -89,7 +89,7 @@ instance Database.IsDatabase Postgres where
         ( Database.Database m ~ Postgres
         , Database.DBEntity (Database.Database m) e
         , Database.HasPagSize m
-        , MonadIO m
+        , Database.MConstraints m
         ) => Database.Connection (Database.Database m)
         -> [ID id] 
         -> Page 
