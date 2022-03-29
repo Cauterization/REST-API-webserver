@@ -41,6 +41,7 @@ import Types
 
 import Logger.Handle qualified as Logger
 import Data.Data (Data)
+import qualified Logger.IO as Logger
 
 
 data Postgres :: *
@@ -53,7 +54,8 @@ type instance Database.Query Postgres = Query
 
 instance Database.IsDatabase Postgres where
     
-    type DBConstraints Postgres m = (MonadIO m, Logger.HasLogger m)
+    type DBConstraints Postgres m = 
+        (MonadIO m, Logger.HasLogger m, Database.HasConnection m)
 
     mkConnectionIODB Database.Config{..} = Pool.createPool
         (connectPostgreSQL $ T.encodeUtf8 cConn)
@@ -62,29 +64,31 @@ instance Database.IsDatabase Postgres where
         30
         4
 
-    runMigrationsDB l pool = Pool.withResource pool $ \conn -> do
-        let defaultContext = 
-                MigrationContext
-                { migrationContextCommand = MigrationInitialization
-                , migrationContextVerbose = False
-                , migrationContextConnection = conn
-                }
-            migrations = ("(init)", defaultContext) :
-                         [
-                            (k, defaultContext
-                                { migrationContextCommand =
-                                    MigrationScript k v
-                                })
-                            | (k, v) <- sortedMigrations
-                         ]
-        forM_ migrations $ \(migrDescr, migr) -> do
-            l Logger.Info $ "Running migration: " <> T.pack migrDescr
-            res <- runMigration migr
-            case res of
-                MigrationSuccess -> return ()
-                MigrationError reason -> do
-                    l Logger.Error $ "Migration failed: " <> T.pack reason
-                    exitFailure
+    runMigrationsDB conf l = do
+        pool <- Database.mkConnectionIODB @Postgres conf
+        Pool.withResource pool $ \conn -> do
+            let defaultContext = 
+                    MigrationContext
+                    { migrationContextCommand = MigrationInitialization
+                    , migrationContextVerbose = False
+                    , migrationContextConnection = conn
+                    }
+                migrations = ("(init)", defaultContext) :
+                             [
+                                (k, defaultContext
+                                    { migrationContextCommand =
+                                        MigrationScript k v
+                                    })
+                                | (k, v) <- sortedMigrations
+                             ]
+            forM_ migrations $ \(migrDescr, migr) -> do
+                l Logger.Info $ "Running migration: " <> T.pack migrDescr
+                res <- runMigration migr
+                case res of
+                    MigrationSuccess -> return ()
+                    MigrationError reason -> do
+                        l Logger.Error $ "Migration failed: " <> T.pack reason
+                        exitFailure
 
     getEDefaultDB :: forall m e id. 
         ( Database.Database m ~ Postgres
@@ -92,11 +96,11 @@ instance Database.IsDatabase Postgres where
         , Database.HasPagSize m
         , Database.MConstraints m
         ) 
-        => Database.Connection (Database.Database m)
-        -> [ID id] 
+        => [ID id] 
         -> Page 
         -> m [e (Front Display)] 
-    getEDefaultDB pc _ page = do
+    getEDefaultDB _ page = do
+        pc <- Database.getConn
         pagination <- show <$> Database.getPagSize
         let q = Database.unEQuery $ mconcat
                 [ Database.getEQuery @Postgres @e @(Front Display)

@@ -33,9 +33,8 @@ import Database.Postgres (Postgres)
 runServer ::  (?runMigrations :: Bool) => IO ()
 runServer = handle handler $ do
     conf <- BL.readFile "config.json" >>= parseOrFail
-    conn <- Database.mkConnectionIO @App $ cDatabase conf
     let logger = Logger.fromConfig $ cLogger conf
-    when ?runMigrations $ Database.runMigrations @App logger conn
+    when ?runMigrations $ Database.runMigrations @App (cDatabase conf) logger
     Wai.run 3000 $ \req respond -> do
         body <- Wai.strictRequestBody req
         ToResponse{..} <- runRouter conf req body

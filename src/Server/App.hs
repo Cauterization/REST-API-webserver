@@ -54,10 +54,10 @@ instance Logger.HasLogger App where
         l <- asks envLogger
         l v t
 
-runApp :: Config -> Wai.Request -> Body -> App a  -> IO a
+runApp :: Config -> Wai.Request -> Body -> App a -> IO a
 runApp conf req body app = do
-    conn <- Database.mkConnectionIO @App $ cDatabase conf
     env <- toEnv conf req body
+    conn <- Database.mkConnectionIO @App $ cDatabase conf
     let logger = Logger.fromConfig $ cLogger conf
     flip runReaderT 
         (Env conn ((liftIO . ) . logger) env)
@@ -66,11 +66,13 @@ runApp conf req body app = do
 
 type instance Database App = Postgres
 
+instance HasDatabase App
+
 instance HasEnv App where
     asksEnv f = asks (f . envBase)
 
-instance HasDatabase App where
-    getConnection = asks envConn
+instance Database.HasConnection App where
+    getConn = asks envConn
 
 type Application m = 
     ( Monad m
@@ -91,8 +93,6 @@ getE :: forall (e :: * -> *) m id.
     ) => [ID Path] -> m AppResult
 getE ids = do
     Logger.info $ "Attempt to get " <> nameE @e
-    entities <- do
-        conn <- Database.getConnection
-        Database.getE @_ @e conn ids =<< getPage
+    entities <- Database.getE @_ @e ids =<< getPage
     Logger.info $ nameE @e <> " was found."
     json entities
