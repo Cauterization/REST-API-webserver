@@ -35,10 +35,12 @@ import Database.PostgreSQL.Simple.Migration (MigrationContext(..), MigrationResu
 import System.Exit 
 
 import HKD.Display
+import HKD.Front (Front)
 
 import Types
 
 import Logger.Handle qualified as Logger
+
 
 data Postgres :: *
 
@@ -46,6 +48,7 @@ type instance Database.Connection Postgres = Pool.Pool Connection
 
 type instance Database.FromRow Postgres = FromRow
 
+type instance Database.Query Postgres = Query
 
 instance Database.IsDatabase Postgres where
     
@@ -84,23 +87,31 @@ instance Database.IsDatabase Postgres where
 
     getEDefaultDB :: forall m e id. 
         ( Database.Database m ~ Postgres
-        , Database.Entity (Database.Database m) e
+        , Database.DBEntity (Database.Database m) e
         , Database.HasPagSize m
         , MonadIO m
         ) => Database.Connection (Database.Database m)
         -> [ID id] 
         -> Page 
-        -> m [e Display] 
+        -> m [e (Front Display)] 
     getEDefaultDB pc _ page = do
-        pagination <- fromString . show <$> Database.getPagSize
-        let q = mconcat 
-                [ "SELECT "
-                , fromString $ intercalate ", " $ fieldsE @(e Display)
-                , " FROM ", nameE @e, "s_view "
-                , " LIMIT ", pagination
-                , " OFFSET ", pagination, " * (? - 1)"
+        pagination <- show <$> Database.getPagSize
+        let q = Database.unEQuery $ mconcat
+                [ Database.getEQ @Postgres @e
+                , " LIMIT " , fromString pagination
+                , " OFFSET ", fromString pagination, " * (? - 1)"
                 ] 
         liftIO $ Pool.withResource pc $ \conn -> query conn q (Only page)
+
+    getEQDefault :: forall (e :: * -> *) (a :: *). 
+        Database.DBEntity Postgres e 
+        => Database.EQuery Postgres (e a)
+    getEQDefault = mconcat 
+        [ "SELECT "
+        -- , fromString $ intercalate ", " $ fieldsE @(e a)
+        , " FROM ", nameE @e, "s_view "
+        ]
+        
 
 sortedMigrations :: [(FilePath, B.ByteString)]
 sortedMigrations =
