@@ -1,5 +1,10 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 module HKD.Front where
 
+
+import HKD.Create (Create)
+import HKD.Display (Display, Hidden, NotDisplayed)
+import HKD.Update (Update)
 
 import HKD.Field ( Field )
 import HKD.Utils ( If, Contains )
@@ -8,8 +13,10 @@ import Data.Aeson
 import qualified Extended.Postgres as Postgres
 
 import GHC.Generics
+import Data.Data
 
 data Front a
+deriving instance Data a => Data (Front a)
 data NotAllowedFromFront deriving Generic
 
 instance FromJSON NotAllowedFromFront where
@@ -18,8 +25,17 @@ instance FromJSON NotAllowedFromFront where
 instance Postgres.ToField NotAllowedFromFront where
   toField _ = Postgres.renderNull
 
-type instance Field name req (Front b) modifiers a =
+type instance Field name req (Front Create) modifiers a =
   If (Contains NotAllowedFromFront modifiers) 
      (Maybe NotAllowedFromFront)
-     (Field name req b modifiers a)
+     (Field name req Create modifiers a)
 
+type instance Field name req (Front Update) modifiers a =
+  If (Contains NotAllowedFromFront modifiers) 
+     (Maybe NotAllowedFromFront)
+     (Field name req Update modifiers a)
+
+type instance Field name req (Front Display) modifiers a =
+  If (Contains Hidden modifiers) 
+     (Maybe NotDisplayed)
+     (Field name req Display modifiers a)

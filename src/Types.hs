@@ -27,6 +27,8 @@ type Page = Int
 
 type Date = Time.Day
 
+type PaginationSize = Int
+
 newtype ID (a :: * -> *) = ID { idVal :: Int }
   deriving stock (Show, Generic)
   deriving newtype Read

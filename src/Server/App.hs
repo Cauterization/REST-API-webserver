@@ -24,10 +24,14 @@ import Database.Database ( Database, HasDatabase(..))
 import Database.Database qualified as Database
 import Database.Postgres (Postgres)
 
-import Types
+import HKD.Front (Front)
 
 import Server.Base hiding (Env)
 import Server.Base qualified as Base
+import Types
+
+
+
 
 newtype App a = App {unApp :: ReaderT Env IO a}
     deriving newtype 
@@ -83,8 +87,8 @@ type Application m =
     )
 
 type Entity db e =
-    ( Database.Entity db e
-    , ToJSON (e Display)
+    ( Database.DBEntity db e
+    , ToJSON (e (Front Display))
     )
 
 getE :: forall (e :: * -> *) m id. 

@@ -18,7 +18,7 @@ data Hidden
 data NotDisplayed deriving (Generic, ToJSON, Data)
 
 instance {-# OVERLAPPING #-} Postgres.FromField (Maybe NotDisplayed) where
-    fromField = const . flip (Postgres.returnError Postgres.ConversionFailed) "Can't display this field"
+    fromField _ _ = pure Nothing
 
 type instance Field name req Display modifiers a = 
     If (Contains Hidden modifiers) 

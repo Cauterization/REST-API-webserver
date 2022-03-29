@@ -52,7 +52,7 @@ type instance Database.Query Postgres = Query
 
 instance Database.IsDatabase Postgres where
     
-    type DBConstraints Postgres m = MonadIO m
+    type DBConstraints Postgres m = (MonadIO m, Logger.HasLogger m)
 
     mkConnectionIODB Database.Config{..} = Pool.createPool
         (connectPostgreSQL $ T.encodeUtf8 cConn)
@@ -101,13 +101,14 @@ instance Database.IsDatabase Postgres where
                 , " LIMIT " , fromString pagination
                 , " OFFSET ", fromString pagination, " * (? - 1)"
                 ] 
+        Logger.debug $ T.show q
         liftIO $ Pool.withResource pc $ \conn -> query conn q (Only page)
 
     getEQDefault :: forall (e :: * -> *) (a :: *). 
         Database.DBEntity Postgres e 
         => Database.EQuery Postgres (e a)
     getEQDefault = mconcat 
-        [ "SELECT "
+        [ "SELECT * "
         -- , fromString $ intercalate ", " $ fieldsE @(e a)
         , " FROM ", nameE @e, "s_view "
         ]

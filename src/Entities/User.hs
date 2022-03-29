@@ -36,17 +36,19 @@ data User a = User
   , registered :: Field "registered" 'Required a '[Immutable, NotAllowedFromFront] Date
   , admin      :: Field "admin"      'Required a '[Immutable, NotAllowedFromFront] Bool 
   } deriving stock (Generic)
-    deriving (Database.Entity Postgres)
-
+{-}
 deriving instance EmptyData        (User Update)
 deriving instance Postgres.ToRow   (User Update)
 
 deriving instance FromJSON         (User (Front Create))
 deriving instance Postgres.ToRow   (User (Front Create))
+-}
+deriving instance ToJSON           (User (Front Display))
+deriving instance Postgres.FromRow (User (Front Display))
+deriving instance Data             (User (Front Display))
 
-deriving instance ToJSON           (User Display)
-deriving instance Postgres.FromRow (User Display)
-deriving instance Data             (User Display)
+instance Database.DBEntity Postgres User where
+    getEQ = "SELECT firstname, lastname, login, token, password, registered, admin FROM users_view"
 
 instance Routed User Postgres where
     router = do
@@ -55,7 +57,7 @@ instance Routed User Postgres where
         --delete_ "admin/users" 
         --post    "login"       loginUser
 
-getCurrentUser :: ( Application m, Database.Entity (Database m) User
+getCurrentUser :: ( Application m, Database.DBEntity (Database m) User
     ) => Endpoint m
 getCurrentUser _ = getE @User []  -- text "getCurrentUser"
 
