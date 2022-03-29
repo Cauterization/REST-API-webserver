@@ -32,10 +32,12 @@ data User a = User
   , lastName   :: Field "last_name"  'Required a '[Immutable]                      Text
   , login      :: Field "login"      'Required a '[Immutable]                      Text
   , token      :: Field "token"      'Required a '[NotAllowedFromFront, Hidden]    Text
-  , password   :: Field "password"   'Required a '[Immutable, Hidden]              Text
-  , registered :: Field "registered" 'Required a '[Immutable, NotAllowedFromFront] Date
+  , password   :: Field "password"   'Required a '[Immutable          , Hidden]    Text
+  , created    :: Field "created"    'Required a '[Immutable, NotAllowedFromFront] Date
   , admin      :: Field "admin"      'Required a '[Immutable, NotAllowedFromFront] Bool 
   } deriving stock (Generic)
+    deriving (Database.DBEntity Postgres)
+
 {-}
 deriving instance EmptyData        (User Update)
 deriving instance Postgres.ToRow   (User Update)
@@ -46,9 +48,6 @@ deriving instance Postgres.ToRow   (User (Front Create))
 deriving instance ToJSON           (User (Front Display))
 deriving instance Postgres.FromRow (User (Front Display))
 deriving instance Data             (User (Front Display))
-
-instance Database.DBEntity Postgres User where
-    getEQ = "SELECT firstname, lastname, login, token, password, registered, admin FROM users_view"
 
 instance Routed User Postgres where
     router = do

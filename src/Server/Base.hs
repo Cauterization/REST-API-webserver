@@ -60,7 +60,7 @@ throwParsingError :: (MonadThrow m, Logger.HasLogger m) => String -> m a
 throwParsingError = throwWithInfo . ParsingErr . T.pack 
 
 throw404 :: (MonadThrow m, HasEnv m, Logger.HasLogger m) =>  m a
-throw404 = getPath >>= throwWithInfo . Err404 . error . show 
+throw404 = getPath >>= throwWithInfo . Err404 
 
 data Config = Config
     { cDatabase :: Database.Config

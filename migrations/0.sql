@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS authors (
 
 );
 
+DROP VIEW IF EXISTS authors_view;
+
 CREATE OR REPLACE VIEW authors_view AS (
 
     SELECT authors.id  AS author_id,

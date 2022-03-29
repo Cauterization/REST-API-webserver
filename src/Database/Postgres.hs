@@ -40,6 +40,7 @@ import HKD.Front (Front)
 import Types
 
 import Logger.Handle qualified as Logger
+import Data.Data (Data)
 
 
 data Postgres :: *
@@ -90,26 +91,26 @@ instance Database.IsDatabase Postgres where
         , Database.DBEntity (Database.Database m) e
         , Database.HasPagSize m
         , Database.MConstraints m
-        ) => Database.Connection (Database.Database m)
+        ) 
+        => Database.Connection (Database.Database m)
         -> [ID id] 
         -> Page 
         -> m [e (Front Display)] 
     getEDefaultDB pc _ page = do
         pagination <- show <$> Database.getPagSize
         let q = Database.unEQuery $ mconcat
-                [ Database.getEQ @Postgres @e
+                [ Database.getEQuery @Postgres @e @(Front Display)
                 , " LIMIT " , fromString pagination
                 , " OFFSET ", fromString pagination, " * (? - 1)"
                 ] 
         Logger.debug $ T.show q
         liftIO $ Pool.withResource pc $ \conn -> query conn q (Only page)
 
-    getEQDefault :: forall (e :: * -> *) (a :: *). 
-        Database.DBEntity Postgres e 
+    getEQueryDefault :: forall (e :: * -> *) (a :: *). 
+        (Database.DBEntity Postgres e, Data (e a))
         => Database.EQuery Postgres (e a)
-    getEQDefault = mconcat 
-        [ "SELECT * "
-        -- , fromString $ intercalate ", " $ fieldsE @(e a)
+    getEQueryDefault = mconcat 
+        [ "SELECT ", fieldsQuery @(e a)
         , " FROM ", nameE @e, "s_view "
         ]
         

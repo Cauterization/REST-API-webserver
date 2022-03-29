@@ -26,16 +26,20 @@ import Server.Router
 import Server.Router qualified as Router
 
 import Logger.Handle qualified as Logger
+import Logger.IO qualified as Logger
+import Database.Database qualified as Database
 import Database.Postgres (Postgres)
 
 runServer ::  (?runMigrations :: Bool) => IO ()
 runServer = handle handler $ do
     conf <- BL.readFile "config.json" >>= parseOrFail
+    conn <- Database.mkConnectionIO @App $ cDatabase conf
+    let logger = Logger.fromConfig $ cLogger conf
+    when ?runMigrations $ Database.runMigrations @App logger conn
     Wai.run 3000 $ \req respond -> do
         body <- Wai.strictRequestBody req
         ToResponse{..} <- runRouter conf req body
         respond $ Wai.responseLBS respStatus respHeaders respBody
-        Sys.die "" -- debug
   where
     handler = \(e :: IOException) -> Sys.die $ show e <> ". Terminating..."
     parsingFail = fail . ("Parsing config error: " <>) . show 
@@ -48,7 +52,7 @@ data ToResponse
     , respBody    :: Body
     } deriving Show
 
-runRouter ::  (?runMigrations :: Bool) => Config -> Wai.Request -> Body -> IO ToResponse
+runRouter :: Config -> Wai.Request -> Body -> IO ToResponse
 runRouter conf req body 
     = fmap fromResult 
     $ flip catches handler 

@@ -54,12 +54,7 @@ instance Logger.HasLogger App where
         l <- asks envLogger
         l v t
 
-runApp :: (?runMigrations :: Bool)
-    => Config 
-    -> Wai.Request 
-    -> Body 
-    -> App a 
-    -> IO a
+runApp :: Config -> Wai.Request -> Body -> App a  -> IO a
 runApp conf req body app = do
     conn <- Database.mkConnectionIO @App $ cDatabase conf
     env <- toEnv conf req body
@@ -67,7 +62,6 @@ runApp conf req body app = do
     flip runReaderT 
         (Env conn ((liftIO . ) . logger) env)
         $ unApp $ do
-        when ?runMigrations (liftIO $ Database.runMigrations @App logger conn)
         app
 
 type instance Database App = Postgres
@@ -100,5 +94,5 @@ getE ids = do
     entities <- do
         conn <- Database.getConnection
         Database.getE @_ @e conn ids =<< getPage
-    Logger.info $ nameE @e <> "was found."
+    Logger.info $ nameE @e <> " was found."
     json entities

@@ -5,7 +5,7 @@ module Entities.Internal where
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.Types qualified as J
 import Data.Data
-import Data.List (stripPrefix)
+import Data.List (stripPrefix, intercalate)
 import Data.Maybe
 import Data.String
 
@@ -36,7 +36,7 @@ type family EntityOrID e a :: * where
     EntityOrID e Create          = ID e
     EntityOrID e (Front Create)  = ID e
     EntityOrID e Update          = ID e
-    EntityOrID e Display         = e Display
+    EntityOrID e (Front Display) = e (Front Display)
 
 nameE :: forall (e :: * -> *) s. (Typeable e, IsString s) => s
 nameE = let t = show (typeOf (Proxy @e)) 
@@ -44,6 +44,10 @@ nameE = let t = show (typeOf (Proxy @e))
 
 fieldsE :: forall e. Data e  => [String]
 fieldsE = concatMap constrFields . dataTypeConstrs . dataTypeOf $ (undefined :: e)
+
+fieldsQuery :: forall e s. (Data e, IsString s)  => s
+fieldsQuery = fromString $ intercalate ", " $ fieldsE @e
+
 {-}
 fieldsE :: forall e (s :: *). (Data e, IsString s) => s
 fieldsE = fromString 
