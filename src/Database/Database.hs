@@ -23,9 +23,6 @@ import qualified Logger.Handle as Logger
 
 import Server.Base qualified as Base
 
-
-type family Database (app :: * -> *) :: *
-
 type family Connection (db :: *) :: *
 
 type family FromRow (db :: *) :: * -> Constraint
@@ -78,6 +75,8 @@ type MConstraints m = DBConstraints (Database m) m
 
 -- | Database class for server 
 class IsDatabase (Database m) => HasDatabase (m :: * -> *) where
+
+    type family Database m :: *
 
     mkConnectionIO :: Config -> IO (Connection (Database m))
     mkConnectionIO = mkConnectionIODB @(Database m)

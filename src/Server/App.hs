@@ -64,9 +64,10 @@ runApp conf req body app = do
         $ unApp $ do
         app
 
-type instance Database App = Postgres
 
-instance HasDatabase App
+
+instance HasDatabase App where
+    type Database App = Postgres
 
 instance HasEnv App where
     asksEnv f = asks (f . envBase)
