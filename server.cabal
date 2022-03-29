@@ -50,6 +50,7 @@ library
       Server.App
       Server.Base
       Server.Router
+      Server.Run
       Server.Server
       Types
   other-modules:

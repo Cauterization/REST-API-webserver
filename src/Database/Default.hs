@@ -5,7 +5,6 @@
 
 module Database.Default where
 
-import Data.Data
 import Data.Kind
 
 import Database.Config
@@ -17,7 +16,6 @@ import Types
 
 
 import qualified Logger.Handle as Logger
-import Control.Monad.IO.Class
 import Server.Base qualified as Base
 
 

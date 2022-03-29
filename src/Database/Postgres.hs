@@ -20,7 +20,6 @@ import Data.Function (on)
 import Data.FileEmbed
 import Data.List qualified as L
 import Data.Text.Encoding qualified as T
-import Data.List (intercalate)
 import Data.String
 
 
@@ -41,7 +40,6 @@ import Types
 
 import Logger.Handle qualified as Logger
 import Data.Data (Data)
-import qualified Logger.IO as Logger
 
 
 data Postgres :: *

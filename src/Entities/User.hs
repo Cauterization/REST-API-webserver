@@ -2,7 +2,7 @@
 
 module Entities.User where
 
-import Data.Aeson (FromJSON, ToJSON)
+import Data.Aeson ( ToJSON)
 import Data.Text (Text)
 import GHC.Generics ( Generic )
 
@@ -10,12 +10,10 @@ import GHC.Generics ( Generic )
 import Server.App
 import Server.Router
 
-import HKD.Create (Create)
 import HKD.Display (Hidden, Display)
-import HKD.EmptyData (EmptyData)
 import HKD.Field ( Field, Required( Required) )
 import HKD.Front ( NotAllowedFromFront, Front )
-import HKD.Update (Update, Immutable)
+import HKD.Update (Immutable)
 
 import Database.Database ( Database ) 
 import Database.Database qualified as Database
@@ -26,6 +24,7 @@ import Data.Data
 
 import Types
 import Server.Base
+
 
 data User a = User
   { firstName  :: Field "first_name" 'Required a '[Immutable]                      Text

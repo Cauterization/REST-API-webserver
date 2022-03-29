@@ -3,8 +3,6 @@ module Entities.Author where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Text (Text)
-import Data.List (intercalate)
-import Data.String (fromString)
 
 import Database.Postgres(Postgres)
 import Database.PostgreSQL.Simple qualified as Postgres

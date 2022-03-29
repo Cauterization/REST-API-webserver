@@ -30,12 +30,9 @@ import Server.Base hiding (Env)
 import Server.Base qualified as Base
 import Types
 
-
-
-
 newtype App a = App {unApp :: ReaderT Env IO a}
     deriving newtype 
-        (Functor
+        ( Functor
         , Applicative
         , Monad
         , MonadReader Env

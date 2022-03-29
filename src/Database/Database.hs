@@ -11,7 +11,6 @@ import Database.Config
 
 import Data.String (IsString)
 
-import Entities.Internal
 
 import HKD.Display
 import HKD.Front
