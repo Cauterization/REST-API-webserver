@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
 
@@ -22,7 +21,7 @@ import Logger.IO qualified as Logger
 
 import Database.Database ( Database, HasDatabase(..))
 import Database.Database qualified as Database
-import Database.Postgres (Postgres)
+import Postgres.Postgres (Postgres)
 
 import HKD.Front (Front)
 
@@ -60,8 +59,6 @@ runApp conf req body app = do
         (Env conn ((liftIO . ) . logger) env)
         $ unApp $ do
         app
-
-
 
 instance HasDatabase App where
     type Database App = Postgres

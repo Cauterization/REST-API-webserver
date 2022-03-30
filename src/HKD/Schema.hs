@@ -14,3 +14,5 @@ type instance Field name req Schema modifiers a = Named name
 
 nameOf :: forall e n a. KnownSymbol n => (e Schema -> Named n) -> Text 
 nameOf _ = pack $ symbolVal (Proxy @n)
+
+type family ShowE e a :: *

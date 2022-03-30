@@ -4,7 +4,7 @@ module Entities.Author where
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Text (Text)
 
-import Database.Postgres(Postgres)
+import Postgres.Postgres(Postgres)
 import Database.PostgreSQL.Simple qualified as Postgres
 import Database.PostgreSQL.Simple.FromRow qualified as Postgres
 
@@ -21,7 +21,7 @@ import HKD.Filter (Filter)
 import HKD.Front ( Front )
 import HKD.Update (Update, Immutable)
 
-import Entities.Internal ( EntityOrID, fieldsQuery )
+import Entities.Internal ( EntityOrID, NamedID, fieldsQuery )
 import Entities.User 
 
 import Database.Database qualified as Database
@@ -49,10 +49,8 @@ instance Postgres.FromRow   (Author (Front Display)) where
         pure Author{..}
 
 instance Database.DBEntity Postgres Author where
-    getEQuery = mconcat 
-        [ "SELECT "
-        , fieldsQuery @(User (Front Display))
-        , ", description" 
+    getEQuery = Database.qconcat
+        [ "SELECT ", fieldsQuery @(User (Front Display)),", description" 
         , " FROM authors_view"
         ]
 
@@ -63,3 +61,23 @@ instance Routed Author Postgres where
         --get_    "admin/authors/{ID}" 
         --put_    "admin/authors/{ID}"     
         --delete_ "admin/authors/{ID}"  
+
+
+{-
+
+>>> Database.getEQueryDefault @Postgres @Author @(Front Display)
+EQuery {eqSELECT = "", eqFROM = "", eqWHERE = "", eqLIMIT = "", eqOFFSET = ""}
+
+
+
+>>>  "SELECT 1 " # fieldsQuery @(User (Front Display)) :: Database.EQuery Postgres (User (Front Display))
+EQuery {eqSELECT = "", eqFROM = "", eqWHERE = "", eqLIMIT = "", eqOFFSET = ""}
+
+
+
+
+
+
+
+
+-}

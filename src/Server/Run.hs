@@ -28,7 +28,7 @@ import Server.Router qualified as Router
 import Logger.Handle qualified as Logger
 -- import Logger.IO qualified as Logger
 -- import Database.Database qualified as Database
-import Database.Postgres (Postgres)
+import Postgres.Postgres (Postgres)
 
 data ToResponse 
     = ToResponse 

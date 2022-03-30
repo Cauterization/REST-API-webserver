@@ -27,8 +27,8 @@ library
   exposed-modules:
       Database.Config
       Database.Database
-      Database.Default
-      Database.Postgres
+      Database.Error
+      Database.Query
       Entities.Author
       Entities.Internal
       Entities.User
@@ -47,6 +47,7 @@ library
       HKD.Utils
       Logger.Handle
       Logger.IO
+      Postgres.Postgres
       Server.App
       Server.Base
       Server.Router

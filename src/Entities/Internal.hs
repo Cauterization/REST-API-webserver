@@ -27,10 +27,15 @@ data Entity e a = Entity
 deriving instance (FromJSON (e a), J.FromJSON (NamedID "_id" a e)) => FromJSON (Entity e a)
 deriving instance (ToJSON (e a), J.ToJSON (NamedID "_id" a e)) => ToJSON (Entity e a)
 
-type family NamedID n a e :: * where
-    NamedID n Schema e = Named n
-    NamedID n Filter e =   [ID e]
-    NamedID n a      e =    ID e
+type family NamedID n a (e :: * -> *) :: * where
+    NamedID n Schema          e = Named n
+    NamedID n Filter          e =   [ID e]
+    NamedID n (Front Display) e = e (Front Display)
+    NamedID n a               e =    ID e
+{-
+x :: forall e n. Known Symbol n => ((Entity e Schema -> e Schema) -> Named n) -> Named n
+x f = f $ entity @e @Schema
+-}
 
 type family EntityOrID e a :: * where
     EntityOrID e Create          = ID e
@@ -43,9 +48,9 @@ nameE = let t = show (typeOf (Proxy @e))
         in fromString $ fromMaybe t $ stripPrefix "Proxy (* -> *) " t
 
 fieldsE :: forall e. Data e  => [String]
-fieldsE = concatMap constrFields . dataTypeConstrs . dataTypeOf $ (undefined :: e)
+fieldsE = concatMap constrFields . dataTypeConstrs . dataTypeOf $ (Proxy @e)
 
-fieldsQuery :: forall e s. (Data e, IsString s)  => s
+fieldsQuery :: forall e s. (Data e, IsString s) => s
 fieldsQuery = fromString $ intercalate ", " $ fieldsE @e
 
 {-}

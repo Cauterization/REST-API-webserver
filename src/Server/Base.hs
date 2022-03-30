@@ -38,7 +38,7 @@ text = pure . ResText
 json :: (Applicative m, ToJSON e) => e -> m AppResult
 json = pure . ResJSON . encode
 
-type Endpoint m = [ID Path] -> m AppResult
+type Endpoint m = IDs -> m AppResult
 
 data AppErr 
     = Err404 (Path Current)

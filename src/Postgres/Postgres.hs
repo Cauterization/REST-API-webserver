@@ -2,11 +2,14 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Database.Postgres  
+module Postgres.Postgres  
     ( Postgres
     ) where
 
+import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 
@@ -26,21 +29,23 @@ import Data.String
 import Entities.Internal
 import Extended.Text qualified as T
 
-import Database.Config qualified as Database
 import Database.Database qualified as Database
 
+
 import Database.PostgreSQL.Simple.Migration (MigrationContext(..), MigrationResult(..), MigrationCommand (MigrationInitialization, MigrationScript), runMigration)
+import Database.PostgreSQL.Simple.ToField
 
 import System.Exit 
 
 import HKD.Display
 import HKD.Front (Front)
+import HKD.Schema
 
 import Types
 
 import Logger.Handle qualified as Logger
 import Data.Data (Data)
-
+import Database.Error (DBErr(EntityNotFound))
 
 data Postgres :: *
 
@@ -48,12 +53,26 @@ type instance Database.Connection Postgres = Pool.Pool Connection
 
 type instance Database.FromRow Postgres = FromRow
 
+type instance Database.ToField Postgres = ToField
+
 type instance Database.Query Postgres = Query
+
+newtype DBArgs m a = DBArgs {unDBA :: ReaderT IDs m a}
+    deriving newtype (Functor, Applicative, Monad, MonadReader IDs, MonadThrow) 
+
+instance (Monad m, MonadThrow m) => MonadFail (DBArgs m) where
+    fail _ = throwM $ EntityNotFound ""
+
+getIDs :: Monad m => DBArgs m IDs
+getIDs = ask 
 
 instance Database.IsDatabase Postgres where
     
     type DBConstraints Postgres m = 
-        (MonadIO m, Logger.HasLogger m, Database.HasConnection m)
+        ( MonadIO m
+        , Logger.HasLogger m
+        , Database.HasConnection m
+        )
 
     mkConnectionIODB Database.Config{..} = Pool.createPool
         (connectPostgreSQL $ T.encodeUtf8 cConn)
@@ -99,23 +118,38 @@ instance Database.IsDatabase Postgres where
         -> m [e (Front Display)] 
     getEDefaultDB _ page = do
         pc <- Database.getConn
-        pagination <- show <$> Database.getPagSize
-        let q = Database.unEQuery $ mconcat
-                [ Database.getEQuery @Postgres @e @(Front Display)
-                , " LIMIT " , fromString pagination
-                , " OFFSET ", fromString pagination, " * (? - 1)"
-                ] 
+        pagination <- fromString . show <$> Database.getPagSize
+        let q = Database.unEQuery $ 
+                Database.getEQuery @Postgres @e @(Front Display)
+                <> Database.qconcat 
+                    [ " LIMIT " , pagination
+                    , " OFFSET ", pagination, " * (? - 1)"]
         Logger.debug $ T.show q
         liftIO $ Pool.withResource pc $ \conn -> query conn q (Only page)
 
-    getEQueryDefault :: forall (e :: * -> *) (a :: *). 
+    getEByIDDefaultDB :: forall m e id. 
+        ( Database.Database m ~ Postgres
+        , Database.DBEntity (Database.Database m) e
+        , Database.MConstraints m
+        , Database.ToField Postgres (ID id)
+        ) 
+        => [ID id] 
+        -> m (e (Front Display))
+    getEByIDDefaultDB [eID] = do
+        pc <- Database.getConn
+        let q = Database.unEQuery $ 
+                Database.getEQuery @Postgres @e @(Front Display)
+                <> "WHERE id = ?"
+        Logger.debug $ T.show q
+        liftIO $ Pool.withResource pc $ \conn -> query conn q (Only eID) >>= \case
+            []   -> throwM $ EntityNotFound $ nameE @e
+            x:xs -> pure x 
+
+    getEByIDQueryDefault :: forall (e :: * -> *) (a :: *).
         (Database.DBEntity Postgres e, Data (e a))
         => Database.EQuery Postgres (e a)
-    getEQueryDefault = mconcat 
-        [ "SELECT ", fieldsQuery @(e a)
-        , " FROM ", nameE @e, "s_view "
-        ]
-        
+    getEByIDQueryDefault = Database.getEQuery @Postgres @e @a
+        <> "WHERE id = ?"
 
 sortedMigrations :: [(FilePath, B.ByteString)]
 sortedMigrations =

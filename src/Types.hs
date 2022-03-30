@@ -20,6 +20,7 @@ import GHC.Generics
 import qualified Extended.Text as T
 import qualified Data.Time as Time
 import Text.Read (readMaybe)
+import Database.PostgreSQL.Simple.ToField (ToField)
 
 type Body = BL.ByteString
 
@@ -29,9 +30,11 @@ type Date = Time.Day
 
 type PaginationSize = Int
 
-newtype ID (a :: * -> *) = ID { idVal :: Int }
+newtype ID (e :: * -> *) = ID { idVal :: Int }
   deriving stock (Show, Generic)
-  deriving newtype Read
+  deriving newtype (Read, ToField)
+
+type IDs = [ID Path]
 
 instance FromJSON (ID a) where
   parseJSON = \case 

@@ -13,11 +13,11 @@ import Server.Router
 import HKD.Display (Hidden, Display)
 import HKD.Field ( Field, Required( Required) )
 import HKD.Front ( NotAllowedFromFront, Front )
-import HKD.Update (Immutable)
+import HKD.Update (Immutable, Update)
 
 import Database.Database ( Database ) 
 import Database.Database qualified as Database
-import Database.Postgres (Postgres)
+import Postgres.Postgres (Postgres)
 import Database.PostgreSQL.Simple qualified as Postgres
 
 import Data.Data
@@ -25,6 +25,7 @@ import Data.Data
 import Types
 import Server.Base
 
+import Data.String
 
 data User a = User
   { firstName  :: Field "first_name" 'Required a '[Immutable]                      Text
@@ -61,4 +62,30 @@ getCurrentUser _ = getE @User []  -- text "getCurrentUser"
 
 loginUser :: Monad m => Endpoint m
 loginUser _ = text "login"
+
+
+
+{-
+
+>>> Database.getEQueryDefault @Postgres @User @(Front Display)
+EQuery {eqSELECT = Just "firstName, lastName, login, token, password, created, admin", eqFROM = Just "Users_view", eqWHERE = Nothing, eqLIMIT = Nothing, eqOFFSET = Nothing}
+
+
+>>> mconcat ["LIMIT 50", Database.getEQuery @Postgres @User @(Front Display)]
+EQuery {eqSELECT = Just "firstName, lastName, login, token, password, created, admin", eqFROM = Just "Users_view", eqWHERE = Nothing, eqLIMIT = Just "50", eqOFFSET = Nothing}
+
+
+
+>>>    mconcat [Database.getEQuery @Postgres @User @(Front Display), " LIMIT s" , fromString "1"]
+EQuery {eqSELECT = Just "firstName, lastName, login, token, password, created, admin", eqFROM = Just "Users_view", eqWHERE = Nothing, eqLIMIT = Just "s", eqOFFSET = Nothing}
+
+
+
+
+
+-}
+
+
+
+
 
