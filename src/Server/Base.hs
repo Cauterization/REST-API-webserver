@@ -18,6 +18,7 @@ import Data.Function (on)
 import Data.Maybe
 
 import Logger.Handle qualified as Logger
+import Logger.Handle ((.<))
 import Database.Config qualified as Database
 import Data.Aeson
 import qualified Extended.Text as T
@@ -46,21 +47,26 @@ data AppErr
     | UnknwonHTTPMethod HTTP.Method
     | QParamsErr Text
     | OtherErr Text
+    | ArityError Text
     deriving (Show, Typeable, Exception) 
 
 fromErr :: AppErr -> AppResult
 fromErr = ResText . T.show
 
-throwWithInfo :: (MonadThrow m, Logger.HasLogger m) => AppErr -> m a
-throwWithInfo e = do
-    Logger.info $ T.show e
-    throwM e
+-- throwWithInfo :: (MonadThrow m, Logger.HasLogger m) => AppErr -> m a
+-- throwWithInfo e = do
+--     Logger.info $ T.show e
+--     throwM e
 
-throwParsingError :: (MonadThrow m, Logger.HasLogger m) => String -> m a
-throwParsingError = throwWithInfo . ParsingErr . T.pack 
+parsingError :: (MonadThrow m, Logger.HasLogger m) => String -> m a
+parsingError = throwM . ParsingErr . T.pack 
+
+arityError :: (Monad m, MonadThrow m) => Int -> Int -> m a
+arityError expected got = throwM . ArityError 
+    $ "Expected " .< expected <> " but got " .< got
 
 throw404 :: (MonadThrow m, HasEnv m, Logger.HasLogger m) =>  m a
-throw404 = getPath >>= throwWithInfo . Err404 
+throw404 = getPath >>= throwM . Err404 
 
 data Config = Config
     { cDatabase :: Database.Config
@@ -121,11 +127,9 @@ getParam p = asksEnv (M.lookup p . envQParams) >>= \case
 
 decodedBody :: (FromJSON e, Monad m, Logger.HasLogger m, MonadThrow m, HasEnv m) 
     => m e 
-decodedBody = getBody >>= either throwParsingError pure . eitherDecode
+decodedBody = getBody >>= either parsingError pure . eitherDecode
 
 getPage :: (Monad m, MonadThrow m, Logger.HasLogger m, HasEnv m)  => m Page
-getPage = getParam "page" <&> (fromMaybe "1" >>> T.read) >>= \case
-    Left err -> throwWithInfo $ ParsingErr $ "page: " <> err
-    Right n  -> if n > 0 
-                then pure n
-                else throwWithInfo $ QParamsErr "zero or negative page"
+getPage = getParam "page" <&> (fromMaybe "1" >>> T.read) >>= either
+    (parsingError . ("page: " <>) .  T.unpack)
+    (\n -> if n > 0 then pure n else throwM $ QParamsErr "zero or negative page")

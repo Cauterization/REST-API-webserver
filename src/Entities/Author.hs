@@ -27,6 +27,7 @@ import Entities.User
 import Database.Database qualified as Database
 
 import Data.Data
+import Data.String
 
 data Author a = Author
   { user        :: Field "user"        'Required a '[Immutable] (EntityOrID User a)
@@ -49,10 +50,22 @@ instance Postgres.FromRow   (Author (Front Display)) where
         pure Author{..}
 
 instance Database.DBEntity Postgres Author where
-    getEQuery = Database.qconcat
-        [ "SELECT ", fieldsQuery @(User (Front Display)),", description" 
-        , " FROM authors_view"
-        ]
+
+    type DBArity Author = Database.Unary
+
+instance Database.GettableSingleFrom Postgres Author where
+    getEByIDQuery = 
+        Database.qSELECT (fieldsQuery @(User (Front Display)) <> ", description") 
+        <> Database.qFROM "authors_view"
+  
+instance Database.GettableManyFrom Postgres Author where
+    getEQuery = 
+        Database.qSELECT (fieldsQuery @(User (Front Display)) <> ", description") 
+        <> Database.qFROM "authors_view"
+{- 
+>>> fieldsQuery @(User (Front Display))
+parse error (possibly incorrect indentation or mismatched brackets)
+-}
 
 instance Routed Author Postgres where
     router = do
@@ -66,15 +79,16 @@ instance Routed Author Postgres where
 {-
 
 >>> Database.getEQueryDefault @Postgres @Author @(Front Display)
-EQuery {eqSELECT = "", eqFROM = "", eqWHERE = "", eqLIMIT = "", eqOFFSET = ""}
+EQuery {eqSELECT = Just "", eqFROM = Just "Authors_view ", eqWHERE = Nothing, eqLIMIT = Nothing, eqOFFSET = Nothing}
 
 
 
->>>  "SELECT 1 " # fieldsQuery @(User (Front Display)) :: Database.EQuery Postgres (User (Front Display))
-EQuery {eqSELECT = "", eqFROM = "", eqWHERE = "", eqLIMIT = "", eqOFFSET = ""}
+>>>  fromString $ tail $ init $ show ("SELECT 1 " <> fieldsQuery @(User (Front Display)) :: Postgres.Query) :: Database.EQuery Postgres (User (Front Display))
+EQuery {eqSELECT = Just "1", eqFROM = Just "", eqWHERE = Just "", eqLIMIT = Just "", eqOFFSET = Just ""}
 
 
-
+>>> fromString "SELECT 1 "  :: Database.EQuery Postgres (User (Front Display))
+EQuery {eqSELECT = Just "1", eqFROM = Just "", eqWHERE = Just "", eqLIMIT = Just "", eqOFFSET = Just ""}
 
 
 
