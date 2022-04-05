@@ -16,10 +16,12 @@ import Extended.Text qualified as T
 
 import Types
 
-import Database.Database (Database)
+import Database.Database (Database, GettableManyFrom)
 
 import Server.Base
 import Server.App
+import Data.Aeson
+import HKD.Front
 
 type Middleware m a = m a -> m a
 
@@ -78,7 +80,8 @@ get :: forall (e :: * -> *) (m :: * -> *). Monad m
 get p f = addRoute (GET $ T.splitOn "/" p) $ f @e @Display
 
 get_ :: forall (e :: * -> *) (m :: * -> *). 
-    ( Entity (Database m) e
+    ( GettableManyFrom (Database m) e
+    , ToJSON (e (Front Display))
     , Application m
     ) => Text -> Router e m ()
 get_ p = get p (getE @e)

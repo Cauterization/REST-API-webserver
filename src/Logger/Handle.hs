@@ -9,6 +9,7 @@ module Logger.Handle
     , Verbosity(..)
     , Mode(..)
     , HasLogger(..)
+    , (.<), (>.)
     ) where
 
 import Control.Applicative ( Alternative((<|>)) )
@@ -66,6 +67,15 @@ info    = mkLog Info
 warning = mkLog Warning
 error   = mkLog Error 
 
-
 class HasLogger m where
     mkLog :: Logger m
+
+(.<) :: (Show a) => T.Text -> a -> T.Text
+text .< a = text <> T.show a
+
+infixr 7 .<
+
+(>.) :: (Show a) => a -> T.Text -> T.Text
+(>.) = flip (.<)
+
+infixr 7 >.
