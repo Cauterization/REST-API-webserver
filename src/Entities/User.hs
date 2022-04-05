@@ -27,10 +27,6 @@ import Server.Base
 
 import Data.String
 
-
-
-import Database.Query
-
 data User a = User
   { firstName  :: Field "first_name" 'Required a '[Immutable]                      Text
   , lastName   :: Field "last_name"  'Required a '[Immutable]                      Text
@@ -40,7 +36,7 @@ data User a = User
   , created    :: Field "created"    'Required a '[Immutable, NotAllowedFromFront] Date
   , admin      :: Field "admin"      'Required a '[Immutable, NotAllowedFromFront] Bool 
   } deriving stock (Generic)
-    deriving (Database.GettableSingleFrom Postgres)
+    deriving (Database.DBEntity Postgres)
 
 {-}
 deriving instance EmptyData        (User Update)
@@ -53,9 +49,6 @@ deriving instance ToJSON           (User (Front Display))
 deriving instance Postgres.FromRow (User (Front Display))
 deriving instance Data             (User (Front Display))
 
-instance Database.DBEntity Postgres User where
-    type instance DBArity User = Database.Unary
-
 instance Routed User Postgres where
     router = do
         --post_   "users"      
@@ -63,15 +56,36 @@ instance Routed User Postgres where
         --delete_ "admin/users" 
         --post    "login"       loginUser
 
-getCurrentUser :: ( Application m, Database.GettableSingleFrom (Database m) User
+getCurrentUser :: ( Application m, Database.DBEntity (Database m) User
     ) => Endpoint m
-getCurrentUser _ = getEByID @User []  -- text "getCurrentUser"
+getCurrentUser _ = getE @User []  -- text "getCurrentUser"
 
 loginUser :: Monad m => Endpoint m
 loginUser _ = text "login"
 
+
+
 {-
 
->>> fieldsQuery @(User (Front Display))
-Variable not in scope: fieldsQuery
+>>> Database.getEQueryDefault @Postgres @User @(Front Display)
+EQuery {eqSELECT = Just "firstName, lastName, login, token, password, created, admin", eqFROM = Just "Users_view", eqWHERE = Nothing, eqLIMIT = Nothing, eqOFFSET = Nothing}
+
+
+>>> mconcat ["LIMIT 50", Database.getEQuery @Postgres @User @(Front Display)]
+EQuery {eqSELECT = Just "firstName, lastName, login, token, password, created, admin", eqFROM = Just "Users_view", eqWHERE = Nothing, eqLIMIT = Just "50", eqOFFSET = Nothing}
+
+
+
+>>>    mconcat [Database.getEQuery @Postgres @User @(Front Display), " LIMIT s" , fromString "1"]
+EQuery {eqSELECT = Just "firstName, lastName, login, token, password, created, admin", eqFROM = Just "Users_view", eqWHERE = Nothing, eqLIMIT = Just "s", eqOFFSET = Nothing}
+
+
+
+
+
 -}
+
+
+
+
+

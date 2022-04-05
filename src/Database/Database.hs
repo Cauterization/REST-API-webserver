@@ -9,9 +9,6 @@ module Database.Database
     , FromRow
     , ToField
     , DBEntity(..)
-    , GettableFrom(..)
-    , GArgs(..)
-    , toGArgs
     , IsDatabase(..)
     , Connection
     , HasPagSize(..)
@@ -33,7 +30,6 @@ import Database.Config
 import Database.Query
 
 import Entities.Internal
-import Extended.Text (Text)
 import HKD.Display
 import HKD.Front
 
@@ -48,8 +44,7 @@ import Data.Maybe (catMaybes, listToMaybe, mapMaybe)
 import Control.Arrow (Arrow(first))
 import Data.Function ((&))
 import Control.Applicative ((<|>))
-
-import Control.Monad.Catch
+import Data.Text
 
 
 type family Connection (db :: *) :: *
@@ -67,88 +62,39 @@ instance Base.HasEnv m => HasPagSize m where
 class HasConnection m where
     getConn :: m (Connection (Database m))
 
+-- | Database classes for each api entity
 class ( Typeable e
+    
+    , Data (e (Front Display))
+    , FromRow db (e (Front Display))
+
     ) => DBEntity db (e :: * -> *) where
 
     collection :: Text
     collection = nameE @e
 
-class  ( DBEntity db e
-       , FromRow db (e (Front Display))
-       ) => GettableFrom db e where
+    getE :: forall m id. (HasDatabase m, Database m ~ db)
+        => [ID id] -> Page -> m [e (Front Display)]
+    getE = getEDefault @m
 
-    type family GArgs e :: *
+    getEQuery :: forall a. (IsDatabase db, Data (e a)) => EQuery db (e a)
+    getEQuery = getEQueryDefault @db
 
-    toGArgs :: (Monad m, MonadThrow m) => [ID Path] -> m (GArgs e)
-    default toGArgs :: (GArgs e ~ ID Path, Monad m, MonadThrow m) => [ID Path] -> m (GArgs e)
-    toGArgs ids = case ids of
-        [i] -> pure i
-        _ -> Base.arityError 1 $ length ids
-
-    getFromDB :: forall m. 
-        (HasDatabase m, Database m ~ db, MConstraints m, ToField db (GArgs e))
-        => (EQuery db (e (Front Display)) -> EQuery db (e (Front Display))) 
-        -> GArgs e 
-        -> m [e (Front Display)]
-    default getFromDB :: forall m. 
-        ( HasDatabase m
-        , Database m ~ db
-        , MConstraints m
-        , ToField db (GArgs e)
-        , GArgs e ~ Page
-        , Data (e (Front Display))
-        )
-        => (EQuery db (e (Front Display)) -> EQuery db (e (Front Display))) 
-        -> GArgs e 
-        -> m [e (Front Display)]
-    getFromDB = getEFromDBDefault
-    
-    getQuery :: forall a. (IsDatabase db, Data (e a)) => EQuery db (e a)
-    getQuery = getEQueryDefault @db
-
--- class ( DBEntity db e
---       , FromRow db (e (Front Display))
---       ) => GettableManyFrom db e where
-
---     getE :: forall m. (HasDatabase m, Database m ~ db, MConstraints m)
---         => Page -> m [e (Front Display)]
---     default getE :: forall m. (HasDatabase m, Database m ~ db, MConstraints m)
---         => Page -> m [e (Front Display)]
---     getE = getEDefault @(Database m)
-
---     getEQuery :: forall a. (IsDatabase db, Data (e a)) => EQuery db (e a)
---     getEQuery = getEQueryDefault @db
-
--- class (DBEntity db e, ToField db (ID Path), FromRow db (e (Front Display))) 
---     => GettableSingleFrom db e where
-
---     getEByID :: forall m. (HasDatabase m, Database m ~ db, MConstraints m)
---         => ApplyArity e -> m (e (Front Display))
---     default getEByID :: forall m. (HasDatabase m, Database m ~ db, MConstraints m
---         , ApplyArity e ~ ID Path)
---         => ApplyArity e -> m (e (Front Display))
---     getEByID = getEByIDDefault @(Database m)
-
---     getEByIDQuery :: forall a. (IsDatabase db, Data (e a)) => EQuery db (e a)
---     getEByIDQuery = getEQueryDefault @db
-
+getQuery :: forall db e a. (IsDatabase db, Data (e a), QConstraints db, DBEntity db e) => Query db
+getQuery = unEQuery $ getEQuery @db @e @a
+ 
 -- | Database class for databases
 class IsDatabase (db :: *) where
     type DBConstraints db (m :: * -> *) :: Constraint 
-    mkConnectionIO :: Config -> IO (Connection db)
-    runMigrations :: Config -> Logger.Logger IO -> IO ()
+    mkConnectionIODB :: Config -> IO (Connection db)
+    runMigrationsDB :: Config -> Logger.Logger IO -> IO ()
+    getEDefaultDB :: forall m e id. 
+        (Database m ~ db, DBEntity db e, MConstraints m, HasPagSize m) 
+        => [ID id] -> Page -> m [e (Front Display)] 
 
-    getEFromDBDefault :: forall m e a.
-        ( Database m ~ db
-        , HasDatabase m
-        , GettableFrom db e
-        , FromRow db (e a)
-        , ToField db (GArgs e)
-        , Data (e a)
-        ) =>
-        (EQuery db (e a) -> EQuery db (e a)) 
-        -> GArgs e 
-        -> m [e a]
+    getEByIDDefaultDB :: forall m e id. 
+        (Database m ~ db, DBEntity db e, MConstraints m, HasPagSize m, ToField db (ID id)) 
+        => [ID id] -> m (e (Front Display))
 
     getEQueryDefault :: forall (e :: * -> *) (a :: *). 
         (DBEntity db e, Data (e a))
@@ -158,9 +104,29 @@ class IsDatabase (db :: *) where
         (DBEntity db e, Data (e a))
         => EQuery db (e a)
 
-type MConstraints m = (DBConstraints (Database m) m, IsDatabase (Database m), Base.HasEnv m)
+type MConstraints m = DBConstraints (Database m) m
 
 -- | Database class for server 
-class MConstraints m => HasDatabase (m :: * -> *) where
+class IsDatabase (Database m) => HasDatabase (m :: * -> *) where
 
     type family Database m :: *
+
+    mkConnectionIO :: Config -> IO (Connection (Database m))
+    mkConnectionIO = mkConnectionIODB @(Database m)
+
+    runMigrations :: Config -> Logger.Logger IO -> IO ()
+    runMigrations = runMigrationsDB @(Database m)
+
+    getEDefault :: forall e id. DBEntity (Database m) e
+        => [ID id] -> Page -> m [e (Front Display)] 
+    default getEDefault :: forall e id. (DBEntity (Database m) e, MConstraints m
+        , HasPagSize m) 
+        => [ID id] -> Page -> m [e (Front Display)] 
+    getEDefault = getEDefaultDB
+
+    getEByIDDefault :: forall e id. DBEntity (Database m) e
+        => [ID id] -> m (e (Front Display))
+    default getEByIDDefault :: forall e id. (DBEntity (Database m) e, MConstraints m
+        , HasPagSize m, ToField (Database m) (ID id)) 
+        => [ID id] -> m (e (Front Display))
+    getEByIDDefault = getEByIDDefaultDB

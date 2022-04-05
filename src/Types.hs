@@ -75,5 +75,6 @@ getMethod = \case
 instance Eq ([Text] -> Path a) where
     (==) = (==) `on` ($ [])
 
+
 data Pattern deriving (Typeable, Data)
 data Current deriving (Typeable, Data)

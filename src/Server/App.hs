@@ -53,7 +53,7 @@ instance Logger.HasLogger App where
 runApp :: Config -> Wai.Request -> Body -> App a -> IO a
 runApp conf req body app = do
     env <- toEnv conf req body
-    conn <- Database.mkConnectionIO @Postgres $ cDatabase conf
+    conn <- Database.mkConnectionIO @App $ cDatabase conf
     let logger = Logger.fromConfig $ cLogger conf
     flip runReaderT 
         (Env conn ((liftIO . ) . logger) env)
@@ -83,25 +83,11 @@ type Entity db e =
     )
 
 getE :: forall (e :: * -> *) m id. 
-    ( GettableFrom (Database m) e
-    , ToJSON (e (Front Display))
+    ( Entity (Database m) e
     , Application m
-    , GArgs e ~ Page
     ) => [ID Path] -> m AppResult
-getE _ = do
+getE ids = do
     Logger.info $ "Attempt to get " <> nameE @e
-    entities <- Database.getEFromDBDefault id @_ @e =<< getPage
-    Logger.info $ nameE @e <> " was found."
-    json entities
-
-getEByID :: forall (e :: * -> *) m id. 
-    ( Database.GettableSingleFrom (Database m) e
-    , ToJSON (e (Front Display))
-    , Application m
-    , GArgs e ~ ID Path
-    ) => [ID Path] -> m AppResult
-getEByID ids = do
-    Logger.info $ "Attempt to get " <> nameE @e
-    entities <- Database.getEFromDBDefault id @_ @e =<< Database.toGArgs @e ids
+    entities <- Database.getE @_ @e ids =<< getPage
     Logger.info $ nameE @e <> " was found."
     json entities

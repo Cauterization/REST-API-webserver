@@ -20,23 +20,7 @@ data EQuery db e = EQuery
     }
 
 eqParts :: forall db e a. IsString a => [a]
-eqParts = ["SELECT", "FROM", "WHERE", "LIMIT", "OFFSET"]
-
-qSELECT :: forall db e. QConstraints db => Query db -> EQuery db e
-qSELECT q = (\EQuery{..} -> EQuery{eqSELECT = Just q, .. }) $ mempty @(EQuery db e)
-
-qFROM :: forall db e. QConstraints db => Query db -> EQuery db e
-qFROM q = (\EQuery{..} -> EQuery{eqFROM = Just q, .. }) $ mempty @(EQuery db e)
-
-qWHERE :: forall db e. QConstraints db => Query db -> EQuery db e
-qWHERE q = (\EQuery{..} -> EQuery{eqWHERE = Just q, .. }) $ mempty @(EQuery db e)
-
-qLIMIT :: forall db e. QConstraints db => Query db -> EQuery db e
-qLIMIT q = (\EQuery{..} -> EQuery{eqLIMIT = Just q, .. }) $ mempty @(EQuery db e)
-
-qOFFSET :: forall db e. QConstraints db => Query db -> EQuery db e
-qOFFSET q = (\EQuery{..} -> EQuery{eqOFFSET = Just q, .. }) $ mempty @(EQuery db e)
-
+eqParts = ["SELECT", "FROM","WHERE","LIMIT","OFFSET"]
 
 deriving instance Show (Query db) => Show (EQuery db e)
 
@@ -49,7 +33,7 @@ instance IsString (Query db) => IsString (EQuery db e) where
                  in unwords from : g qs to
             else [] : g qs (s:ss)
         g (q:qs) [] = "" : g qs []
-        g []     res = res
+        g []     _ = []
         eqs : eqf : eqw : eql : eqo : _ = map (Just . fromString) $ g eqParts (words str)
 
 instance (Semigroup (Query db), IsString (Query db)) => Semigroup (EQuery db e) where
@@ -64,8 +48,6 @@ instance (Semigroup (Query db), IsString (Query db)) => Semigroup (EQuery db e) 
                 | isNothing b = a
                 | otherwise   = a <> Just q <> b 
 
-instance (Semigroup (Query db), IsString (Query db)) => Monoid (EQuery db e) where
-    mempty = EQuery Nothing Nothing Nothing Nothing Nothing
 
 type QConstraints db = (IsString (Query db), Monoid (Query db))
 
@@ -76,12 +58,6 @@ unEQuery EQuery{..} = mconcat $ intersperse " " $ catMaybes $
     f w q | isNothing q = q
           | otherwise = w <> Just " " <> q
 
-g :: [[Char]] -> [[Char]] -> [String]
-g (q:qs) (s:ss) = 
-    if q == map toUpper s 
-    then let (from, to) = break (`elem` qs) ss
-         in unwords from : g qs to
-    else [] : g qs (s:ss)
-g (q:qs) [] = "" : g qs []
-g []     res = res
-
+qconcat :: (QConstraints db, Show (Query db)) 
+    => [Query db] -> EQuery db e
+qconcat = fromString . show . mconcat

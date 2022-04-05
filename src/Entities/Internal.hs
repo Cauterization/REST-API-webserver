@@ -17,7 +17,6 @@ import HKD.Filter ( Filter )
 import HKD.Front ( Front )
 import HKD.Schema ( Named, Schema) 
 import HKD.Update ( Update )
-import HKD.EmptyData
 import Types
 
 data Entity e a = Entity
@@ -49,7 +48,16 @@ nameE = let t = show (typeOf (Proxy @e))
         in fromString $ fromMaybe t $ stripPrefix "Proxy (* -> *) " t
 
 fieldsE :: forall e. Data e  => [String]
-fieldsE = concatMap constrFields . dataTypeConstrs . dataTypeOf $ (undefined :: e)
+fieldsE = concatMap constrFields . dataTypeConstrs . dataTypeOf $ (Proxy @e)
 
 fieldsQuery :: forall e s. (Data e, IsString s) => s
 fieldsQuery = fromString $ intercalate ", " $ fieldsE @e
+
+{-}
+fieldsE :: forall e (s :: *). (Data e, IsString s) => s
+fieldsE = fromString 
+        . intercalate ", " 
+        . concatMap constrFields 
+        . dataTypeConstrs 
+        . dataTypeOf @e 
+        $ undefined -}
