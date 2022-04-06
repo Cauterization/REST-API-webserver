@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Types where
+module App.Types where
 
 import Data.Aeson
 import Data.Aeson.Types
@@ -8,18 +8,14 @@ import Data.ByteString.Lazy qualified as BL
 import Data.Data
 import Data.Function (on)
 import Data.Text (Text)
-
+import Data.Kind (Type)
 
 import GHC.Generics
-
-
-
-
-
 
 import qualified Extended.Text as T
 import qualified Data.Time as Time
 import Text.Read (readMaybe)
+import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.ToField (ToField)
 
 type Body = BL.ByteString
@@ -30,7 +26,7 @@ type Date = Time.Day
 
 type PaginationSize = Int
 
-newtype ID (e :: * -> *) = ID { idVal :: Int }
+newtype ID (e :: Type -> Type) = ID { idVal :: Int }
   deriving stock (Show, Generic)
   deriving newtype (Read, ToField)
 
@@ -54,6 +50,7 @@ data Path a
   | GET    URL 
   | PUT    URL
   | DELETE URL
+  | Unknown URL
   deriving (Show, Eq, Generic, Typeable, Data)
 
 getURL :: Path a -> URL
@@ -62,6 +59,7 @@ getURL = \case
     GET    t -> t
     PUT    t -> t
     DELETE t -> t
+    Unknown t -> t
 
 type Method = forall a. [Text] -> Path a
 
@@ -71,6 +69,7 @@ getMethod = \case
     GET    _ -> GET
     PUT    _ -> PUT
     DELETE _ -> DELETE
+    Unknown _ -> Unknown
 
 instance Eq ([Text] -> Path a) where
     (==) = (==) `on` ($ [])

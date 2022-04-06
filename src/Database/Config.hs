@@ -8,4 +8,3 @@ data Config = Config
     { cConn    :: Text
     , cPagSize :: Int
     } deriving (Show, Generic, FromJSON)
-

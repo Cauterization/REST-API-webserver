@@ -11,8 +11,7 @@ import qualified Extended.Postgres as Postgres
 import GHC.Generics
 import Data.Data
 
-data Display :: *
-    deriving Data
+data Display deriving Data
 
 data Hidden
 data NotDisplayed deriving (Generic, ToJSON, Data)
