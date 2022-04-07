@@ -27,7 +27,7 @@ type Password = Text
 
 newtype ID e = ID { idVal :: Int }
   deriving stock (Generic, Data)
-  deriving newtype (Read, ToField, FromJSON, Show)
+  deriving newtype (Read, ToField, FromJSON, Show, Eq, Ord)
   deriving anyclass (FromRow)
 
 type IDs = [ID (Path Current)]

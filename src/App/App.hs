@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableSuperClasses #-}
 {-# LANGUAGE QuantifiedConstraints #-}
-
+{-# OPTIONS_GHC -Wno-orphans #-}
 module App.App 
     ( runServer
     ) where
@@ -45,14 +45,13 @@ import Entity.User (User)
 import Postgres.Internal
 
 import Control.Monad.Extra (whenM)
-import Data.Functor ((<&>))
 
 runServer :: IO ()
 runServer = handle handler $ do
     Config{..} <- BL.readFile "config.json" >>= parseOrFail
     connectionDB <- Database.mkConnectionIO @(DB IO) cDatabase
     let logger = Logger.runLogger @IO cLogger
-    whenM (getArgs <&> (== ["migrations"])) 
+    whenM (("migrations" `elem`) <$> getArgs)
         $ Database.runMigrations @(DB IO) cDatabase logger
     Database.runMigrations @(DB IO) cDatabase logger -- DEBUG
     Wai.run 3000 $ \req respond -> do
@@ -82,14 +81,14 @@ instance Routed Main Postgres where
         
 instance Routed User Postgres where
     router = do
-        post    "users"            User.postUser
-        get     "users/me"         User.getCurrentUser
+        post    "users"             User.postUser
+        get     "users/me"          User.getCurrentUser
         delete_ "admin/users/{ID}" 
-        post    "auth"            User.loginUser
+        post    "auth"              User.loginUser
 
 instance Routed Author Postgres where
     router = do
-        post    "admin/authors"    Author.postAuthor   
+        post    "admin/authors"     Author.postAuthor   
         get_    "admin/authors"          
         get_    "admin/authors/{ID}" 
         put_    "admin/authors/{ID}"     

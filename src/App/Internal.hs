@@ -105,9 +105,7 @@ decodedBody = do
     decode body
 
 decode :: (Monad m, FromJSON a, MonadThrow m) => Body -> m a
-decode body = case eitherDecode body of
-    Right a  -> pure a
-    Left err -> parsingError err
+decode = either parsingError pure . eitherDecode  
 
 getParam :: (HasEnv m, MonadThrow m) => Text -> m (Maybe Text)
 getParam p = asks (M.lookup p . envQParams) >>= \case
