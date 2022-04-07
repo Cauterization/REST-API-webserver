@@ -25,13 +25,25 @@ source-repository head
 
 library
   exposed-modules:
+      App.App
+      App.Config
+      App.Endpoints
+      App.Get
+      App.Internal
+      App.QueryParams
+      App.Result
+      App.Router
+      App.Run
+      App.Types
       Database.Config
       Database.Database
-      Database.Error
+      Database.Get
+      Database.HasDatabase
+      Database.Internal
       Database.Query
-      Entities.Author
-      Entities.Internal
-      Entities.User
+      Entity.Author
+      Entity.Internal
+      Entity.User
       Extended.Functor
       Extended.Postgres
       Extended.Text
@@ -42,18 +54,13 @@ library
       HKD.Field
       HKD.Filter
       HKD.Front
+      HKD.HKD
       HKD.Schema
       HKD.Update
       HKD.Utils
-      Logger.Handle
-      Logger.IO
-      Postgres.Postgres
-      Server.App
-      Server.Base
-      Server.Router
-      Server.Run
-      Server.Server
-      Types
+      Lib
+      Logger
+      Postgres.Internal
   other-modules:
       Paths_server
   hs-source-dirs:
@@ -174,6 +181,7 @@ test-suite server-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Router.RouterSpec
       Paths_server
   hs-source-dirs:
       test
