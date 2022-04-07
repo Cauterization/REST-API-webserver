@@ -94,6 +94,6 @@ instance Routed Author Postgres where
     router = do
         post    "admin/authors"    Author.postAuthor   
         get_    "admin/authors"          
-        --get_    "admin/authors/{ID}" 
+        get_    "admin/authors/{ID}" 
         put_    "admin/authors/{ID}"     
         delete_ "admin/authors/{ID}"  

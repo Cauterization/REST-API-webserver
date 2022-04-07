@@ -56,8 +56,7 @@ instance Postgres.FromRow   (Author  (Front Display)) where
         pure Author{..}
 instance Database.GettableFrom Postgres Author (Front Display) where
 
-    getQuery = "SELECT user_id, description"
-         <> " FROM authors"
+    getQuery = "SELECT *  FROM authors_view"
 
 deriving instance Data (Author (Front Update))
 deriving instance Data (Author Update)

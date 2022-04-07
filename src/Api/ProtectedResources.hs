@@ -28,8 +28,8 @@ import App.Types
 
 protectedResources :: 
     ( Application m
-    , Database.GettableFrom (Database.Database m) User (Display)
-    , Database.FromRowOf (Database.Database m) (User (Display))
+    , Database.GettableFrom (Database.Database m) User Display
+    , Database.FromRowOf (Database.Database m) (User Display)
     ) => Middleware m
 protectedResources = (whenM protectedRequest adminCheck >>)
 
@@ -38,8 +38,8 @@ protectedRequest =  asks (isPrefixOf ["admin"] . getURL . envPath)
 
 adminCheck :: 
     ( Application m
-    , Database.GettableFrom (Database.Database m) User (Display)
-    , Database.FromRowOf (Database.Database m) (User (Display))
+    , Database.GettableFrom (Database.Database m) User Display
+    , Database.FromRowOf (Database.Database m) (User Display)
     ) => m ()
 adminCheck = do
     Logger.info "Attempt to auth admin..."

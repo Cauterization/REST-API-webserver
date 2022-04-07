@@ -20,7 +20,7 @@ import Postgres.Internal
 import Data.Data
 
 
-import Data.String
+import Entity.Internal
 
 import App.Types
 import HKD.Utils (Contains, If)
@@ -73,11 +73,3 @@ type instance Field name req Auth modifiers a =
     If (Contains Authfield modifiers) 
         (Field name req Create modifiers a)
         (Maybe NotAllowedFromFront)
-
-
--- deriving instance Postgres.ToRow   (User Delete)
-
-{-
->>> Database.unQuery  $ Database.putQuery @Postgres @User
-"UPDATE Users SET firstName = COALESCE (?, firstName), lastName = COALESCE (?, lastName), login = COALESCE (?, login), token = COALESCE (?, token), password = COALESCE (?, password), created = COALESCE (?, created), admin = COALESCE (?, admin) WHERE id = ? "
--}
