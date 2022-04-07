@@ -3,9 +3,11 @@ module HKD.HKD
         
         
     Front
-
+    , NotAllowedFromFront
     , Create
     , Display
+    , NotDisplayed(..)
+    , Hidden
     , Update
     , Immutable
     , Delete

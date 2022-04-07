@@ -67,6 +67,12 @@ instance IsDatabase Postgres where
                         exitFailure
 
     getFromDatabase pc q a =  Pool.withResource pc $ \conn -> query conn q a
+ 
+    postToDatabase pc q a = void 
+        $ Pool.withResource pc $ \conn -> execute conn q a
+
+    deleteFromDatabase pc q a = fmap fromIntegral 
+        $ Pool.withResource pc $ \conn -> execute conn q a
 
 sortedMigrations :: [(FilePath, B.ByteString)]
 sortedMigrations =

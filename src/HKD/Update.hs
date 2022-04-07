@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 module HKD.Update where
 
 import HKD.EmptyData
@@ -6,11 +7,12 @@ import HKD.Utils
 import Data.Aeson qualified as J
 
 import qualified Extended.Postgres as Postgres
+import Data.Data
 
-data Update
+data Update deriving Data
 
 data Immutable
-data NotUpdated
+data NotUpdated deriving Data
 
 instance J.FromJSON NotUpdated where
   parseJSON _ = fail "Can't update this field"

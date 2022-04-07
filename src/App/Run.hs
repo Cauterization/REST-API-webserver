@@ -42,3 +42,4 @@ responseFromResult = \case
 
 responseFromError :: AppError -> ToResponse
 responseFromError = responseFromResult . ResText . T.show
+

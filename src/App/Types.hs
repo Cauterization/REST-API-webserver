@@ -19,26 +19,27 @@ import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.ToField (ToField)
 
 type Body = BL.ByteString
-
 type Page = Int
-
 type Date = Time.Day
-
 type PaginationSize = Int
+type Token = Text
+type Password = Text
 
-newtype ID (e :: Type -> Type) = ID { idVal :: Int }
-  deriving stock (Show, Generic)
-  deriving newtype (Read, ToField)
+newtype ID e = ID { idVal :: Int }
+  deriving stock (Generic, Data)
+  deriving newtype (Read, ToField, FromJSON, Show)
+  deriving anyclass (FromRow)
 
-type IDs = [ID Path]
+type IDs = [ID (Path Current)]
 
-instance FromJSON (ID a) where
-  parseJSON = \case 
-      String s -> case readMaybe $ T.unpack s of
-        Just i -> pure $ ID i
-        Nothing -> err (String s)
-      a -> err a
-    where err a = parseFail $ "failed to parse ID. Got: " <> show a
+-- instance FromJSON (ID a) where
+--   parseJSON = \case 
+--       String s -> case readMaybe $ T.unpack s of
+--         Just i -> pure $ ID i
+--         Nothing -> err (String s)
+--       Int i -> pure $ ID i
+--       a -> err a
+--     where err a = parseFail $ "failed to parse ID. Got: " <> show a
   
 instance ToJSON (ID a) where
   toJSON (ID a) = String $ T.pack $ show a

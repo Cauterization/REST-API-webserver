@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE EmptyDataDeriving #-}
 module HKD.Front where
 
 
@@ -17,7 +18,7 @@ import Data.Data
 
 data Front a
 deriving instance Data a => Data (Front a)
-data NotAllowedFromFront deriving Generic
+data NotAllowedFromFront deriving (Generic, Data, Show)
 
 instance FromJSON NotAllowedFromFront where
   parseJSON _ = fail "Can't specify this field"

@@ -9,7 +9,6 @@ import Data.Kind (Type)
 import App.Types
 
 class ( IsDatabase (Database m)
-      , QConstraints ((Database m))
       ) 
     => HasDatabase m where
 

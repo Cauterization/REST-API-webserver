@@ -10,6 +10,8 @@ import Control.Monad.Catch
 import Control.Monad.Writer
 import Control.Monad.Identity
 
+import Data.Aeson
+
 import Data.Coerce
 import Data.Kind (Type)
 
@@ -38,13 +40,14 @@ import HKD.HKD
 
 import Logger qualified
 import App.QueryParams
+import Data.Data (Data, Typeable)
 
-type Middleware m a = m a -> m a
+type Middleware m = m AppResult -> m AppResult
 
 data RouterResult m
     = NotMatched
     | Route (Path Pattern) (m AppResult)
-    | Middleware (Middleware m AppResult)
+    | Middleware (Middleware m)
     | AmbiguousPatterns [Path Pattern]
 
 instance Semigroup (RouterResult m) where
@@ -67,6 +70,32 @@ newtype Router (e :: Type -> Type) (m :: Type -> Type) a
     deriving newtype (Functor, Applicative, Monad, MonadReader (Path Current)
         , MonadWriter (RouterResult m))
 
+runRouterWith :: forall main m a.
+    ( Monad m
+    , MonadThrow m 
+    , Logger.RunLogger m
+    , MonadCatch m
+    , Application (AppT m)
+    , Routed main (DB m)
+    ) 
+    => Logger.Logger m 
+    -> Database.ConnectionOf (DB m)
+    -> Path Current 
+    -> Body 
+    -> QueryParams
+    -> Maybe Token
+    -> PaginationSize
+    -> AppT m a
+    -> m ToResponse
+runRouterWith logger connDB path body qparams token pagSize with 
+    = runApp (Env logger connDB path body qparams token pagSize) $ with >> do
+        execWriterT (runReaderT (unRouter (router @main @(DB m))) path) 
+            >>= \case
+                Route _ success      -> success
+                AmbiguousPatterns ps -> ambiguousPatterns ps
+                _                    -> throw404
+
+
 withPathCmp :: Endpoint m -> Path Pattern -> Path Current -> RouterResult m
 withPathCmp f pp pc
     | sameMethod && sameLength && correctPath
@@ -78,23 +107,53 @@ withPathCmp f pp pc
     sameLength = cmpLength pp == cmpLength pc
     correctPath = (not . any (any (`elem` ['{', '}']) . T.unpack)) $ getURL pc
     cmpLength = length . getURL
-    cmpSegment "{ID}" (T.read @(ID Path) -> Right n) = Just [n]
+    cmpSegment "{ID}" (T.read @(ID (Path Current)) -> Right n) = Just [n]
     cmpSegment r      ((== r) -> True)               = Just []
     cmpSegment _      _                              = Nothing
 
-type Application (m :: Type -> Type) =
+type Application (m :: Type -> Type) = 
     ( MonadThrow m
     , MonadCatch m
     , HasEnv m
+    , Impure m
     , Logger.HasLogger m
     , Database.ToRowOf (Database.Database m) IDs
     , Database.ToRowOf (Database.Database m) [Page]
+    , Database.ToRowOf (Database.Database m) [Token]
     , Database.HasDatabase m
+    , Database.QConstraints (Database.Database m)
+    )
+
+type Postable m e =
+    ( Database.PostableTo (Database m) e
+    , Database.ToRowOf (Database m) (e Create)
+    , Database.FromRowOf (Database m) (ID (e Create))
+    , Show (ID (e Create))
+    , Data (e Create)
+    , Show (e Create)
+    , Typeable e
     )
 
 type Gettable m e a =
     ( Database.GettableFrom (Database.Database m) e a
+    , Database.FromRowOf (Database m) (e a)
+    , Data (e a)
+    , Show (e a)
+    , Typeable e
     )
+
+type Deletable m e =
+    ( Database.DeletableFrom (Database m) e
+    -- , Database.ToRowOf (Database m) (e Create)
+    -- , Database.FromRowOf (Database m) (ID (e Create))
+    -- , Show (ID (e Create))
+    , Data (e Delete)
+    -- , Show (e Create)
+    , Typeable e
+    )
+
+addMiddleware ::Monad m => Middleware m -> Router e m ()
+addMiddleware = tell . Middleware
 
 addRoute :: Monad m
     => Path Pattern 
@@ -102,15 +161,15 @@ addRoute :: Monad m
     -> Router (e :: Type -> Type) m ()
 addRoute pp f = ask >>= tell . withPathCmp f pp
 
-post, get, put, delete :: forall (e :: Type -> Type) (m :: Type -> Type). Monad m
+post, get, put, delete :: forall (e :: Type -> Type) (m :: Type -> Type). Application m
     => Text 
-    -> (forall (e1 :: Type -> Type) (e2 :: Type). Endpoint m)
+    -> Endpoint m
     -> Router e m ()
 
-post   p f = addRoute (POST   $ T.splitOn "/" p) $ f @e @Create
-get    p f = addRoute (GET    $ T.splitOn "/" p) $ f @e @Display
-put    p f = addRoute (PUT    $ T.splitOn "/" p) $ f @e @Update
-delete p f = addRoute (DELETE $ T.splitOn "/" p) $ f @e @Delete
+post   p ep = addRoute (POST   $ T.splitOn "/" p) $ ep @e @Create
+get    p ep = addRoute (GET    $ T.splitOn "/" p) $ ep @e @(Front Display)
+put    p ep = addRoute (PUT    $ T.splitOn "/" p) $ ep @e @Update
+delete p ep = addRoute (DELETE $ T.splitOn "/" p) $ ep @e @Delete
 
 class Routed e db where
     router :: forall m. 

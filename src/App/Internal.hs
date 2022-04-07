@@ -7,6 +7,7 @@ import Control.Monad.Catch
 import Control.Monad.Reader 
 import Control.Monad.IO.Class
 
+import Data.Aeson (FromJSON, eitherDecode)
 import Data.Kind (Type)
 import Extended.Text (Text)
 import Extended.Text qualified as T
@@ -14,7 +15,8 @@ import App.Config qualified as App
 import App.QueryParams
 
 import App.Types
-
+import System.Random
+import Logger ((>.), (.<))
 import Logger qualified 
 import qualified Network.HTTP.Types as HTTP
 import qualified Data.Map as M
@@ -28,6 +30,7 @@ import Database.Database qualified as Database
 
 import Database.PostgreSQL.Simple
 import Postgres.Internal
+import qualified Data.Time as Time
 
 newtype AppT m a = App {unApp :: ReaderT (Env m) m a}
     deriving newtype 
@@ -61,6 +64,20 @@ instance Database.HasDatabase (AppT IO) where
 
     getPaginationSize = asks envPagination
 
+class Impure m where
+    getCurrentDate :: m Date 
+    genToken :: m Token
+
+instance Impure (AppT IO) where
+    getCurrentDate = liftIO $ Time.getCurrentTime <&> Time.utctDay
+    genToken = let chars = ['0' .. '9'] ++ ['A' .. 'Z'] ++ ['a' .. 'z']  
+        in fmap T.pack $ replicateM 16 $ do
+            idx <- randomRIO (0, length chars - 1)
+            return $ chars !! idx
+
+instance {-# OVERLAPPABLE #-} Monad m => Impure (AppT m) where
+    getCurrentDate = pure $ Time.fromGregorian 1 2 3
+    genToken = pure "super unique token"
 
 data Env (m :: Type -> Type) = Env
     { envLogger     :: Logger.Logger m
@@ -68,6 +85,7 @@ data Env (m :: Type -> Type) = Env
     , envPath       :: Path Current
     , envBody       :: Body
     , envQParams    :: QueryParams
+    , envToken      :: Maybe Token
     , envPagination :: PaginationSize
     }
    
@@ -79,6 +97,18 @@ type HasEnv m = MonadReader (Env (EnvOf m)) m
 getPath :: HasEnv m => m (Path Current)
 getPath = asks envPath
 
+decodedBody :: (FromJSON a, Monad m, MonadThrow m, HasEnv m, Logger.HasLogger m
+    ) => m a
+decodedBody = do
+    body <- asks envBody
+    Logger.debug $ "JSON body:\n" .< body
+    decode body
+
+decode :: (Monad m, FromJSON a, MonadThrow m) => Body -> m a
+decode body = case eitherDecode body of
+    Right a  -> pure a
+    Left err -> parsingError err
+
 getParam :: (HasEnv m, MonadThrow m) => Text -> m (Maybe Text)
 getParam p = asks (M.lookup p . envQParams) >>= \case
     Just [a] -> pure $ Just a
@@ -89,6 +119,9 @@ getPage :: (Monad m, MonadThrow m, Logger.HasLogger m, HasEnv m)  => m Page
 getPage = getParam "page" <&> (fromMaybe "1" >>> T.read) >>= either
     (parsingError . ("page: " <>) .  T.unpack)
     (\n -> if n > 0 then pure n else throwM $ QParamsErr "zero or negative page")
+
+getToken :: (Monad m, HasEnv m, MonadThrow m) =>  m Token
+getToken = asks envToken >>= maybe (unathorized "No token.") pure
 
 toPath ::  Wai.Request -> Path a
 toPath req = 
@@ -105,12 +138,20 @@ data AppError
     | ParsingErr Text
     | UnknwonHTTPMethod HTTP.Method
     | QParamsErr Text
-    | OtherErr Text
-    | ArityError Text
+    | RouterAmbiguousPatterns [Path Pattern]
+    | Unathorized Text
+    | AccessViolation Text
+    | WrongPassword
     deriving (Show, Typeable, Exception) 
 
-parsingError :: (MonadThrow m, Logger.HasLogger m) => String -> m a
+parsingError :: (MonadThrow m) => String -> m a
 parsingError = throwM . ParsingErr . T.pack 
 
-throw404 :: (MonadThrow m, HasEnv m, Logger.HasLogger m) =>  m a
+throw404 :: (MonadThrow m, HasEnv m) =>  m a
 throw404 = getPath >>= throwM . Err404 
+
+ambiguousPatterns :: (MonadThrow m) => [Path Pattern] -> m a
+ambiguousPatterns = throwM . RouterAmbiguousPatterns
+
+unathorized  :: (MonadThrow m) => Text -> m a
+unathorized = throwM . Unathorized 

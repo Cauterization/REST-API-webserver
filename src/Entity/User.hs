@@ -2,60 +2,79 @@
 
 module Entity.User where
 
-import Data.Aeson ( ToJSON)
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Text (Text)
 import GHC.Generics ( Generic )
 
 
-import HKD.Display (Hidden, Display)
-import HKD.Field ( Field, Required( Required) )
-import HKD.Front ( NotAllowedFromFront, Front )
-import HKD.Update (Immutable, Update)
+import HKD.HKD
 
 import Database.Database ( Database ) 
 
 import Database.PostgreSQL.Simple qualified as Postgres
 
+import Database.Database qualified as Database
+
 import Postgres.Internal
 
 import Data.Data
 
+
 import Data.String
 
-import App.App
+import App.Types
+import HKD.Utils (Contains, If)
 
 data User a = User
   { firstName  :: Field "first_name" 'Required a '[Immutable]                      Text
   , lastName   :: Field "last_name"  'Required a '[Immutable]                      Text
-  , login      :: Field "login"      'Required a '[Immutable]                      Text
+  , login      :: Field "login"      'Required a '[Immutable, Authfield]           Text
   , token      :: Field "token"      'Required a '[NotAllowedFromFront, Hidden]    Text
-  , password   :: Field "password"   'Required a '[Immutable          , Hidden]    Text
+  , password   :: Field "password"   'Required a '[Immutable, Hidden, Authfield]   Text
   , created    :: Field "created"    'Required a '[Immutable, NotAllowedFromFront] Date
-  , admin      :: Field "admin"      'Required a '[Immutable, NotAllowedFromFront] Bool 
+  , admin      :: Field "admin"      'Required a '[Immutable]                      Bool 
   } deriving stock (Generic)
-    -- deriving (Database.GettableSingleFrom Postgres)
 
-{-}
-deriving instance EmptyData        (User Update)
-deriving instance Postgres.ToRow   (User Update)
+deriving instance Show (User (Front Display))
 
+-- deriving instance Data             (User Update)
+-- deriving instance EmptyData        (User Update)
+-- deriving instance Postgres.ToRow   (User Update)
+deriving instance Data             (User Create)
+deriving instance Show             (User Create)
+deriving instance Data             (User (Front Create))
 deriving instance FromJSON         (User (Front Create))
-deriving instance Postgres.ToRow   (User (Front Create))
--}
+deriving instance Postgres.ToRow   (User Create)
+-- instance Database.PostableTo Postgres User (Create) where
+
+--     postQuery = "INSERT firstName, lastName, login, token, password, admin" 
+        
+deriving instance Show (User Display)
+deriving instance Data             (User Display)
 deriving instance ToJSON           (User (Front Display))
-deriving instance Postgres.FromRow (User (Front Display))
+deriving instance Postgres.FromRow (User  Display)
+deriving instance Postgres.FromRow (User  (Front Display))
 deriving instance Data             (User (Front Display))
+instance Database.GettableFrom Postgres User  (Front Display) where
+    getQuery = "SELECT * FROM users"
 
-getCurrentUser :: (Application m, Gettable m User (Front Display)) => Endpoint m
-getCurrentUser _ = do
-    getEntities @User @(Front Display)[]  -- text "getCurrentUser"
+deriving instance Data (User Delete)
 
-loginUser :: Monad m => Endpoint m
-loginUser _ = text "login"
+deriving instance FromJSON (User Auth)
+
+data Authfield
+
+data Auth
+
+type instance Field name req Auth modifiers a = 
+    If (Contains Authfield modifiers) 
+        (Field name req Create modifiers a)
+        (Maybe NotAllowedFromFront)
+
+
+-- deriving instance Postgres.ToRow   (User Delete)
 
 {-
-
->>> fieldsQuery @(User (Front Display))
-Variable not in scope: fieldsQuery
+>>> Database.unQuery  $ Database.postQuery @Postgres @User @(Front Create)
+"INSERT  INTO Users (firstName, lastName, login, token, password, created, admin) VALUES (?,?,?,?,?,?,?)"
 -}
-

@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE EmptyDataDeriving #-}
 module HKD.Display where
 
 import HKD.EmptyData
@@ -11,18 +12,17 @@ import qualified Extended.Postgres as Postgres
 import GHC.Generics
 import Data.Data
 
-data Display deriving Data
+data Display deriving (Data)
+
+-- instance (Show NotDisplayed)
 
 data Hidden
-data NotDisplayed deriving (Generic, ToJSON, Data)
+data NotDisplayed deriving (Generic, ToJSON, Data, Show)
 
 instance {-# OVERLAPPING #-} Postgres.FromField (Maybe NotDisplayed) where
     fromField _ _ = pure Nothing
 
-type instance Field name req Display modifiers a = 
-    If (Contains Hidden modifiers) 
-        (Maybe (ApplyRequired req Maybe NotDisplayed)) 
-        (ApplyRequired req Maybe a)
+type instance Field name req Display modifiers a = ApplyRequired req Maybe a
 
 display :: EmptyData (e Display) => (e Display -> e Display) -> e Display
 display = ($ emptyData) 

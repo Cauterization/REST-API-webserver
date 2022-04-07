@@ -7,15 +7,26 @@ module Database.Database
     , GettableFrom(..)
     , getEntity
     , getEntities
+    , getEntitiesWith
+    , getSingle
+
+    , PostableTo(..)
+    , postEntityWith
+    , postEntity
+
+    , DeletableFrom(..)
+    , deleteEntity
 
     , QConstraints
-    , qSELECT
-    , qFROM
-    , unQuery
+
+    , DBErr(..)
+    , Query(..)
 
     ) where
 
 import Database.Get
+import Database.Post
+import Database.Delete
 import Database.Config
 import Database.Query
 import Database.Internal

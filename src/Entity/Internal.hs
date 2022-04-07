@@ -1,5 +1,5 @@
 module Entity.Internal where
-    
+
 import Data.Aeson
 import Data.Data
 import Data.String
@@ -18,25 +18,27 @@ data Entity e a = Entity
   , entity :: e a }
   deriving stock Generic
 
-deriving instance (FromJSON (e a), FromJSON (NamedID "_id" a e)) 
+deriving instance (FromJSON (e a), FromJSON (NamedID "_id" a e))
     => FromJSON (Entity e a)
-deriving instance (ToJSON (e a), ToJSON (NamedID "_id" a e)) 
+deriving instance (ToJSON (e a), ToJSON (NamedID "_id" a e))
     => ToJSON (Entity e a)
 
 type family NamedID n a (e :: * -> *) :: * where
     NamedID n Schema          e = Named n
-    NamedID n Filter          e =   [ID e]
+    NamedID n Filter          e =   [ID (e Filter)]
     NamedID n (Front Display) e = e (Front Display)
-    NamedID n a               e =    ID e
+    NamedID n a               e =    ID (e a)
 
-type family EntityOrID e a :: * where
-    EntityOrID e Create          = ID e
-    EntityOrID e (Front Create)  = ID e
-    EntityOrID e Update          = ID e
+type family EntityOrID (e :: Type -> Type) a :: * where
+    EntityOrID e Create          = ID (e Create)
+    EntityOrID e (Front Create)  = ID (e (Front Create))
+    EntityOrID e Update          = NamedID "_id" Update e
     EntityOrID e (Front Display) = e (Front Display)
+    EntityOrID e Display         = e  Display
+    EntityOrID e Delete          = ID (e Delete)
 
 nameOf :: forall (e :: Type -> Type) s. (Typeable e, IsString s) => s
-nameOf = let t = show (typeOf (Proxy @e)) 
+nameOf = let t = show (typeOf (Proxy @e))
          in fromString $ fromMaybe t $ stripPrefix "Proxy (* -> *) " t
 
 fieldsOf :: forall e. Data e => [String]

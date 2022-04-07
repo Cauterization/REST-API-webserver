@@ -6,6 +6,7 @@ import Data.Text (Text)
 
 import App.Types
 import Data.Kind (Type)
+import qualified Extended.Text as T
 
 data AppResult 
     = ResText Text 
@@ -13,8 +14,8 @@ data AppResult
     | ResPicture
     deriving Show 
 
-text :: Applicative m => Text -> m AppResult
-text = pure . ResText
+text :: (Applicative m, Show a) => a -> m AppResult
+text = pure . ResText . T.show
 
 json :: (Applicative m, ToJSON e) => e -> m AppResult
 json = pure . ResJSON . encode
