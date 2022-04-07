@@ -34,10 +34,7 @@ data Author a = Author
   , description :: Field "description" 'Required a '[]          Text
   } deriving stock (Generic)
 
-deriving instance Data (Author Update)
-deriving instance EmptyData (Author Update)
-deriving instance FromJSON  (Author Update)
-deriving instance Postgres.ToRow (Author Update)
+
 
 deriving instance EmptyData (Author Filter)
 
@@ -61,6 +58,36 @@ instance Database.GettableFrom Postgres Author (Front Display) where
 
     getQuery = "SELECT user_id, description"
          <> " FROM authors"
+
+deriving instance Data (Author (Front Update))
+deriving instance Data (Author Update)
+deriving instance EmptyData (Author Update)
+deriving instance FromJSON  (Author (Front Update))
+deriving instance Postgres.ToRow (Author Update)
+instance Database.ToOneRow (Author (Front Update)) IDs where
+
+    type instance MkOneRow (Author (Front Update)) IDs 
+        = (Maybe NotUpdated, Maybe Text, ID (Path Current)) 
+
+    toOneRow Author{..} [aID] = pure (user, description, aID)
+    toOneRow _ _ = entityIDArityMissmatch "post author"
+
+instance Database.PuttableTo Postgres Author where
+
+    putQuery = mconcat
+        [ "UPDATE Authors "
+        , "SET "
+        , "user_id     = COALESCE (?, user_id), "
+        , "description = COALESCE (?, description) "
+        , "WHERE id = ?"
+        ]
+
+-- class ToOneRow a b where
+
+--     type family MkOneRow a b :: Type 
+
+--     toOneRow :: a -> b -> MkOneRow a b 
+
 
 deriving instance Data (Author Delete)
 

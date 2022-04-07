@@ -37,18 +37,12 @@ data User a = User
 
 deriving instance Show (User (Front Display))
 
--- deriving instance Data             (User Update)
--- deriving instance EmptyData        (User Update)
--- deriving instance Postgres.ToRow   (User Update)
 deriving instance Data             (User Create)
 deriving instance Show             (User Create)
 deriving instance Data             (User (Front Create))
 deriving instance FromJSON         (User (Front Create))
 deriving instance Postgres.ToRow   (User Create)
--- instance Database.PostableTo Postgres User (Create) where
 
---     postQuery = "INSERT firstName, lastName, login, token, password, admin" 
-        
 deriving instance Show (User Display)
 deriving instance Data             (User Display)
 deriving instance ToJSON           (User (Front Display))
@@ -57,6 +51,15 @@ deriving instance Postgres.FromRow (User  (Front Display))
 deriving instance Data             (User (Front Display))
 instance Database.GettableFrom Postgres User  (Front Display) where
     getQuery = "SELECT * FROM users"
+
+deriving instance Data             (User Update)
+-- deriving instance EmptyData        (User Update)
+deriving instance Postgres.ToRow   (User Update)
+-- instance Database.PostableTo Postgres User (Create) where
+
+--     postQuery = "INSERT firstName, lastName, login, token, password, admin" 
+        
+
 
 deriving instance Data (User Delete)
 
@@ -75,6 +78,6 @@ type instance Field name req Auth modifiers a =
 -- deriving instance Postgres.ToRow   (User Delete)
 
 {-
->>> Database.unQuery  $ Database.postQuery @Postgres @User @(Front Create)
-"INSERT  INTO Users (firstName, lastName, login, token, password, created, admin) VALUES (?,?,?,?,?,?,?)"
+>>> Database.unQuery  $ Database.putQuery @Postgres @User
+"UPDATE Users SET firstName = COALESCE (?, firstName), lastName = COALESCE (?, lastName), login = COALESCE (?, login), token = COALESCE (?, token), password = COALESCE (?, password), created = COALESCE (?, created), admin = COALESCE (?, admin) WHERE id = ? "
 -}

@@ -142,6 +142,14 @@ type Gettable m e a =
     , Typeable e
     )
 
+type Puttable m e a =
+    ( Database.PuttableTo (Database.Database m) e 
+    , Database.ToOneRow (e (Front Update)) IDs
+    , Database.ToRowOf (Database.Database m) (Database.MkOneRow (e (Front Update)) IDs)
+    , Data (e a)
+    , Typeable e
+    )
+
 type Deletable m e =
     ( Database.DeletableFrom (Database m) e
     -- , Database.ToRowOf (Database m) (e Create)

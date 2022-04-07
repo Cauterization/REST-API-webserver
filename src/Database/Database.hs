@@ -4,15 +4,19 @@ module Database.Database
     , HasDatabase(..)
     , Config(..)
     
+    , PostableTo(..)
+    , postEntityWith
+    , postEntity
+
     , GettableFrom(..)
     , getEntity
     , getEntities
     , getEntitiesWith
     , getSingle
 
-    , PostableTo(..)
-    , postEntityWith
-    , postEntity
+    , PuttableTo(..)
+    , putEntity
+    , ToOneRow(..)
 
     , DeletableFrom(..)
     , deleteEntity
@@ -26,6 +30,7 @@ module Database.Database
 
 import Database.Get
 import Database.Post
+import Database.Put
 import Database.Delete
 import Database.Config
 import Database.Query

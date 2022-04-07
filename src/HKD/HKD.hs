@@ -9,6 +9,7 @@ module HKD.HKD
     , NotDisplayed(..)
     , Hidden
     , Update
+    , NotUpdated
     , Immutable
     , Delete
     , Field

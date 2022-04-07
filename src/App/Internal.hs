@@ -142,6 +142,7 @@ data AppError
     | Unathorized Text
     | AccessViolation Text
     | WrongPassword
+    | EntityIDArityMissmatch Text
     deriving (Show, Typeable, Exception) 
 
 parsingError :: (MonadThrow m) => String -> m a
@@ -155,3 +156,6 @@ ambiguousPatterns = throwM . RouterAmbiguousPatterns
 
 unathorized  :: (MonadThrow m) => Text -> m a
 unathorized = throwM . Unathorized 
+
+entityIDArityMissmatch :: MonadThrow m => Text -> m a
+entityIDArityMissmatch = throwM . EntityIDArityMissmatch

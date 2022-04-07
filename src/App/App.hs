@@ -9,6 +9,7 @@ import App.Config
 import App.Run
 import App.Result
 import App.Get
+import App.Put
 import App.Delete
 import App.Router 
 import App.Types
@@ -94,5 +95,5 @@ instance Routed Author Postgres where
         post    "admin/authors"    Author.postAuthor   
         get_    "admin/authors"          
         --get_    "admin/authors/{ID}" 
-        --put_    "admin/authors/{ID}"     
+        put_    "admin/authors/{ID}"     
         delete_ "admin/authors/{ID}"  

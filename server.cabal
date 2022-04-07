@@ -25,11 +25,15 @@ source-repository head
 
 library
   exposed-modules:
+      Api.Author
+      Api.ProtectedResources
+      Api.User
       App.App
       App.Config
-      App.Endpoints
+      App.Delete
       App.Get
       App.Internal
+      App.Put
       App.QueryParams
       App.Result
       App.Router
@@ -37,9 +41,12 @@ library
       App.Types
       Database.Config
       Database.Database
+      Database.Delete
       Database.Get
       Database.HasDatabase
       Database.Internal
+      Database.Post
+      Database.Put
       Database.Query
       Entity.Author
       Entity.Internal
@@ -93,15 +100,18 @@ library
       TypeOperators
       UndecidableInstances
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
     , base >=4.14.2.0
     , bytestring
     , containers
     , cryptonite
     , directory
     , exceptions
+    , extra
     , file-embed
     , generic-lens
+    , hspec
     , http-types
     , memory
     , monad-control
@@ -152,15 +162,18 @@ executable server-exe
       UndecidableInstances
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Werror -Wno-unused-do-bind -Wno-unused-matches -Wno-unused-foralls -Wno-unused-local-binds
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
     , base >=4.14.2.0
     , bytestring
     , containers
     , cryptonite
     , directory
     , exceptions
+    , extra
     , file-embed
     , generic-lens
+    , hspec
     , http-types
     , memory
     , monad-control
@@ -214,15 +227,18 @@ test-suite server-test
       UndecidableInstances
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
     , base >=4.14.2.0
     , bytestring
     , containers
     , cryptonite
     , directory
     , exceptions
+    , extra
     , file-embed
     , generic-lens
+    , hspec
     , http-types
     , memory
     , monad-control

@@ -26,16 +26,20 @@ class IsDatabase db where
 
     mkConnectionIO :: Config -> IO (ConnectionOf db)
 
+    postToDatabase :: ToRowOf db e => 
+        ConnectionOf db -> QueryOf db -> e -> (DatabaseMonad db) ()
+
     getFromDatabase :: 
         ( ToRowOf db q
         , FromRowOf db r
         ) => ConnectionOf db -> QueryOf db -> q -> (DatabaseMonad db) [r]
 
-    postToDatabase :: ToRowOf db e => 
-        ConnectionOf db -> QueryOf db -> e -> (DatabaseMonad db) ()
+    putIntoDatabase :: ToRowOf db q => 
+        ConnectionOf db -> QueryOf db -> q -> (DatabaseMonad db) ()
 
     deleteFromDatabase :: ToRowOf db [ID (Path Current)] => 
-        ConnectionOf db -> QueryOf db -> [ID (Path Current)] -> (DatabaseMonad db) Integer
+        ConnectionOf db -> QueryOf db -> [ID (Path Current)] 
+            -> (DatabaseMonad db) Integer
 
 data DBErr
     = EntityNotFound Text

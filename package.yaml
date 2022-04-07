@@ -27,6 +27,7 @@ dependencies:
 - cryptonite
 - directory
 - exceptions
+- extra
 - file-embed
 - generic-lens
 - http-types
@@ -42,6 +43,9 @@ dependencies:
 - wai
 - wai-extra
 - warp
+
+- hspec
+- QuickCheck
 
 default-extensions:
 - AllowAmbiguousTypes
