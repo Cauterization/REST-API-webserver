@@ -7,12 +7,10 @@ module App.App
 
 import App.Config
 import App.Run
-import App.Result
 import App.Get
 import App.Put
 import App.Delete
 import App.Router 
-import App.Types
 import App.Internal
 import App.QueryParams
 
@@ -21,7 +19,6 @@ import Api.Author qualified as Author
 import Api.User qualified as User
 
 import Control.Exception ( IOException ) 
-import Control.Monad
 import Control.Monad.Catch
 -- import Control.Monad.Writer
 
