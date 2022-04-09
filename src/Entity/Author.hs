@@ -42,6 +42,7 @@ deriving instance FromJSON  (Author (Front Create))
 deriving instance Postgres.ToRow (Author Create)
 deriving instance Data (Author Create)
 deriving instance Show (Author Create)
+deriving instance Show (Author (Front Create))
 instance Database.PostableTo Postgres Author where
 
     postQuery = " INSERT INTO authors (user_id, description) VALUES (?,?)"
@@ -49,7 +50,7 @@ instance Database.PostableTo Postgres Author where
 deriving instance Show      (Author (Front Display))
 deriving instance ToJSON    (Author (Front Display))
 deriving instance Data      (Author (Front Display))
-instance Postgres.FromRow   (Author  (Front Display)) where
+instance Postgres.FromRow   (Author (Front Display)) where
     fromRow =  do
         user        <- Postgres.fromRow
         description <- Postgres.field

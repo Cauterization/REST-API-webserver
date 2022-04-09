@@ -30,7 +30,6 @@ import Postgres.Internal (Postgres)
 
 import App.Config
 import App.Result
-import App.Run
 import App.Internal
 import Network.Wai qualified as Wai
 -- import Server.Base
@@ -70,13 +69,13 @@ newtype Router (e :: Type -> Type) (m :: Type -> Type) a
     deriving newtype (Functor, Applicative, Monad, MonadReader (Path Current)
         , MonadWriter (RouterResult m))
 
-runRouterWith :: forall main m a.
+runRouterWith :: forall e m a.
     ( Monad m
     , MonadThrow m 
     , Logger.RunLogger m
     , MonadCatch m
     , Application (AppT m)
-    , Routed main (DB m)
+    , Routed e (DB m)
     ) 
     => Logger.Logger m 
     -> Database.ConnectionOf (DB m)
@@ -86,10 +85,10 @@ runRouterWith :: forall main m a.
     -> Maybe Token
     -> PaginationSize
     -> AppT m a
-    -> m ToResponse
+    -> m (Either AppError AppResult)
 runRouterWith logger connDB path body qparams token pagSize with 
     = runApp (Env logger connDB path body qparams token pagSize) $ with >> do
-        execWriterT (runReaderT (unRouter (router @main @(DB m))) path) 
+        execWriterT (runReaderT (unRouter (router @e @(DB m))) path) 
             >>= \case
                 Route _ success      -> success
                 AmbiguousPatterns ps -> ambiguousPatterns ps
@@ -119,7 +118,6 @@ type Application (m :: Type -> Type) =
     , Logger.HasLogger m
     , Database.ToRowOf (Database.Database m) IDs
     , Database.ToRowOf (Database.Database m) [Page]
-    , Database.ToRowOf (Database.Database m) [Token]
     , Database.HasDatabase m
     , Database.QConstraints (Database.Database m)
     )

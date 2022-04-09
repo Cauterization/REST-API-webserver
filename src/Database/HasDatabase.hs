@@ -19,3 +19,4 @@ class ( IsDatabase (Database m)
     getDatabaseConnection :: m (ConnectionOf (Database m))
 
     getPaginationSize :: m PaginationSize 
+

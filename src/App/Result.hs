@@ -12,7 +12,7 @@ data AppResult
     = ResText Text 
     | ResJSON BL.ByteString
     | ResPicture
-    deriving Show 
+    deriving (Show, Eq)
 
 text :: (Applicative m, Show a) => a -> m AppResult
 text = pure . ResText . T.show

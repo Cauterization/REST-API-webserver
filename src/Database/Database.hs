@@ -23,7 +23,7 @@ module Database.Database
 
     , QConstraints
 
-    , DBErr(..)
+    , DBError(..)
     , Query(..)
 
     ) where

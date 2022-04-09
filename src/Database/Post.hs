@@ -47,7 +47,7 @@ postEntity :: forall e (m :: Type -> Type).
     , QConstraints (Database m)
     , FromRowOf (Database m) (ID (e Create))
     ) => e Create -> m (ID (e Create))
-postEntity e = postEntityWith (<> " RETURNING id") e >>= getSingle
+postEntity = postEntityWith (<> " RETURNING id") 
 
 postEntityWith :: forall e (m :: Type -> Type) x.
     ( HasDatabase m
@@ -58,11 +58,11 @@ postEntityWith :: forall e (m :: Type -> Type) x.
     , PostableTo (Database m) e
     , ToRowOf (Database m) (e Create)
     , QConstraints (Database m)
-    , FromRowOf (Database m) x
+    , FromRowOf (Database m) (ID (e Create))
     ) => 
-    (QueryOf (Database m) -> QueryOf (Database m)) -> e Create -> m [x]
+    (QueryOf (Database m) -> QueryOf (Database m)) -> e Create -> m (ID (e Create))
 postEntityWith f e = do
     connection <- getDatabaseConnection
     let q = unQuery $ postQuery @(Database m) @e
     Logger.sql q
-    liftDatabase (getFromDatabase @(Database m) @(e Create) @x connection (f q) e)
+    liftDatabase (postToDatabase @(Database m)  connection (f q) e)

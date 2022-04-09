@@ -37,7 +37,6 @@ library
       App.QueryParams
       App.Result
       App.Router
-      App.Run
       App.Types
       Database.Config
       Database.Database
@@ -194,9 +193,16 @@ test-suite server-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Api.Author
+      Api.AuthorSpec
+      Api.UserSpec
+      GenericProps
+      Helpers.App
+      Helpers.Author
+      Helpers.Database
+      Helpers.Internal
+      Helpers.Monad
+      Helpers.User
       Router.RouterSpec
-      TestApp
       Paths_server
   hs-source-dirs:
       test

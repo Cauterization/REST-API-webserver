@@ -3,13 +3,14 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 module App.App 
     ( runServer
+    , Main
     ) where
 
 import App.Config
-import App.Run
 import App.Get
 import App.Put
 import App.Delete
+import App.Result
 import App.Router 
 import App.Internal
 import App.QueryParams
@@ -45,6 +46,8 @@ import Entity.User (User)
 import Postgres.Internal
 
 import Control.Monad.Extra (whenM)
+import qualified Network.HTTP.Types as HTTP
+import App.Types
 
 runServer :: IO ()
 runServer = handle handler $ do
@@ -56,7 +59,7 @@ runServer = handle handler $ do
     Database.runMigrations @(DB IO) cDatabase logger -- DEBUG
     Wai.run 3000 $ \req respond -> do
         body <- Wai.strictRequestBody req
-        ToResponse{..} <- runRouterWith @Main
+        ToResponse{..} <- toResponse <$> runRouterWith @Main
             logger 
             connectionDB
             (toPath req) 
@@ -70,6 +73,29 @@ runServer = handle handler $ do
     handler (e :: IOException) = Sys.die $ show e <> ". Terminating..."
     parsingFail = fail . ("Parsing config error: " <>) . show 
     parseOrFail = either parsingFail pure . eitherDecode
+    toResponse = either responseFromError responseFromResult
+
+data ToResponse = ToResponse 
+    { respStatus  :: HTTP.Status
+    , respHeaders :: [HTTP.Header] 
+    , respBody    :: Body
+    } deriving Show
+
+responseFromResult :: AppResult -> ToResponse
+responseFromResult = \case
+    ResText t  -> r200text $ BL.fromStrict $ T.encodeUtf8 t
+    ResJSON bl -> r200json bl
+    ResPicture -> error "runRouter picture result"
+  where
+    r200text = ToResponse HTTP.status200 
+        [("ContentType","text/plain; charset=utf-8")]
+    r200json = ToResponse HTTP.status200 [("ContentType","application/json")]
+    r404     = ToResponse HTTP.status404 [] "Not found."
+    r400     = ToResponse HTTP.status400 []
+    r500     = ToResponse HTTP.internalServerError500 [] "Internal error."
+
+responseFromError :: AppError -> ToResponse
+responseFromError = responseFromResult . ResText . T.show
 
 data Main :: Type -> Type
 
@@ -84,7 +110,7 @@ instance Routed User Postgres where
         post    "users"             User.postUser
         get     "users/me"          User.getCurrentUser
         delete_ "admin/users/{ID}" 
-        post    "auth"              User.loginUser
+        post    "auth"              User.authUser
 
 instance Routed Author Postgres where
     router = do

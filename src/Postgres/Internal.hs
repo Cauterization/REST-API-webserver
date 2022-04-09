@@ -66,8 +66,7 @@ instance IsDatabase Postgres where
                         l Logger.Error $ "Migration failed: " <> T.pack reason
                         exitFailure
 
-    postToDatabase pc q a = void 
-        $ Pool.withResource pc $ \conn -> execute conn q a
+    postToDatabase pc q a = Pool.withResource pc $ \conn -> query conn q a >>= Database.getSingle 
 
     getFromDatabase pc q a =  Pool.withResource pc $ \conn -> query conn q a
 

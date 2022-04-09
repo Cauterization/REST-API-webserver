@@ -33,4 +33,3 @@ postAuthor _ = do
     Author{..} <- decodedBody @(Author (Front Create))
     Logger.info "Attempt to post author"
     Database.postEntity (Author (coerce user) description ) >>= text
-

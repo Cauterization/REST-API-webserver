@@ -23,11 +23,11 @@ type Page = Int
 type Date = Time.Day
 type PaginationSize = Int
 type Token = Text
-type Password = Text
+
 
 newtype ID e = ID { idVal :: Int }
   deriving stock (Generic, Data)
-  deriving newtype (Read, ToField, FromJSON, Show, Eq, Ord)
+  deriving newtype (Read, ToField, FromJSON, ToJSON, Show, Eq, Ord, Num)
   deriving anyclass (FromRow)
 
 type IDs = [ID (Path Current)]
@@ -40,17 +40,14 @@ type IDs = [ID (Path Current)]
 --       Int i -> pure $ ID i
 --       a -> err a
 --     where err a = parseFail $ "failed to parse ID. Got: " <> show a
-  
-instance ToJSON (ID a) where
-  toJSON (ID a) = String $ T.pack $ show a
 
 type URL = [Text]
 
 data Path a
-  = POST   URL 
-  | GET    URL 
-  | PUT    URL
-  | DELETE URL
+  = POST    URL 
+  | GET     URL 
+  | PUT     URL
+  | DELETE  URL
   | Unknown URL
   deriving (Show, Eq, Generic, Typeable, Data)
 

@@ -26,8 +26,8 @@ class IsDatabase db where
 
     mkConnectionIO :: Config -> IO (ConnectionOf db)
 
-    postToDatabase :: ToRowOf db e => 
-        ConnectionOf db -> QueryOf db -> e -> (DatabaseMonad db) ()
+    postToDatabase :: (ToRowOf db e, FromRowOf db (ID e)) => 
+        ConnectionOf db -> QueryOf db -> e -> (DatabaseMonad db) (ID e)
 
     getFromDatabase :: 
         ( ToRowOf db q
@@ -41,12 +41,13 @@ class IsDatabase db where
         ConnectionOf db -> QueryOf db -> [ID (Path Current)] 
             -> (DatabaseMonad db) Integer
 
-data DBErr
-    = EntityNotFound Text
+data DBError
+    = EntityNotFound  Text
     | TooManyEntities Text
+    | AlreadyExists   Text
     deriving (Show, Exception)
 
-getSingle :: forall e a m. (MonadThrow m, Typeable e)=> [e a] -> m (e a)
+getSingle :: forall e a m. (MonadThrow m, Typeable e) => [e a] -> m (e a)
 getSingle = \case 
     [a] -> pure a
     [] -> throwM $ EntityNotFound  $ Entity.nameOf @e 

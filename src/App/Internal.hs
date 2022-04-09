@@ -1,5 +1,4 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE FunctionalDependencies #-}
 
 module App.Internal where
 
@@ -31,6 +30,7 @@ import Database.Database qualified as Database
 import Database.PostgreSQL.Simple
 import Postgres.Internal
 import qualified Data.Time as Time
+import App.Result
 
 newtype AppT m a = App {unApp :: ReaderT (Env m) m a}
     deriving newtype 
@@ -40,13 +40,16 @@ newtype AppT m a = App {unApp :: ReaderT (Env m) m a}
         , MonadReader (Env m)
         )
 
+runApp :: (Monad m, MonadCatch (AppT m)) 
+    => Env m -> AppT m a -> m (Either AppError a)
+runApp env app = runReaderT (unApp $ try app) env
+
 type DB m = Database.Database (AppT m)
 
-deriving newtype instance MonadThrow m => MonadThrow (AppT m)
-deriving newtype instance MonadIO (AppT IO)
-deriving newtype instance MonadCatch (AppT IO)
+deriving newtype  instance MonadThrow m => MonadThrow (AppT m)
+deriving newtype  instance MonadIO (AppT IO)
+deriving newtype  instance MonadCatch (AppT IO)
 deriving anyclass instance MonadIO (AppT m) => Logger.RunLogger (AppT m)
--- deriving instance MonadIO m => MonadThrow (AppT m)
 
 instance MonadTrans AppT where
     lift = App . lift
@@ -141,7 +144,16 @@ data AppError
     | AccessViolation Text
     | WrongPassword
     | EntityIDArityMissmatch Text
-    deriving (Show, Typeable, Exception) 
+    | EntityNotFound Text
+    | TooManyEntities Text
+    | AlreadyExists Text
+    deriving (Show, Typeable, Exception, Eq) 
+
+fromDBException :: Database.DBError -> AppError
+fromDBException = \case
+    Database.EntityNotFound  t -> EntityNotFound  t
+    Database.TooManyEntities t -> TooManyEntities t
+    Database.AlreadyExists   t -> AlreadyExists   t
 
 parsingError :: (MonadThrow m) => String -> m a
 parsingError = throwM . ParsingErr . T.pack 
