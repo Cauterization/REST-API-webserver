@@ -21,22 +21,31 @@ import Extended.Text (Text)
 
 import HKD.HKD
 
+import Helpers.Author
+import Helpers.User
 import Helpers.Monad
 
 import Test.Hspec
 import Test.QuickCheck
 
 import Unsafe.Coerce
+import qualified Data.Time as Time
+import Api.User (mkHash)
 
 type StateMod = TestState -> TestState
 
-withDB :: TestDB -> StateMod 
-withDB db TState{..} = TState{tDB = db, ..}
+withUserDatabase :: EMap (User Display) -> StateMod
+withUserDatabase emap TestState{..} = TestState{userDB = emap, ..}
+
+withAuthorDatabase :: EMap (Author Display) -> StateMod
+withAuthorDatabase emap TestState{..} = TestState{authorDB = emap, ..}
+
+data TestDB
 
 instance IsDatabase TestDB  where
 
     type QueryOf       TestDB   = TestQuery
-    type ToRowOf       TestDB q = (Show q, ToRowOfT q)
+    type ToRowOf       TestDB q = (Show q, ToRowOfT q, DBOf q ~ (M.Map (ID (ToDisplay q)) (ToDisplay q)))
     type FromRowOf     TestDB r = (Show r, FromRowOfT r)
     type ConnectionOf  TestDB   = ()
     type DatabaseMonad TestDB   = TestMonad
@@ -45,76 +54,43 @@ instance IsDatabase TestDB  where
 
     mkConnectionIO _ = pure ()
 
-    postToDatabase :: forall e. (ToRowOf TestDB e, FromRowOf TestDB (ID e)
+    postToDatabase :: forall e. 
+        ( ToRowOf TestDB e
+        , FromRowOf TestDB (ID e
+        )
         ) => () -> TestQuery -> e -> DatabaseMonad TestDB (ID e)
     postToDatabase _ _ e = do
-        db <- gets tDB
+        db <- getsDatabase @e
         when (alreadyExists e db) $ throwM $ AlreadyExists ""
-        let eID = 1 + length(M.toList db)
-        modify (\TState{..} -> TState{tDB = M.insert (toIDSum @(ID e) (ID eID)) (toESum e) db, ..})
-        pure (ID eID)
+        let eID = ID $ length (M.toList db) + 1
+        eDisplay <- toDisplay e
+        modify $ insertIntoTestDB @e (coerce eID) eDisplay 
+        pure eID
 
-    getFromDatabase _ _ q = fromRowTGet q
+    getFromDatabase ::  forall q r. (ToRowOf TestDB q, FromRowOf TestDB r)
+        => () -> TestQuery -> q -> TestMonad [r]
+    getFromDatabase _ _ q = getEntityFromTestDatabase @r q
 
 class ToRowOfT q where
-    toRowT        :: q -> TestMonad EntitySum
-    toESum        :: q -> EntitySum
-    fromESum      :: EntitySum -> q
-    alreadyExists :: q -> TestDB -> Bool
+    alreadyExists :: q -> DBOf q -> Bool
+    toDisplay :: q -> TestMonad (ToDisplay q)
+    fromDisplay :: ToDisplay q -> q
+    getsDatabase :: TestMonad (DBOf q)
+    insertIntoTestDB :: ID (ToDisplay q) -> ToDisplay q -> StateMod
+    withDatabase :: DBOf q -> StateMod
+    dbFromTestState :: TestState -> DBOf q
     
 class FromRowOfT r where
-    fromRowT :: EntitySum -> TestMonad [r]
-    fromRowTGet :: q -> TestMonad [r]
-    toIDSum :: ID q -> IDSum
-    fromIDSum :: IDSum -> ID q
+    getEntityFromTestDatabase :: q -> TestMonad [r]
+
+type family DBOf e where
+    DBOf e = EMap (ToDisplay e)
+
+type family ToDisplay q where
+    ToDisplay (User   a) = User Display
+    ToDisplay (Author a) = Author Display
 
 instance ToRowOfT [ID (Path Current)] where
-    toRowT = undefined
-
-instance ToRowOfT [Page] where
-    toRowT = undefined
-
-instance ToRowOfT (Maybe NotUpdated) where
-    toRowT = undefined
-
-instance ToRowOfT (Maybe Text) where
-    toRowT = undefined
-
-instance ToRowOfT (Author Create) where
-    toRowT = pure . AuthorT 
-    toESum = AuthorT
-    fromESum (AuthorT a) = a
-    alreadyExists a db = notNull $ 
-        filter (\(AuthorT a') -> user a' == user a) . 
-        filter isAuthor $ 
-        M.elems db
-
-isAuthor :: EntitySum -> Bool
-isAuthor = \case
-    AuthorT{} -> True
-    _         -> False
-
-instance FromRowOfT (ID (Author Create)) where
-    fromRowTGet q = let AuthorTID aID = unsafeCoerce q in pure [aID]
-    toIDSum = AuthorTID . coerce
-
-instance ToRowOfT (User Create) where
-    toRowT = pure . UserT 
-    toESum = UserT
-    fromESum (UserT u) = u
-    alreadyExists u db = notNull $ 
-        filter (\(UserT u') -> login u' == login u) . 
-        filter isUser $ 
-        M.elems db
-
-isUser :: EntitySum -> Bool
-isUser = \case
-    UserT{} -> True
-    _       -> False
-
-instance FromRowOfT (ID (User Create)) where
-    fromRowTGet q = let UserTID uID = unsafeCoerce q in pure [uID]
-    toIDSum = UserTID . coerce
 
 newtype TestQuery = TestQuery () deriving Show
 
@@ -127,4 +103,47 @@ instance Semigroup TestQuery where
 instance Monoid TestQuery where
     mempty = TestQuery ()
 
+instance ToRowOfT (Author Create) where
 
+    getsDatabase = gets authorDB
+
+    alreadyExists a aMap = not . null $ 
+        M.filter ((== user a) . (coerce .entityID . user)) aMap
+
+    withDatabase db TestState{..} = TestState{authorDB = db, ..}
+
+    toDisplay a = do
+        let d = description a
+            uID = user a
+        mbUser <- gets $ M.lookup (coerce uID) . userDB
+        case mbUser of
+            Just user -> pure Author{user = Entity (coerce uID) user, description = d}
+            _ -> throwM $ EntityNotFound ""
+
+    fromDisplay a = Author{description = description a, user = coerce entityID $ user a}
+
+    insertIntoTestDB aID a TestState{..} 
+        = TestState{authorDB = M.insert aID a authorDB, ..}
+
+instance FromRowOfT (ID (Author Create)) where
+
+instance ToRowOfT (User Create) where
+
+    getsDatabase = gets userDB
+
+    alreadyExists u uMap = not . null $ M.filter ((== login u) . login) uMap
+
+    withDatabase db TestState{..} = TestState{userDB = db, ..}
+
+    toDisplay = pure . unsafeCoerce 
+
+    insertIntoTestDB uID u TestState{..} 
+        = TestState{userDB = M.insert uID u userDB, ..}   
+
+instance ToRowOfT (Author Display) where
+    fromDisplay = unsafeCoerce
+
+
+instance FromRowOfT (ID (User Create)) where
+
+instance ToRowOfT [Page] where

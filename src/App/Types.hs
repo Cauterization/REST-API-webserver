@@ -27,7 +27,7 @@ type Token = Text
 
 newtype ID e = ID { idVal :: Int }
   deriving stock (Generic, Data)
-  deriving newtype (Read, ToField, FromJSON, ToJSON, Show, Eq, Ord, Num)
+  deriving newtype (Read, ToField, FromJSON, ToJSON, Show, Eq, Ord, Num, Enum)
   deriving anyclass (FromRow)
 
 type IDs = [ID (Path Current)]

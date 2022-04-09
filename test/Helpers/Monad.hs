@@ -15,6 +15,7 @@ import Data.Map qualified as M
 
 import Entity.Author
 import Entity.User
+import Entity.Internal
 
 import Extended.Text (Text)
 
@@ -56,35 +57,31 @@ instance MonadCatch (AppT TestMonad) where
 instance Logger.RunLogger TestMonad where
     runLogger _ = undefined    
 
-data TestState = TState
-    { tDB   :: TestDB
-    , tPage :: Page
+type EMap e = M.Map (ID (e)) (e)
+
+data TestState = TestState
+    { userDB   :: EMap (User   Display)
+    , authorDB :: EMap (Author Display)
     } deriving Show
 
 initialState :: TestState
-initialState = TState
-    { tDB    = M.empty
-    , tPage  = 1
+initialState = TestState
+    { userDB = M.empty
+    , authorDB = M.empty
     }
 
-type TestDB = M.Map IDSum EntitySum
+-- instance Arbitrary TestState where
+--     arbitrary = do
+--         userDB   <- arbitrary
+--         n        <- chooseInt (1, 30)
+--         authorDB <- fromUserDB n userDB
+--         pure TestState{..}
 
-data IDSum 
-    = UserTID (ID (User Create)) 
-    | AuthorTID (ID (Author Create))
-    deriving (Eq, Ord, Show)
+fromUserDB :: Int -> EMap (User Display) -> Gen (EMap (Author Display))    
+fromUserDB n user = M.fromList . zip [1..] <$> forM (take n $ M.toList user) genAuthorFromUser 
 
-instance Arbitrary IDSum where
-    arbitrary = choose @Int (1,2) >>= \case
-        1 -> UserTID <$> arbitrary 
-        2 -> AuthorTID <$> arbitrary 
-
-data EntitySum 
-    = UserT (User Create) 
-    | AuthorT (Author Create)
-    deriving (Show, Eq, Ord)
-
-instance Arbitrary EntitySum where
-    arbitrary = choose @Int (1,2) >>= \case
-        1 -> UserT   <$> arbitrary 
-        2 -> AuthorT <$> arbitrary 
+genAuthorFromUser :: (ID (User Display), User Display) -> Gen (Author Display)
+genAuthorFromUser (uID, u) = do
+    let user = Entity uID u
+    description <- arbitrary
+    pure Author{..}

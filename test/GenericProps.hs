@@ -6,8 +6,10 @@ import Data.ByteString.Lazy qualified as BL
 import Data.Map qualified as M
 import Data.Maybe
 
+import Entity.Internal
 import Extended.Text (Text)
 import Extended.Text qualified as T
+
 
 import App.Types
 import App.Result
@@ -17,6 +19,7 @@ import HKD.HKD
 
 import Helpers.App
 import Helpers.Database
+import Helpers.Internal
 import Helpers.Monad
 
 import Test.Hspec
@@ -25,47 +28,33 @@ import Data.String
 
 propPostsEntity :: forall e. 
     ( ToJSON (e Create) 
+    , Show (e Create) 
+    , Eq (e Create) 
     , FromJSON (e (Front Create))
     , ToJSON (e (Front Create))
     , FromRowOfT (ID (e Create))
     , ToRowOfT (e Create)
-    ) => Text -> TestDB -> e Create -> Property
+    , ToRowOfT (e Display)
+    , ToDisplay (e Display) ~ e Display
+    , DBOf (e Create) ~ M.Map (ID (e Display)) (e Display)
+    ) => Text -> DBOf (e Create) -> e Create -> Property
 propPostsEntity path db e = property $ not (alreadyExists e db) ==> do
     x <- runTest 
         ( withBody (eCreateToFrontCreate e)
         . withPostPath path)
-        ( withDB db )
+        ( withDatabase @(e Create) db )
     case x of
-        (Left err, _) -> print err
         (Right (ResText t), st) -> do
-            let Right aID = T.read @(ID (e Create)) t
-                eFromDB = fromESum @(e Create)
-                    $ fromJust $ M.lookup (toIDSum @(ID (e Create)) aID) (tDB st)
-            M.lookup (toIDSum @(ID (e Create)) aID) (tDB st) `shouldBe` Just (toESum e)
+            let Right eID = T.read @(ID (e Display)) t
+            fromDisplay <$> M.lookup eID (dbFromTestState @(e Display) st) 
+                `shouldBe` Just e
+        (Left err, _) -> print err
 
 eCreateToFrontCreate :: forall e.
     ( ToJSON (e Create)
     , FromJSON (e (Front Create))
     ) => e Create -> e (Front Create)
 eCreateToFrontCreate ec = fromJust $ decode @(e (Front Create)) $ encode ec
-
-propPostsNotIdempotent :: forall e. 
-    ( ToJSON (e Create) 
-    , FromJSON (e (Front Create))
-    , ToJSON (e (Front Create))
-    , FromRowOfT (ID (e Create))
-    , ToRowOfT (e Create)
-    ) => Text -> TestDB -> e Create -> Property
-propPostsNotIdempotent path db e = property $ not (alreadyExists e db) ==> do
-    st <- execTest 
-        ( withBody (eCreateToFrontCreate e)
-        . withPostPath path)
-        ( withDB db)
-    res <- evalTest 
-        ( withBody (eCreateToFrontCreate e)
-        . withPostPath path)
-        ( withDB $ tDB st)
-    res `shouldBe` Left (AlreadyExists "")
 
 propPostsParsingFail :: forall e. 
     ( FromJSON (e (Front Create))
@@ -76,7 +65,4 @@ propPostsParsingFail path (fromString . show -> obj) =
             ( withBLBody obj
             . withPostPath path )
             id
-        res `shouldSatisfy ` isParsingError
-  where
-    isParsingError (ParsingErr _) = True
-    isParsingError _ = False
+        res `shouldSatisfy` isParsingError

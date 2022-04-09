@@ -56,7 +56,6 @@ runServer = handle handler $ do
     let logger = Logger.runLogger @IO cLogger
     whenM (("migrations" `elem`) <$> getArgs)
         $ Database.runMigrations @(DB IO) cDatabase logger
-    Database.runMigrations @(DB IO) cDatabase logger -- DEBUG
     Wai.run 3000 $ \req respond -> do
         body <- Wai.strictRequestBody req
         ToResponse{..} <- toResponse <$> runRouterWith @Main

@@ -11,7 +11,7 @@ import Helpers.Internal
 import Test.QuickCheck
 
 import Data.Time qualified as Time
-import qualified Extended.Text as T
+import Extended.Text qualified as T
 
 deriving instance Eq     (User Create)
 deriving instance Ord    (User Create)
@@ -30,12 +30,24 @@ instance Arbitrary       (User Create) where
         firstName <- arbitrary
         lastName  <- arbitrary
         login     <- T.take 4 <$> arbitrary
-        let token = "super unique token"
+        token     <- arbitrary
         password  <- arbitrary
-        let created = Time.fromGregorian 1 2 3
+        created   <- arbitrary
         admin     <- arbitrary
         pure User{..}
 
 deriving instance ToJSON (User (Front Create))
-deriving instance Show   (User (Front Create))
+-- deriving instance Show   (User (Front Create))
 
+deriving instance Eq     (User Display)
+deriving instance ToJSON (User Display)
+instance Arbitrary       (User Display) where
+    arbitrary = do
+        firstName <- arbitrary
+        lastName  <- arbitrary
+        login     <- T.take 4 <$> arbitrary
+        token     <- T.take 4 <$> arbitrary
+        password  <- arbitrary
+        created   <- arbitrary
+        admin     <- arbitrary
+        pure User{..}

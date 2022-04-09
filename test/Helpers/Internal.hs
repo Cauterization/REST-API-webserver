@@ -1,9 +1,10 @@
 module Helpers.Internal where
 
 import App.Types
-
+import App.Internal
 import Data.Aeson
 
+import Entity.Internal
 import Extended.Text (Text)
 import Extended.Text qualified as T
 
@@ -34,3 +35,15 @@ instance Arbitrary Value where
         4 -> Number . realToFrac <$> arbitrary @Double
         5 -> Bool   <$> arbitrary 
         6 -> pure Null 
+
+deriving instance Show (e Display) => Show (Entity e Display)
+
+instance Arbitrary (e Display) => Arbitrary (Entity e Display) where
+    arbitrary = do
+        entityID <- arbitrary
+        entity   <- arbitrary
+        pure Entity{..}
+
+isParsingError :: AppError -> Bool
+isParsingError ParsingErr{} = True
+isParsingError _            = False

@@ -30,6 +30,8 @@ import Logger qualified
 
 import Helpers.Database
 import Helpers.Monad
+import Helpers.Author
+import Helpers.User
 
 import Test.Hspec
 import Test.QuickCheck
@@ -92,13 +94,13 @@ instance Routed Author TestDB where
 
 defaultEnv :: Env TestMonad
 defaultEnv  = Env 
-    { envLogger = \v t -> when (v >= Logger.Warning) $ tell [(v, t)]
-    , envConn = ()
+    { envLogger     = \v t -> when (v >= Logger.Warning) $ tell [(v, t)]
+    , envConn       = ()
     , envPagination = 20
-    , envPath = error "envPath"
-    , envBody  = error "envBody"
-    , envQParams  = error "envQParams"
-    , envToken  = error "envToken"
+    , envPath       = error "envPath"
+    , envBody       = error "envBody"
+    , envQParams    = error "envQParams"
+    , envToken      = error "envToken"
     } 
 
 type EnvMod = Env TestMonad -> Env TestMonad
@@ -111,6 +113,9 @@ withBLBody bl Env{..} = Env{envBody = bl, ..}
 
 withPostPath :: Text -> EnvMod
 withPostPath p Env{..} = Env{envPath = POST (T.splitOn "/" p), ..}
+
+withGetPath :: Text -> EnvMod
+withGetPath p Env{..} = Env{envPath = GET (T.splitOn "/" p), ..}
 
 woLogger :: EnvMod
 woLogger Env{..} = Env{envLogger = const . const $ pure (), ..}

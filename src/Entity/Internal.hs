@@ -34,7 +34,7 @@ type family EntityOrID (e :: Type -> Type) a :: * where
     EntityOrID e (Front Create)  = ID (e (Front Create))
     EntityOrID e Update          = NamedID "_id" Update e
     EntityOrID e (Front Display) = e (Front Display)
-    EntityOrID e Display         = e  Display
+    EntityOrID e Display         = Entity e Display
     EntityOrID e Delete          = ID (e Delete)
 
 nameOf :: forall (e :: Type -> Type) s. (Typeable e, IsString s) => s
