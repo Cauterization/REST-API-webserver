@@ -196,13 +196,14 @@ test-suite server-test
   other-modules:
       Api.AuthorSpec
       Api.UserSpec
-      GenericProps
       Helpers.App
       Helpers.Author
       Helpers.Database
       Helpers.Entity
+      Helpers.GenericProps
       Helpers.Internal
       Helpers.Monad
+      Helpers.Update
       Helpers.User
       Router.RouterSpec
       Paths_server

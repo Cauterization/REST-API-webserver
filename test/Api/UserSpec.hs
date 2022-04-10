@@ -13,16 +13,16 @@ import Data.Map qualified as M
 import Entity.User
 import Extended.Text qualified as T
 
-import GenericProps
-
 import Test.Hspec
 import Test.QuickCheck
 
 import Helpers.User
+import Helpers.Entity
 import Helpers.Internal
 import Helpers.Database
 import Helpers.Monad
 import Helpers.App
+import Helpers.GenericProps
 
 import HKD.HKD
 
@@ -74,7 +74,7 @@ propPostsUser db u = property $ not (alreadyExists u db) ==> do
     (Right (ResText token), st) <- runTest 
         ( withBody (eCreateToFrontCreate u)
         . withPostPath "users")
-        ( withUserDatabase db )
+        ( withDatabase @User db )
     let res = filter ((== login u) . login) . M.elems $ userDB st
     res `shouldBe` 
         [ User
@@ -92,7 +92,7 @@ propPostsUserAlreadyExists u = property $ do
     Left err <- evalTest 
         ( withBody u'
         . withPostPath "users")
-        ( withUserDatabase (M.fromList [(1, u)]) 
+        ( withDatabase @User (M.fromList [(1, u)]) 
         )
     err `shouldSatisfy` isAlreadyExistsError
   where
@@ -109,7 +109,7 @@ propGetUser db = property $ conditions ==> do
     Right (ResJSON j) <- evalTest 
         ( withToken t
         . withGetPath "users/me" )
-        ( withUserDatabase db )
+        ( withDatabase @User db )
     eitherDecode j `shouldBe` 
         Right (userDisplayToUserFrontDisplay $ minimum $ M.elems db)
   where
@@ -121,7 +121,7 @@ propGetUserNoToken :: EMap (User Display) -> Property
 propGetUserNoToken db = property $ not (M.null db) ==> do
     Left err <- evalTest 
         ( withGetPath "users/me" )
-        ( withUserDatabase db )
+        ( withDatabase @User db )
     err `shouldSatisfy` isUnathorizedError 
 
 propGetUserWrongToken :: Token -> EMap (User Display) -> Property 
@@ -129,7 +129,7 @@ propGetUserWrongToken t db = property $ conditions ==> do
     Left err <- evalTest 
         ( withToken t
         . withGetPath "users/me" )
-        ( withUserDatabase db )
+        ( withDatabase @User db )
     err `shouldSatisfy` isEntityNotFoundError 
   where
     conditions = not (M.null db) && wrongToken

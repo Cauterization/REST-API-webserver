@@ -1,5 +1,5 @@
 {-# LANGUAGE ViewPatterns #-}
-module GenericProps where
+module Helpers.GenericProps where
 
 import Data.Aeson
 import Data.ByteString.Lazy qualified as BL 
@@ -50,7 +50,7 @@ propPostsEntity path db e = property $ not (alreadyExists e db) ==> do
     case x of
         (Right (ResText t), st) -> do
             let Right eID = T.read @(ID (e Display)) t
-            fromDisplay <$> M.lookup eID (dbFromTestState @e @Create st) 
+            fromDisplay <$> M.lookup eID (dbFromTestState @e st) 
                 `shouldBe` Just e
         (Left err, _) -> print err
 
@@ -165,7 +165,7 @@ propDeleteEntity path db eID = property $ eID `elem` M.keys db ==> do
     st <- execTest 
         (withDeletePath $ path <> "/" <> T.show eID) 
         (withDatabase @e @Display db)
-    dbFromTestState @e @Display st `shouldBe` M.delete eID db
+    dbFromTestState @e st `shouldBe` M.delete eID db
 
 propDeleteEntityDoesntExists :: forall (e :: Type -> Type). 
     ( TestEntity e

@@ -3,6 +3,7 @@ module Helpers.Internal where
 import App.Types
 import App.Internal
 import Data.Aeson
+import Data.Char
 
 import Entity.Internal
 import Extended.Text (Text)
@@ -71,4 +72,16 @@ deriving instance Ord      NotDisplayed
 instance {-# OVERLAPPING #-} FromJSON (Maybe NotDisplayed) where
     parseJSON _ = pure Nothing
 
-deriving instance Show     NotUpdated
+deriving instance Show       NotUpdated
+instance {-# OVERLAPPING #-} ToJSON   (Maybe NotUpdated) where
+    toJSON _ = Null
+
+-- genText :: Gen Text
+-- genText = do
+--     len <- chooseInt (1,40)
+--     T.pack <$> replicateM len genChar
+
+-- genChar :: Gen Char
+-- genChar = do
+--     n <- chooseInt (1,52)
+--     pure $ (!!n) $ map chr $ [65..90]<>[97..122]

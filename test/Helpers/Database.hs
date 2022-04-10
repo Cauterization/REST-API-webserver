@@ -1,4 +1,5 @@
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE ViewPatterns #-}
 module Helpers.Database where
 
 import App.Types
@@ -24,6 +25,7 @@ import HKD.HKD
 import Helpers.Author
 import Helpers.User
 import Helpers.Monad
+import Helpers.Update
 
 import Test.Hspec
 import Test.QuickCheck
@@ -32,13 +34,8 @@ import Unsafe.Coerce
 
 import Api.User (mkHash)
 
+
 type StateMod = TestState -> TestState
-
-withUserDatabase :: EMap (User Display) -> StateMod
-withUserDatabase emap TestState{..} = TestState{userDB = emap, ..}
-
-withAuthorDatabase :: EMap (Author Display) -> StateMod
-withAuthorDatabase emap TestState{..} = TestState{authorDB = emap, ..}
 
 data TestDB
 
@@ -67,6 +64,10 @@ instance IsDatabase TestDB  where
         modify $ insertIntoTestDB @e (coerce eID) eDisplay 
         pure eID
 
+    putIntoDatabase :: forall q. ToRowOf TestDB q 
+        => () -> TestQuery -> q -> TestMonad ()
+    putIntoDatabase _ _ q = putEntityToTestDatabase @q q
+
     getFromDatabase ::  forall q r. (ToRowOf TestDB q, FromRowOf TestDB r)
         => () -> TestQuery -> q -> TestMonad [r]
     getFromDatabase _ _ q = do
@@ -88,9 +89,9 @@ class ToRowOfT q where
     fromDisplay      :: ToDisplay q -> q
     getsDatabase     :: TestMonad (DBOf q)
     insertIntoTestDB :: ID (ToDisplay q) -> ToDisplay q -> StateMod
-    -- dbFromTestState  :: TestState -> DBOf q
     putToState       :: q -> TestMonad ()
     deleteEntityFromTestDatabase :: q -> TestMonad Integer
+    putEntityToTestDatabase :: q -> TestMonad ()
     
 class FromRowOfT r where
     getEntityFromTestDatabase :: q -> TestMonad [r]
@@ -127,8 +128,6 @@ instance ToRowOfT (Author Create) where
     alreadyExists a aMap = not . null $ 
         M.filter ((== user a) . (coerce .entityID . user)) aMap
 
-    -- withDatabase db TestState{..} = TestState{authorDB = db, ..}
-
     toDisplay a = do
         let d = description a
             uID = user a
@@ -137,22 +136,16 @@ instance ToRowOfT (Author Create) where
             Just user -> pure Author{user = Entity (coerce uID) user, description = d}
             _ -> throwM $ EntityNotFound ""
 
-    fromDisplay a = Author{description = description a, user = coerce entityID $ user a}
+    fromDisplay a = Author
+        {description = description a, user = coerce entityID $ user a}
 
     insertIntoTestDB aID a TestState{..} 
         = TestState{authorDB = M.insert aID a authorDB, ..}
 
     
 instance FromRowOfT (ID (Author Create)) where
-    -- deleteEntityFromTestDatabase = error "og"
 
 instance ToRowOfT (Author Display) where
-
-    fromDisplay = unsafeCoerce
-
-    -- dbFromTestState TestState{..} = authorDB
-
-    -- withDatabase db TestState{..} = TestState{authorDB = db, ..}
 
 instance FromRowOfT (Author (Front Display)) where
 
@@ -168,22 +161,34 @@ instance FromRowOfT (Author (Front Display)) where
                 return $ map authorDisplayToAuthorFrontDisplay 
                     $ take pag $ drop (pag * (page - 1)) $ M.elems db
 
+type AuthorUpdateT = (Maybe NotUpdated, Maybe Text, ID (Path Current))
+
+instance ToRowOfT AuthorUpdateT where
+
+    putEntityToTestDatabase (_, desc, coerce -> aID) = do
+        db <- gets authorDB
+        case M.lookup aID db of
+            Nothing -> throwM $ EntityNotFound ""
+            Just Author{..} -> 
+                let a' = Author{description = desc >\ description, .. }
+                    db' = M.insert aID a' db
+                in modify $ \TestState{..} -> TestState{authorDB = db', .. }
+
+
 instance ToRowOfT (User Create) where
 
     getsDatabase = gets userDB
 
     alreadyExists u uMap = not . null $ M.filter ((== login u) . login) uMap
 
-    -- withDatabase db TestState{..} = TestState{userDB = db, ..}
-
     toDisplay = pure . unsafeCoerce 
 
     insertIntoTestDB uID u TestState{..} 
         = TestState{userDB = M.insert uID u userDB, ..}   
 
-instance FromRowOfT (User Display) where
+    -- putEntityToTestDatabase (_, )
 
-    -- getEntityFromTestDatabase = undefined
+instance FromRowOfT (User Display) where
 
 instance FromRowOfT (ID (User Create)) where
 

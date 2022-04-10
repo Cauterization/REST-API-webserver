@@ -97,7 +97,7 @@ instance Routed Author TestDB where
         post    "authors"            Author.postAuthor   
         get_    "authors"          
         get_    "authors/{ID}" 
-        -- put_    "admin/authors/{ID}"     
+        put_    "authors/{ID}"     
         delete_ "authors/{ID}"  
 
 defaultEnv :: Env TestMonad

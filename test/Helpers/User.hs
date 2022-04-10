@@ -19,12 +19,12 @@ deriving instance Ord    (User Create)
 userDisplayToUserFrontDisplay :: User Display -> User (Front Display)
 userDisplayToUserFrontDisplay u = User
     { firstName = firstName u
-    , lastName  = lastName u
-    , login     = login u
+    , lastName  = lastName  u
+    , login     = login     u
     , token     = Nothing
     , password  = Nothing
-    , created   = created u
-    , admin     = admin u
+    , created   = created   u
+    , admin     = admin     u
     }
 
 instance ToJSON (User Create) where
@@ -78,4 +78,3 @@ instance FromJSON (User (Front Display)) where
         created   <- o .: "created"
         admin     <- o .: "admin"
         pure User{..}
-

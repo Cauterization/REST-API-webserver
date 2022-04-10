@@ -35,7 +35,7 @@ import Data.Maybe
 newtype TestMonad a = TestMonad
     { unTestM :: ExceptT AppError 
                 (WriterT [(Logger.Verbosity, Text)]
-                (State TestState)) a} 
+                (State TestState)) a } 
     deriving newtype
         ( Functor
         , Applicative
@@ -64,9 +64,9 @@ instance Logger.RunLogger TestMonad where
 type EMap e = M.Map (ID e) e
 
 data TestState = TestState
-    { userDB         :: EMap (User   Display)
-    , authorDB       :: EMap (Author Display)
-    , ids            :: [Int]
+    { userDB           :: EMap (User   Display)
+    , authorDB         :: EMap (Author Display)
+    , ids              :: [Int]
     , tsPage           :: Int
     , tsPaginationSize :: Int
     , tsToken          :: Maybe Token
@@ -94,11 +94,3 @@ deleteAllEntitiesWithID eID = do
         }
     pure $ u + a
 
-fromUserDB :: Int -> EMap (User Display) -> Gen (EMap (Author Display))    
-fromUserDB n user = M.fromList . zip [1..] <$> forM (take n $ M.toList user) genAuthorFromUser 
-
-genAuthorFromUser :: (ID (User Display), User Display) -> Gen (Author Display)
-genAuthorFromUser (uID, u) = do
-    let user = Entity uID u
-    description <- arbitrary
-    pure Author{..}
