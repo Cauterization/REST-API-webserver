@@ -5,15 +5,15 @@ import Entity.User
 
 import Helpers.Database
 import Helpers.Author
+import Helpers.User 
 import Helpers.Monad
 
 import HKD.HKD
-import Helpers.Monad
-import Helpers.User (userDisplayToUserFrontDisplay)
+
 
 class TestEntity e where
     eDisplayToFrontDisplay :: e Display -> e (Front Display)
-    withDatabase           ::  DBOf (e Display) -> StateMod
+    withDatabase           ::  TDB e -> StateMod
     dbFromTestState        ::  TestState -> EMap (e Display)
 
 instance TestEntity Author where

@@ -63,6 +63,8 @@ instance Logger.RunLogger TestMonad where
 
 type EMap e = M.Map (ID e) e
 
+type TDB e = M.Map (ID (e Display)) (e Display)
+
 data TestState = TestState
     { userDB           :: EMap (User   Display)
     , authorDB         :: EMap (Author Display)

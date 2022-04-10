@@ -41,9 +41,9 @@ authorDisplayToAuthorFrontDisplay a = Author
 
 deriving instance ToJSON (Author (Front Create))
 
-deriving instance Eq       (Author (Front Display))
-deriving instance Ord      (Author (Front Display))
-deriving instance FromJSON (Author (Front Display))
+deriving instance Eq        (Author (Front Display))
+deriving instance Ord       (Author (Front Display))
+deriving instance FromJSON  (Author (Front Display))
 
 deriving instance ToJSON    (Author (Front Update))
 deriving instance Show      (Author (Front Update))

@@ -29,19 +29,22 @@ import Data.String
 import Data.Kind
 import Data.List (sort)
 
-propPostsEntity :: forall e. 
-    ( ToJSON (e Create) 
-    , Show (e Create) 
-    , Eq (e Create) 
-    , FromJSON (e (Front Create))
-    , ToJSON (e (Front Create))
-    , FromRowOfT (ID (e Create))
-    , ToRowOfT (e Create)
-    , ToRowOfT (e Display)
+type GPropsConstr e a =
+    ( TestEntity e 
+    , ToDisplay (e a) ~ e Display
     , ToDisplay (e Display) ~ e Display
-    , TestEntity e
-    , DBOf (e Create) ~ M.Map (ID (e Display)) (e Display)
-    ) => Text -> DBOf (e Create) -> e Create -> Property
+    , Show (e a)
+    , Eq (e a)
+    , Ord (e a)
+    )
+
+propPostsEntity :: forall e. 
+    ( GPropsConstr e Create 
+    , ToJSON      (e Create) 
+    , ToRowOfT    (e Create)
+    , FromJSON    (e (Front Create))
+    , ToJSON      (e (Front Create))
+    ) => Text -> TDB e -> e Create -> Property
 propPostsEntity path db e = property $ not (alreadyExists e db) ==> do
     x <- runTest 
         ( withBody (eCreateToFrontCreate e)
@@ -72,34 +75,18 @@ propPostsParsingFail path (fromString . show -> obj) =
         res `shouldSatisfy` isParsingError
 
 propGetEntities :: forall (e :: Type -> Type).
-    ( TestEntity e
-    , ToDisplay (e Display) ~ e Display
-    , DBOf (e Display) ~ EMap (e Display)
-    , FromJSON (e (Front Display))
-    , Show (e (Front Display))
-    , Eq (e (Front Display))
-    , Ord (e (Front Display))
-    ) => Text -> DBOf (e Display) -> Property
+    ( GPropsConstr e (Front Display)
+    , FromJSON    (e (Front Display))
+    ) => Text -> TDB e-> Property
 propGetEntities path db = property $ length (M.toList db) < testPaginationConstant ==> do
     Right (ResJSON es) <- evalTest (withGetPath path) (withDatabase @e db)
     let Right es' = eitherDecode es
     sort es' `shouldBe` sort (map eDisplayToFrontDisplay (M.elems db))
 
 propGetEntitiesIsPaginated :: forall (e :: Type -> Type).
-    ( TestEntity e
-    , ToDisplay (e Display) ~ e Display
-    , DBOf (e Display) ~ EMap (e Display)
-    , FromJSON (e (Front Display))
-    , Show (e (Front Display))
-    , Eq (e (Front Display))
-    , Ord (e (Front Display))
-    ) => Text 
-      -> DBOf (e Display) 
-      -> DBOf (e Display) 
-      -> DBOf (e Display) 
-      -> DBOf (e Display) 
-      -> DBOf (e Display) 
-      -> Property
+    ( GPropsConstr e (Front Display)
+    , FromJSON    (e (Front Display))
+    ) => Text -> TDB e -> TDB e -> TDB e -> TDB e -> TDB e -> Property
 propGetEntitiesIsPaginated path db1 db2 db3 db4 db5 = 
     property $ do
         Right (ResJSON es) <- evalTest (withGetPath path) (withDatabase @e db)
@@ -108,15 +95,10 @@ propGetEntitiesIsPaginated path db1 db2 db3 db4 db5 =
   where
     db = mconcat [db1, db2, db3, db4, db5]
 
-propGetEntitiesWithPage :: forall (e :: Type -> Type) a.
-    ( TestEntity e
-    , ToDisplay (e Display) ~ e Display
-    , DBOf (e a) ~ EMap (e Display)
-    , FromJSON (e (Front Display))
-    , Show (e (Front Display))
-    , Eq (e (Front Display))
-    , Ord (e (Front Display))
-    ) => Text -> Int -> DBOf (e a) -> DBOf (e a) -> DBOf (e a) ->  Property
+propGetEntitiesWithPage :: forall (e :: Type -> Type).
+    ( GPropsConstr e (Front Display)
+    , FromJSON    (e (Front Display))
+    ) => Text -> Int -> TDB e -> TDB e -> TDB e ->  Property
 propGetEntitiesWithPage path page db1 db2 db3 = let db = db1 <> db2 <> db3 in
     property $ page > 0 ==> do
         Right (ResJSON es) <- evalTest 
@@ -128,15 +110,10 @@ propGetEntitiesWithPage path page db1 db2 db3 = let db = db1 <> db2 <> db3 in
             ( drop (testPaginationConstant * (page - 1)) 
             $ map eDisplayToFrontDisplay $ M.elems db)
 
-propGetEntity :: forall (e :: Type -> Type) a.
-    ( TestEntity e
-    , ToDisplay (e Display) ~ e Display
-    , DBOf (e a) ~ EMap (e Display)
-    , FromJSON (e (Front Display))
-    , Show (e (Front Display))
-    , Eq (e (Front Display))
-    , Ord (e (Front Display))
-    ) => Text -> DBOf (e a) -> ID (e Display) -> Property
+propGetEntity :: forall (e :: Type -> Type).
+    ( GPropsConstr e (Front Display)
+    , FromJSON    (e (Front Display))
+    ) => Text -> TDB e -> ID (e Display) -> Property
 propGetEntity path db eID = property $ eID `elem` M.keys db ==> do
     Right (ResJSON es) <- evalTest withPath (withDatabase @e db)
     let Right es' = eitherDecode es
@@ -144,15 +121,10 @@ propGetEntity path db eID = property $ eID `elem` M.keys db ==> do
   where
     withPath = withGetPath $ path <> "/" <> T.show eID
 
-propGetEntityDoesntExists :: forall (e :: Type -> Type) a.
-    ( TestEntity e
-    , ToDisplay (e Display) ~ e Display
-    , DBOf (e a) ~ EMap (e Display)
-    , FromJSON (e (Front Display))
-    , Show (e (Front Display))
-    , Eq (e (Front Display))
-    , Ord (e (Front Display))
-    ) => Text -> DBOf (e a) -> ID (e Display) -> Property
+propGetEntityDoesntExists :: forall (e :: Type -> Type).
+    ( GPropsConstr e (Front Display)
+    , FromJSON    (e (Front Display))
+    ) => Text -> TDB e -> ID (e Display) -> Property
 propGetEntityDoesntExists path db eID = property $ eID `notElem` M.keys db ==> do
     Left err <- evalTest withPath (withDatabase @e db)
     err `shouldSatisfy` isEntityNotFoundError
@@ -160,13 +132,10 @@ propGetEntityDoesntExists path db eID = property $ eID `notElem` M.keys db ==> d
     withPath = withGetPath $ path <> "/" <> T.show eID
 
 propPutEntity :: forall e.
-    ( TestUpdate e
+    ( GPropsConstr e Display
     , ToJSON (e (Front Update))
-    , TestEntity e
-    , ToDisplay (e Display) ~ e Display
-    , Show (e Display)
-    , Eq (e Display)
-    ) => Text -> EMap (e Display) -> e (Front Update) -> ID (e Display) 
+    , TestUpdate e
+    ) => Text -> TDB e -> e (Front Update) -> ID (e Display) 
     -> Property
 propPutEntity path db eu eID = property $ eID `M.member` db ==> do
     st <- execTest 
@@ -180,7 +149,7 @@ propPutEntityDoesntExists :: forall e.
     ( ToJSON (e (Front Update))
     , TestEntity e
     , ToDisplay (e Display) ~ e Display
-    ) => Text -> EMap (e Display) -> e (Front Update) -> ID (e Display) 
+    ) => Text -> TDB e -> e (Front Update) -> ID (e Display) 
     -> Property
 propPutEntityDoesntExists path db eu eID = property $ not (eID `M.member` db) ==> do
     Left res <- evalTest 
@@ -191,7 +160,7 @@ propPutEntityDoesntExists path db eu eID = property $ not (eID `M.member` db) ==
 
 propPutParsingFail :: forall e. 
     ( FromJSON (e (Front Update))
-    ) => Text -> EMap (e Display) -> Value -> ID (e Display) -> Property
+    ) => Text -> TDB e -> Value -> ID (e Display) -> Property
 propPutParsingFail path db (fromString . show -> obj) eID = 
     property $ conditions ==> do
         Left res <- evalTest 
@@ -204,12 +173,8 @@ propPutParsingFail path db (fromString . show -> obj) eID =
             eID `M.member` db
 
 propDeleteEntity :: forall (e :: Type -> Type). 
-    ( TestEntity e
-    , DBOf (e Delete) ~ M.Map (ID (e Display)) (e Display)
-    , ToDisplay (e Display) ~ e Display
-    , Show (e Display)
-    , Eq (e Display)
-    ) => Text -> DBOf (e Display) -> ID (e Display) -> Property
+    ( GPropsConstr e Display
+    ) => Text -> TDB e -> ID (e Display) -> Property
 propDeleteEntity path db eID = property $ eID `elem` M.keys db ==> do
     st <- execTest 
         (withDeletePath $ path <> "/" <> T.show eID) 
@@ -217,12 +182,8 @@ propDeleteEntity path db eID = property $ eID `elem` M.keys db ==> do
     dbFromTestState @e st `shouldBe` M.delete eID db
 
 propDeleteEntityDoesntExists :: forall (e :: Type -> Type). 
-    ( TestEntity e
-    , DBOf (e Delete) ~ M.Map (ID (e Display)) (e Display)
-    , ToDisplay (e Display) ~ e Display
-    , Show (e Display)
-    , Eq (e Display)
-    ) => Text -> DBOf (e Display) -> ID (e Display) -> Property
+    ( GPropsConstr e Display
+    ) => Text -> TDB e -> ID (e Display) -> Property
 propDeleteEntityDoesntExists path db eID = property $ eID `notElem` M.keys db ==> do
     Left res <- evalTest 
         (withDeletePath $ path <> "/" <> T.show eID) 
