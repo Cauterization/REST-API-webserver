@@ -18,6 +18,7 @@ data Entity e a = Entity
   , entity :: e a }
   deriving stock Generic
 
+
 deriving instance (FromJSON (e a), FromJSON (NamedID "_id" a e))
     => FromJSON (Entity e a)
 deriving instance (ToJSON (e a), ToJSON (NamedID "_id" a e))

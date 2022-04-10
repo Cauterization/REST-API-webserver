@@ -13,8 +13,30 @@ import HKD.HKD
 import Test.QuickCheck
 import Control.Monad (replicateM)
 
+testPaginationConstant :: PaginationSize
+testPaginationConstant = 20
+
+isParsingError :: AppError -> Bool
+isParsingError ParsingErr{} = True
+isParsingError _            = False
+
+isEntityNotFoundError :: AppError -> Bool
+isEntityNotFoundError EntityNotFound{} = True
+isEntityNotFoundError _                = False
+
+isAlreadyExistsError :: AppError -> Bool
+isAlreadyExistsError AlreadyExists{} = True
+isAlreadyExistsError _               = False
+
+isUnathorizedError :: AppError -> Bool
+isUnathorizedError Unathorized{} = True
+isUnathorizedError_              = False
+
+deriving instance (Eq (e a),  Eq  (NamedID "_id" a e)) => Eq  (Entity e a)
+deriving instance (Ord (e a), Ord (NamedID "_id" a e)) => Ord (Entity e a)
+
 instance Arbitrary (ID e) where
-    arbitrary = ID <$> chooseInt (1, 100)
+    arbitrary = ID <$> chooseInt (1, 20)
 
 instance Arbitrary Text where
     arbitrary = T.pack <$> arbitrary
@@ -44,6 +66,9 @@ instance Arbitrary (e Display) => Arbitrary (Entity e Display) where
         entity   <- arbitrary
         pure Entity{..}
 
-isParsingError :: AppError -> Bool
-isParsingError ParsingErr{} = True
-isParsingError _            = False
+deriving instance Eq       NotDisplayed
+deriving instance Ord      NotDisplayed
+instance {-# OVERLAPPING #-} FromJSON (Maybe NotDisplayed) where
+    parseJSON _ = pure Nothing
+
+deriving instance Show     NotUpdated

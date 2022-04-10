@@ -75,6 +75,10 @@ default-extensions:
 - TypeOperators
 - UndecidableInstances
 
+ghc-options: 
+  -j6
+  -O0
+
 library:
   source-dirs: src
 

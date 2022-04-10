@@ -16,6 +16,17 @@ import Extended.Text qualified as T
 deriving instance Eq     (User Create)
 deriving instance Ord    (User Create)
 
+userDisplayToUserFrontDisplay :: User Display -> User (Front Display)
+userDisplayToUserFrontDisplay u = User
+    { firstName = firstName u
+    , lastName  = lastName u
+    , login     = login u
+    , token     = Nothing
+    , password  = Nothing
+    , created   = created u
+    , admin     = admin u
+    }
+
 instance ToJSON (User Create) where
     toJSON User{..} = object
         ["firstName" .= firstName
@@ -39,9 +50,11 @@ instance Arbitrary       (User Create) where
 deriving instance ToJSON (User (Front Create))
 -- deriving instance Show   (User (Front Create))
 
-deriving instance Eq     (User Display)
-deriving instance ToJSON (User Display)
-instance Arbitrary       (User Display) where
+deriving instance Eq       (User Display)
+deriving instance Ord      (User Display)
+deriving instance ToJSON   (User Display)
+deriving instance FromJSON (User Display)
+instance Arbitrary         (User Display) where
     arbitrary = do
         firstName <- arbitrary
         lastName  <- arbitrary
@@ -51,3 +64,18 @@ instance Arbitrary       (User Display) where
         created   <- arbitrary
         admin     <- arbitrary
         pure User{..}
+
+deriving instance Eq       (User (Front Display))
+deriving instance Ord      (User (Front Display))
+
+instance FromJSON (User (Front Display)) where
+    parseJSON = withObject "user front display" $ \o -> do
+        firstName <- o .: "firstName"
+        lastName  <- o .: "lastName"
+        login     <- o .: "login"
+        token     <- o .: "token"
+        let password = Nothing
+        created   <- o .: "created"
+        admin     <- o .: "admin"
+        pure User{..}
+

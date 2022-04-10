@@ -98,6 +98,7 @@ library
       TypeFamilies
       TypeOperators
       UndecidableInstances
+  ghc-options: -j6 -O0
   build-depends:
       QuickCheck
     , aeson
@@ -159,7 +160,7 @@ executable server-exe
       TypeFamilies
       TypeOperators
       UndecidableInstances
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Werror -Wno-unused-do-bind -Wno-unused-matches -Wno-unused-foralls -Wno-unused-local-binds
+  ghc-options: -j6 -O0 -threaded -rtsopts -with-rtsopts=-N -Wall -Werror -Wno-unused-do-bind -Wno-unused-matches -Wno-unused-foralls -Wno-unused-local-binds
   build-depends:
       QuickCheck
     , aeson
@@ -199,6 +200,7 @@ test-suite server-test
       Helpers.App
       Helpers.Author
       Helpers.Database
+      Helpers.Entity
       Helpers.Internal
       Helpers.Monad
       Helpers.User
@@ -233,7 +235,7 @@ test-suite server-test
       TypeFamilies
       TypeOperators
       UndecidableInstances
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -j6 -O0 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
     , aeson
