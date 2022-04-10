@@ -77,6 +77,12 @@ putSpec = describe "PUT" $ do
     it "Actually change author "
         $ property $ propPutEntity @Author "authors"
 
+    it "Throws error when author with this ID doesn't exists"
+        $ property $ propPutEntityDoesntExists @Author "authors"
+
+    it "Throws error when it fails to parse request body"
+        $ property $ propPutParsingFail @Author "authors"
+
 deleteSpec :: Spec
 deleteSpec = describe "DELETE" $ do
 
@@ -96,31 +102,6 @@ propPostsAuthor db u a = property $ not (alreadyExists a db) ==> do
     let Right aID = T.read aIDtext
     let res = M.lookup aID $ authorDB st
     fmap fromDisplay res `shouldBe` Just a
-
-
-propPutEntity :: forall e.
-    ( 
-    ) => Text -> EMap (e Display) -> e (Front Update) -> ID (e Display) 
-    -> Property
-propPutEntity path db eu eID = property $ eID `M.member` db ==> do
-    (res, st) <- runTest 
-        ( withBody eu
-        . withPutPath (path <> "/" <> T.show eID))
-        ( withDatabase @e db )
-    let Just e = M.lookup eID db
-    M.lookup eID (dbFromTestState @e st) `shouldBe` Just (eu >/ e) 
-
-
--- propPutAuthor :: EMap (Author Display) -> Author (Front Update) -> ID (Author Display) 
---     -> Property
--- propPutAuthor db au aID = property $ aID `M.member` db ==> do
---     (res, st) <- runTest 
---         ( withBody au
---         . withPutPath ("authors" <> "/" <> T.show aID))
---         ( withDatabase @Author db )
---     let Just a = M.lookup aID db
---     print res
---     M.lookup aID (dbFromTestState @Author st) `shouldBe` Just (au >/ a) 
 
 propPostsAuthorAlreadyExists :: 
     EMap (Author Display) -> EMap (Author Display) -> EMap (Author Display) 

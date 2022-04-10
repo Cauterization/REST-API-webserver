@@ -49,10 +49,6 @@ deriving instance ToJSON    (Author (Front Update))
 deriving instance Show      (Author (Front Update))
 instance Arbitrary          (Author (Front Update)) where
     arbitrary = do
-        let user  = Nothing
-        -- x <- chooseInt(1,10)
-        -- description <- case x of
-        --     1 -> pure Nothing
-        --     _ -> Just <$> genText
+        let user    =  Nothing
         description <- arbitrary
         pure Author{..}

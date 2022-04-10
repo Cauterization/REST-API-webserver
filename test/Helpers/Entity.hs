@@ -13,7 +13,7 @@ import Helpers.User (userDisplayToUserFrontDisplay)
 
 class TestEntity e where
     eDisplayToFrontDisplay :: e Display -> e (Front Display)
-    withDatabase           ::  DBOf (e a) -> StateMod
+    withDatabase           ::  DBOf (e Display) -> StateMod
     dbFromTestState        ::  TestState -> EMap (e Display)
 
 instance TestEntity Author where

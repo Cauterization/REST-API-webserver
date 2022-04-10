@@ -9,12 +9,10 @@ import App.Internal
 import Data.Aeson
 import Data.List (sort)
 import Data.Map qualified as M
+import Data.Time qualified as Time
 
 import Entity.User
 import Extended.Text qualified as T
-
-import Test.Hspec
-import Test.QuickCheck
 
 import Helpers.User
 import Helpers.Entity
@@ -26,9 +24,8 @@ import Helpers.GenericProps
 
 import HKD.HKD
 
-
-
-import qualified Data.Time as Time
+import Test.Hspec
+import Test.QuickCheck
 
 spec :: Spec
 spec = do
