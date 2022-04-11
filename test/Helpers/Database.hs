@@ -35,6 +35,9 @@ import Test.QuickCheck
 import Unsafe.Coerce
 
 import Api.User (mkHash)
+import qualified Logger
+import qualified Extended.Text as T
+import Data.Maybe (fromJust)
 
 
 type StateMod = TestState -> TestState
@@ -93,7 +96,7 @@ class ToRowOfT q where
     putEntityToTestDatabase :: q -> TestMonad ()
     
 class FromRowOfT r where
-    getEntityFromTestDatabase :: q -> TestMonad [r]
+    getEntityFromTestDatabase :: Show q => q -> TestMonad [r] -- DEBUG SHOW Q
 
 type family DBOf e where
     DBOf e = EMap (ToDisplay e)
@@ -108,8 +111,22 @@ instance ToRowOfT [ID (Path Current)] where
         -> TestState{ids = ids ++ map idVal ids', ..})
     deleteEntityFromTestDatabase [eID] = deleteAllEntitiesWithID eID
 
-instance ToRowOfT [Token] where
-    putToState [t] =  modify (\TestState{..} -> TestState{tsToken = Just t, ..})
+instance ToRowOfT [Text] where
+    putToState [t] =  do
+        modify (\TestState{..} -> TestState{tsToken = Just t, ..})
+        modify (\TestState{..} -> TestState{tsUserLogin = Just t, ..})
+
+    -- | User auth token update
+    putEntityToTestDatabase [newToken] = do
+        db <- gets userDB
+        mbLogin <- gets tsUserLogin
+        case mbLogin of
+            Nothing -> throwM $ EntityNotFound ""
+            Just userLogin -> case filter ((== userLogin) . login . snd) $ M.toList db of
+                [(uID, User{..})] -> let db' = M.insert uID User{token = newToken, ..} db
+                    in modify (\TestState{..} -> TestState{userDB= db', ..})
+            _ -> throwM $ EntityNotFound ""
+
 
 instance ToRowOfT [Page] where
     putToState [p] = modify (\TestState{..} -> TestState{tsPage = p, ..})
@@ -200,10 +217,10 @@ instance FromRowOfT (ID (User Create)) where
 instance FromRowOfT (Entity User Display) where 
 
     getEntityFromTestDatabase q = do
+        Just l <- gets tsUserLogin
         db <- gets userDB
-        gets tsToken >>= \case
-            Just t -> pure $ map (\(uID, u) -> Entity uID u)
-                $ filter ((\User{..} -> token == t) . snd) $ M.toList db
+        pure $ map (\(uID, u) -> Entity (coerce uID) u) $ 
+            filter ((\User{..} -> login == l) . snd) $ M.toList db
 
 instance FromRowOfT (User (Front Display)) where
 
@@ -222,17 +239,12 @@ instance FromRowOfT (Entity User (Front Display)) where
                 $ userDisplayToUserFrontDisplay u)
                     $ filter ((\User{..} -> token == t) . snd) $ M.toList db
 
+type UserAuthT = [Text]
+
 instance ToOneRow (User (Front Update)) IDs where 
 
     type instance MkOneRow (User  (Front Update)) IDs 
-        = [ID (Path Current)]
-
-    -- toOneRow User{..} [uID] = pure (token, uID)
-    -- toOneRow _ _  = entityIDArityMissmatch "user token update"
-
-
-
-
+        = UserAuthT
 
 instance ToRowOfT (Tag Create) where
 
@@ -240,9 +252,9 @@ instance ToRowOfT (Tag Create) where
 
     alreadyExists t tMap =  not . null $ M.filter ((== name t) . name) tMap
 
-    toDisplay = pure . unsafeCoerce -- pure $ Tag name
+    toDisplay = pure . unsafeCoerce 
 
-    fromDisplay = unsafeCoerce --Tag name
+    fromDisplay = unsafeCoerce 
 
     insertIntoTestDB tID t TestState{..} 
         = TestState{tagDB = M.insert tID t tagDB, ..}
@@ -264,11 +276,15 @@ instance FromRowOfT (Tag (Front Display)) where
                 return $ map tagDisplayToFrontDisplay 
                     $ take pag $ drop (pag * (page - 1)) $ M.elems db
 
+-- | because of collision of update types for token and user auth here we need to
+-- redirect this thing
+
 instance ToRowOfT TagUpdateT where
+
     putEntityToTestDatabase (newName, coerce -> tID) = do
         db <- gets tagDB
         case M.lookup tID db of
-            Nothing -> throwM $ EntityNotFound ""
+            Nothing -> putEntityToTestDatabase @UserAuthT [fromJust newName]
             Just Tag{..} -> 
                 let t' = Tag{name = newName >\ name, .. }
                     db' = M.insert tID t' db

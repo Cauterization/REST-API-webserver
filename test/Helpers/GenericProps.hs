@@ -173,11 +173,11 @@ propPutEntityDoesntExists :: forall e.
     ) => Text -> TDB e -> e (Front Update) -> ID (e Display) 
     -> Property
 propPutEntityDoesntExists path db eu eID = property $ not (eID `M.member` db) ==> do
-    Left res <- evalTest 
+    Left err <- evalTest 
         ( withBody eu
         . withPutPath (path <> "/" <> T.show eID))
         ( withDatabase @e db )
-    res `shouldSatisfy` isEntityNotFoundError 
+    err `shouldSatisfy` isEntityNotFoundError 
 
 propPutEntityParsingFail :: forall e. 
     ( FromJSON (e (Front Update))

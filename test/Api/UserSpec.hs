@@ -1,3 +1,5 @@
+{-# LANGUAGE ViewPatterns #-}
+
 module Api.UserSpec where
 
 import Api.User
@@ -32,6 +34,7 @@ spec = do
     postSpec
     getSpec
     deleteSpec
+    authSpec
     
 postSpec :: Spec
 postSpec = describe "POST" $ do
@@ -60,13 +63,22 @@ getSpec = describe "GET" $ do
 deleteSpec :: Spec
 deleteSpec = describe "DELETE" $ do
 
-    it "actually deletes user from database"
+    it "Actually deletes user from database"
         $ property $ propDeleteEntity @User "users"
 
     it "Throws error when user with this ID doesn't exists"
         $ property $ propDeleteEntityDoesntExists @User "users"
 
-propPostsUser ::  EMap (User Display) -> User Create -> Property
+authSpec :: Spec
+authSpec = describe "User authentication" $ do
+
+    it "When all is ok it gives new token to user and updates token in the database"
+        $ property propAuthUser
+
+    it "Throws error when user with this login doesn't exists"
+        $ property propAuthUserDoesntExists
+
+propPostsUser :: TDB User -> User Create -> Property
 propPostsUser db u = property $ not (alreadyExists u db) ==> do
     (Right (ResJSON j), st) <- runTest 
         ( withBody (eCreateToFrontCreate u)
@@ -101,7 +113,7 @@ propPostsUserAlreadyExists u = property $ do
         , admin     = admin u
         } :: User Create
 
-propGetUser :: EMap (User Display) -> Property 
+propGetUser :: TDB User -> Property 
 propGetUser db = property $ conditions ==> do
     Right (ResJSON j) <- evalTest 
         ( withToken t
@@ -114,14 +126,14 @@ propGetUser db = property $ conditions ==> do
     conditions = not (M.null db) && nonRepetitiveToken
     nonRepetitiveToken = (== 1) . length . filter (\User{..} -> token == t) $ M.elems db
 
-propGetUserNoToken :: EMap (User Display) -> Property 
+propGetUserNoToken :: TDB User -> Property 
 propGetUserNoToken db = property $ not (M.null db) ==> do
     Left err <- evalTest 
         ( withGetPath "users/me" )
         ( withDatabase @User db )
     err `shouldSatisfy` isUnathorizedError 
 
-propGetUserWrongToken :: Token -> EMap (User Display) -> Property 
+propGetUserWrongToken :: Token -> TDB User -> Property 
 propGetUserWrongToken t db = property $ conditions ==> do
     Left err <- evalTest 
         ( withToken t
@@ -131,3 +143,44 @@ propGetUserWrongToken t db = property $ conditions ==> do
   where
     conditions = not (M.null db) && wrongToken
     wrongToken = not . any (\User{..} -> token == t) $ M.elems db
+
+propAuthUser :: User Display -> ID (User Display) -> TDB User -> Property
+propAuthUser user uID (M.filter ((/= login user) . login) -> db) 
+    = property $ token user /= "super unique token" ==> do
+        (Right (ResText newToken), st) <- runTest 
+            ( withBody auth 
+            . withPostPath "auth" ) 
+            ( withDatabase $ M.insert uID dbUser db )
+        newToken `shouldNotBe` token user
+        let Just user' = M.lookup uID $ userDB st
+        token user' `shouldNotBe` newToken
+  where
+    dbUser = (\User{..} -> User{password = mkHash password, .. }) user
+    auth = User
+        { firstName = Nothing
+        , lastName = Nothing
+        , login = login user
+        , token = Nothing
+        , password = password user
+        , created = Nothing
+        , admin = Nothing
+        } :: User Auth
+
+propAuthUserDoesntExists :: User Display -> ID (User Display) -> TDB User -> Property
+propAuthUserDoesntExists user uID (M.filter ((/= login user) . login) -> db) 
+    = property $ do
+        Left err <- evalTest 
+            ( withBody auth 
+            . withPostPath "auth" ) 
+            ( withDatabase db )
+        err `shouldSatisfy` isEntityNotFoundError
+  where
+    auth = User
+        { firstName = Nothing
+        , lastName = Nothing
+        , login = login user
+        , token = Nothing
+        , password = password user
+        , created = Nothing
+        , admin = Nothing
+        } :: User Auth

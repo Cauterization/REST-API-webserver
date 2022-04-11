@@ -75,6 +75,8 @@ data TestState = TestState
     , tsPage           :: Int
     , tsPaginationSize :: Int
     , tsToken          :: Maybe Token
+    , tsUserLogin      :: Maybe Text
+    , tsUserPass       :: Maybe Text
     } deriving Show
 
 initialState :: TestState
@@ -86,6 +88,8 @@ initialState = TestState
     , tsPage           = 1
     , tsPaginationSize = testPaginationConstant
     , tsToken          = Nothing
+    , tsUserLogin      = Nothing
+    , tsUserPass       = Nothing
     }
 
 deleteAllEntitiesWithID :: ID (Path Current) -> TestMonad Integer
@@ -102,3 +106,5 @@ deleteAllEntitiesWithID eID = do
         }
     pure $ u + a + t
 
+instance MonadFail TestMonad where
+    fail = error

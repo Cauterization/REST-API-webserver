@@ -80,3 +80,4 @@ instance FromJSON (User (Front Display)) where
         admin     <- o .: "admin"
         pure User{..}
 
+deriving instance ToJSON (User Auth)
