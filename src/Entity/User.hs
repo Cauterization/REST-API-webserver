@@ -2,8 +2,9 @@
 
 module Entity.User where
 
-import Data.Aeson (FromJSON, ToJSON)
+import Data.Aeson (FromJSON, ToJSON(..), omitNothingFields, defaultOptions, genericToJSON)
 import Data.Text (Text)
+
 import GHC.Generics ( Generic )
 
 
@@ -18,7 +19,7 @@ import Postgres.Internal
 
 import Data.Data
 
-
+import Entity.Internal
 
 import App.Types
 import App.Internal
@@ -28,8 +29,8 @@ import HKD.EmptyData
 data User a = User
   { firstName  :: Field "first_name" 'Required a '[Immutable]                       Text
   , lastName   :: Field "last_name"  'Required a '[Immutable]                       Text
-  , login      :: Field "login"      'Required a '[Immutable, Authfield]        Text
-  , token      :: Field "token"      'Required a '[NotAllowedFromFront, Hidden] Text
+  , login      :: Field "login"      'Required a '[Immutable, Authfield, TU]        Text
+  , token      :: Field "token"      'Required a '[NotAllowedFromFront, Hidden, TU] Text
   , password   :: Field "password"   'Required a '[Immutable, Hidden, Authfield]    Text
   , created    :: Field "created"    'Required a '[Immutable, NotAllowedFromFront]  Date
   , admin      :: Field "admin"      'Required a '[Immutable]                       Bool 
@@ -45,38 +46,51 @@ deriving instance Postgres.ToRow   (User Create)
 
 deriving instance Show (User Display)
 deriving instance Data             (User Display)
-deriving instance ToJSON           (User (Front Display))
+deriving instance Data (Entity User Display)
+instance ToJSON (User (Front Display)) where
+    toJSON = genericToJSON defaultOptions { omitNothingFields = True }
+
 deriving instance Postgres.FromRow (User  Display)
 deriving instance Postgres.FromRow (User  (Front Display))
 deriving instance Data             (User (Front Display))
 instance Database.GettableFrom Postgres User  (Front Display) where
-    getQuery = "SELECT * FROM users"
+    getQuery = mconcat
+        [ "SELECT firstname, lastname, login, token, password, created, admin"
+        , " FROM users" ]
 
--- | User token update
-data TokenUpdate a = TokenUpdate {tuLogin :: Text, tuToken :: Text}
+instance Database.GettableFrom Postgres (Entity User) Display where
+    getQuery = mconcat
+        [ "SELECT id, firstname, lastname, login, token, password, created, admin  "
+        , "FROM users" ]
 
-deriving instance Generic (TokenUpdate Update)
-deriving instance Data    (TokenUpdate Update)
+instance Database.PuttableTo Postgres User where
 
-instance Database.ToOneRow (TokenUpdate Update) IDs where
+    putQuery = "UPDATE users SET token = ? WHERE id = ?"
 
-    type instance MkOneRow (TokenUpdate Update) IDs 
-        = (Text, Text) 
+deriving instance Data (User Update)
 
-    toOneRow TokenUpdate{..} [] = pure (tuToken, tuLogin)
-    toOneRow _ _ = entityIDArityMissmatch "token update"
+instance Database.ToOneRow (User TokenUpdate) IDs where 
 
-deriving instance Postgres.ToRow (TokenUpdate Update)
+    type instance MkOneRow (User TokenUpdate) IDs 
+        = (Maybe Text, ID (Path Current)) 
 
-instance Database.PuttableTo Postgres TokenUpdate where
+    toOneRow User{..} [uID] = pure (token, uID)
+    toOneRow _ _  = entityIDArityMissmatch "user token update"
 
-    putQuery = mconcat
-        [ "UPDATE users "
-        , "SET "
-        , "token = ? "
-        , "WHERE login = ?"
-        ]
+deriving instance EmptyData (User TokenUpdate)
+deriving instance Data (User TokenUpdate)
 
+deriving instance Postgres.ToRow (User TokenUpdate)
+        
+data TU
+
+data TokenUpdate
+    deriving Data
+
+type instance Field name req TokenUpdate modifiers a =
+    If (Contains TU modifiers)
+        (Maybe a)
+        (Maybe NotUpdated)
 
 deriving instance Data (User Delete)
 

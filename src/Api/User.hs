@@ -9,6 +9,7 @@ import HKD.HKD
 
 import Extended.Text (Text)
 import Extended.Text qualified as T
+import Entity.Internal
 import App.Router
 import App.Internal
 import App.Types
@@ -19,6 +20,7 @@ import Database.Database qualified as Database
 import Database.Database (Database)
 import Logger qualified
 import Logger ((.<))
+import Data.Coerce
 
 
 getMe :: forall a m.
@@ -59,21 +61,24 @@ postUser _ = do
 
 authUser :: forall m.
     ( Application m
-    , Gettable m User Display
-    , Database.ToRowOf (Database.Database m) [Token]
-    , Database.PuttableTo (Database.Database m) TokenUpdate
-    , Database.ToRowOf (Database m) (Text, Token)
     , Impure m
+    , Gettable m (Entity User) Display
+    , Puttable m User TokenUpdate
+    , Database.ToRowOf (Database.Database m) [Text]
     ) => Endpoint m
 authUser _ = do
     Logger.info "Attempt to login user"
     User{login = al, password = ap} <- decodedBody @(User Auth)
-    User{password = up} <- Database.getSingle =<< Database.getEntitiesWith @User @Display [al] 
-        (<> " WHERE login = ?")
-    when (mkHash ap /= up) $ throwM WrongPassword
-    userToken <- genToken
-    Database.putEntity @TokenUpdate @_ @Update [] $ TokenUpdate @Update al userToken
-    text userToken
+    Entity{..} <- Database.getSingle 
+        =<< Database.getEntitiesWith @(Entity User) @Display [al] 
+            (<> " WHERE login = ?")
+    let passwordDB = password entity
+    when (mkHash ap /= passwordDB) $ throwM WrongPassword
+    newToken <- genToken
+    let User{..} = emptyData @(User TokenUpdate)
+    Database.putEntity @User @_ @TokenUpdate 
+        [coerce entityID] User{token = Just newToken, ..}
+    text newToken
 
 mkHash :: Text -> Text
 mkHash = T.show @(Crypto.Digest Crypto.Blake2b_160) . Crypto.hash . T.encodeUtf8 

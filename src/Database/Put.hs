@@ -13,7 +13,7 @@ import Database.Query
 import Data.String
 import Database.HasDatabase
 import qualified Logger
-import App.Types (IDs)
+import App.Types
 import Data.List (intercalate)
 
 import Extended.Text qualified as T
@@ -28,10 +28,10 @@ instance {-# OVERLAPS #-} (Data (e Update), Typeable e
     => PuttableTo db e where
 
     putQuery = mconcat
-        [ "UPDATE " , fromString $ Entity.nameOf @e, "s "
+        [ "UPDATE " , fromString $ nameOf @e, "s "
         , "SET "
         , fromString $ intercalate ", " $ map fieldToCoalesce  
-            $ Entity.fieldsOf @(e Update)
+            $ fieldsOf @(e Update)
         , " WHERE id = ? "
         ]
 

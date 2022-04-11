@@ -15,7 +15,7 @@ import Database.Query
 import Data.String
 import Database.HasDatabase
 import qualified Logger
-import App.Types (ID, Path, Current)
+import App.Types 
 import Control.Monad (when)
 
 class DeletableFrom db (e :: Type -> Type) where 
@@ -28,7 +28,7 @@ instance {-# OVERLAPS #-} (Data (e Delete), Typeable e
     => DeletableFrom db e where
 
     deleteQuery = mconcat
-        [ "DELETE FROM " , fromString $ Entity.nameOf @e, "s "
+        [ "DELETE FROM " , fromString $ nameOf @e, "s "
         , "WHERE id = ?"
         ]
 
@@ -49,4 +49,4 @@ deleteEntity e = do
     let q = unQuery $ deleteQuery @(Database m) @e
     Logger.sql q
     res <- liftDatabase (deleteFromDatabase @(Database m) connection q e)
-    when (res == 0) (throwM $ EntityNotFound  $ Entity.nameOf @e )
+    when (res == 0) (throwM $ EntityNotFound  $ nameOf @e )

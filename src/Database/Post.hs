@@ -6,7 +6,6 @@ import Control.Monad.Catch
 
 import Data.Kind
 import Data.Data
-import Entity.Internal qualified as Entity
 
 import HKD.HKD
 
@@ -15,7 +14,7 @@ import Database.Query
 import Data.String
 import Database.HasDatabase
 import qualified Logger
-import App.Types (ID)
+import App.Types 
 import Data.List (intercalate)
 
 class PostableTo db (e :: Type -> Type) where 
@@ -28,10 +27,10 @@ instance {-# OVERLAPS #-} (Data (e Create), Typeable e
     => PostableTo db e where
 
     postQuery = mconcat
-        [ "INSERT INTO " , fromString $ Entity.nameOf @e, "s"
-        , " (",  Entity.fieldsQuery @(e Create), ") "
+        [ "INSERT INTO " , fromString $ nameOf @e, "s"
+        , " (",  fieldsQuery @(e Create), ") "
         , "VALUES ("
-        , fromString $ intercalate "," $ Entity.fieldsOf @(e Create) >> pure "?"
+        , fromString $ intercalate "," $ fieldsOf @(e Create) >> pure "?"
         , ")"
         ]
 

@@ -13,11 +13,10 @@ import Database.Database qualified as Database
 
 import Logger qualified
 
-import Entity.Internal qualified as Entity
-
 import App.Result
 import App.Router
 import App.Internal
+import App.Types
 
 import HKD.HKD
 
@@ -34,7 +33,7 @@ postEntity :: forall (e :: Type -> Type) m.
     , FromJSON (e Create)
     ) => Endpoint m
 postEntity _ = do
-    Logger.info $ "Attempt to post " <> Entity.nameOf @e
+    Logger.info $ "Attempt to post " <> nameOf @e
     e <- decodedBody @(e Create)
     Database.postEntity @e @m (coerce e) >>= text
 

@@ -27,7 +27,6 @@ library
   exposed-modules:
       Api.Author
       Api.ProtectedResources
-      Api.Tag
       Api.User
       App.App
       App.Config
@@ -109,6 +108,7 @@ library
     , bytestring
     , containers
     , cryptonite
+    , deriving-aeson
     , directory
     , exceptions
     , extra
@@ -171,6 +171,7 @@ executable server-exe
     , bytestring
     , containers
     , cryptonite
+    , deriving-aeson
     , directory
     , exceptions
     , extra
@@ -249,6 +250,7 @@ test-suite server-test
     , bytestring
     , containers
     , cryptonite
+    , deriving-aeson
     , directory
     , exceptions
     , extra

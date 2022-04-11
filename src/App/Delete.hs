@@ -11,10 +11,9 @@ import Database.Database qualified as Database
 
 import Logger qualified
 
-import Entity.Internal qualified as Entity
-
 import App.Result
 import App.Router
+import App.Types
 
 
 delete_ ::  forall (e :: Type -> Type) (m :: Type -> Type). 
@@ -29,7 +28,7 @@ deleteEntity :: forall (e :: Type -> Type) (m :: Type -> Type).
     , Deletable m e 
     ) => Endpoint m
 deleteEntity eID = do
-    Logger.info $ "Attempt to delete " <> Entity.nameOf @e 
+    Logger.info $ "Attempt to delete " <> nameOf @e 
     Database.deleteEntity @e eID
-    Logger.info $ Entity.nameOf @e <> " successfuly deleted."
+    Logger.info $ nameOf @e <> " successfuly deleted."
     text @_ @String "Successfuly deleted."

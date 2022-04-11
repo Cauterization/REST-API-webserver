@@ -59,8 +59,6 @@ instance Arbitrary Value where
         5 -> Bool   <$> arbitrary 
         6 -> pure Null 
 
-deriving instance Show (e Display) => Show (Entity e Display)
-
 instance Arbitrary (e Display) => Arbitrary (Entity e Display) where
     arbitrary = do
         entityID <- arbitrary
@@ -75,13 +73,3 @@ instance {-# OVERLAPPING #-} FromJSON (Maybe NotDisplayed) where
 deriving instance Show       NotUpdated
 instance {-# OVERLAPPING #-} ToJSON   (Maybe NotUpdated) where
     toJSON _ = Null
-
--- genText :: Gen Text
--- genText = do
---     len <- chooseInt (1,40)
---     T.pack <$> replicateM len genChar
-
--- genChar :: Gen Char
--- genChar = do
---     n <- chooseInt (1,52)
---     pure $ (!!n) $ map chr $ [65..90]<>[97..122]

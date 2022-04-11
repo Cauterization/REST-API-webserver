@@ -26,8 +26,8 @@ instance {-# OVERLAPS #-} (QConstraints db, Data (e a), Typeable e
     , FromRowOf db (e a)) 
     => GettableFrom db e a where
 
-    getQuery = mconcat ["SELECT ", fromString $ Entity.fieldsQuery @(e a) 
-            , " FROM ", fromString $ Entity.nameOf @e <> "s"]
+    getQuery = mconcat ["SELECT ", fromString $ fieldsQuery @(e a) 
+            , " FROM ", fromString $ nameOf @e <> "s"]
 
 getEntity :: forall e m a. 
     ( HasDatabase m

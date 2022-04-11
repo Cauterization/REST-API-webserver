@@ -19,7 +19,6 @@ import App.QueryParams
 import Api.ProtectedResources (protectedResources)
 import Api.Author qualified as Author
 import Api.User qualified as User
-import Api.Tag qualified as Tag
 
 import Control.Exception ( IOException ) 
 import Control.Monad.Catch

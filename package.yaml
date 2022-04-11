@@ -26,6 +26,7 @@ dependencies:
 - containers
 - cryptonite
 - directory
+- deriving-aeson
 - exceptions
 - extra
 - file-embed

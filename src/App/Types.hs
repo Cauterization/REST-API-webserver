@@ -5,6 +5,7 @@ module App.Types where
 import Data.Aeson
 import Data.ByteString.Lazy qualified as BL
 import Data.Data
+import Data.Kind (Type)
 import Data.Function (on)
 import Data.Text (Text)
 import GHC.Generics
@@ -12,6 +13,10 @@ import GHC.Generics
 import qualified Data.Time as Time
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.ToField (ToField)
+import Database.PostgreSQL.Simple.FromField (FromField)
+import Data.String (IsString(..))
+import Data.Maybe (fromMaybe)
+import Data.List
 
 type Body = BL.ByteString
 type Page = Int
@@ -22,20 +27,21 @@ type Token = Text
 
 newtype ID e = ID { idVal :: Int }
   deriving stock (Generic, Data)
-  deriving newtype (Read, ToField, FromJSON, ToJSON, Show, Eq, Ord, Num, Enum)
+  deriving newtype (Read, ToField, FromField, FromJSON, ToJSON, Show, Eq, Ord, Num, Enum)
   deriving anyclass (FromRow)
 
 type IDs = [ID (Path Current)]
 
--- instance FromJSON (ID a) where
---   parseJSON = \case 
---       String s -> case readMaybe $ T.unpack s of
---         Just i -> pure $ ID i
---         Nothing -> err (String s)
---       Int i -> pure $ ID i
---       a -> err a
---     where err a = parseFail $ "failed to parse ID. Got: " <> show a
 
+nameOf :: forall (e :: Type -> Type) s. (Typeable e, IsString s) => s
+nameOf = let t = show (typeOf (Proxy @e))
+         in fromString $ fromMaybe t $ stripPrefix "Proxy (* -> *) " t
+
+fieldsOf :: forall e. Data e => [String]
+fieldsOf = concatMap constrFields . dataTypeConstrs . dataTypeOf $ (undefined :: e)
+
+fieldsQuery :: forall e s. (Data e, IsString s) => s
+fieldsQuery = fromString $ intercalate ", " $ fieldsOf @e
 type URL = [Text]
 
 data Path a

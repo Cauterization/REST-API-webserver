@@ -4,9 +4,9 @@ module Postgres.Internal where
 
 import Control.Monad
 
-import  Data.ByteString qualified as B
-import  Data.List qualified as L
-import  Data.Function (on)
+import Data.ByteString qualified as B
+import Data.List qualified as L
+import Data.Function (on)
 import Data.Pool qualified as Pool
 import Data.FileEmbed 
 
@@ -17,8 +17,9 @@ import Database.PostgreSQL.Simple.Migration
 
 import System.Exit 
 
-import Database.Database (IsDatabase)
-import Database.Database qualified as Database
+import Database.Internal (IsDatabase)
+import Database.Internal qualified as Database
+import Database.Config qualified as Database
 
 import Logger qualified
 

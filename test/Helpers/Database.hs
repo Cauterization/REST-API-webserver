@@ -194,6 +194,17 @@ instance FromRowOfT (User Display) where
 
 instance FromRowOfT (ID (User Create)) where
 
+-- DEBUG
+-- change this things if user auth tests will fail
+
+instance FromRowOfT (Entity User Display) where 
+
+    getEntityFromTestDatabase q = do
+        db <- gets userDB
+        gets tsToken >>= \case
+            Just t -> pure $ map (\(uID, u) -> Entity uID u)
+                $ filter ((\User{..} -> token == t) . snd) $ M.toList db
+
 instance FromRowOfT (User (Front Display)) where
 
     getEntityFromTestDatabase q = do
@@ -201,6 +212,27 @@ instance FromRowOfT (User (Front Display)) where
         gets tsToken >>= \case
             Just t -> pure $ map userDisplayToUserFrontDisplay 
                 $ filter (\User{..} -> token == t) $ M.elems db
+
+instance FromRowOfT (Entity User (Front Display)) where
+
+    getEntityFromTestDatabase q = do
+        db <- gets userDB
+        gets tsToken >>= \case
+            Just t -> pure $ map (\(uID, u) -> Entity (coerce uID)
+                $ userDisplayToUserFrontDisplay u)
+                    $ filter ((\User{..} -> token == t) . snd) $ M.toList db
+
+instance ToOneRow (User (Front Update)) IDs where 
+
+    type instance MkOneRow (User  (Front Update)) IDs 
+        = [ID (Path Current)]
+
+    -- toOneRow User{..} [uID] = pure (token, uID)
+    -- toOneRow _ _  = entityIDArityMissmatch "user token update"
+
+
+
+
 
 instance ToRowOfT (Tag Create) where
 

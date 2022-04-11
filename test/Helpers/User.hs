@@ -1,5 +1,7 @@
 module Helpers.User where
 
+
+
 import Data.Aeson
 import Data.Time qualified as Time
 
@@ -48,7 +50,6 @@ instance Arbitrary       (User Create) where
         pure User{..}
 
 deriving instance ToJSON (User (Front Create))
--- deriving instance Show   (User (Front Create))
 
 deriving instance Eq       (User Display)
 deriving instance Ord      (User Display)
@@ -73,8 +74,9 @@ instance FromJSON (User (Front Display)) where
         firstName <- o .: "firstName"
         lastName  <- o .: "lastName"
         login     <- o .: "login"
-        token     <- o .: "token"
+        let token    = Nothing
         let password = Nothing
         created   <- o .: "created"
         admin     <- o .: "admin"
         pure User{..}
+

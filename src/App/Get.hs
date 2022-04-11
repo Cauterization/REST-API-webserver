@@ -16,6 +16,7 @@ import Logger qualified
 import Entity.Internal qualified as Entity
 
 import App.Result
+import App.Types
 import App.Router
 import App.Internal
 
@@ -40,10 +41,10 @@ getEntities :: forall (e :: Type -> Type) a m env.
     , ToJSON (e a)
     ) => Endpoint m
 getEntities _ = do
-    Logger.info $ "Attempt to get " <> Entity.nameOf @e <> "s"
+    Logger.info $ "Attempt to get " <> nameOf @e <> "s"
     page <- getPage
     entities <- Database.getEntities @e @a @m page
-    Logger.info $ Entity.nameOf @e <> " was found."
+    Logger.info $ nameOf @e <> " was found."
     json entities
 
 getEntity :: forall (e :: Type -> Type) a m. 
@@ -52,7 +53,7 @@ getEntity :: forall (e :: Type -> Type) a m.
     , ToJSON (e a)
     ) => Endpoint m
 getEntity ids = do
-    Logger.info $ "Attempt to get " <> Entity.nameOf @e
+    Logger.info $ "Attempt to get " <> nameOf @e
     entity <- Database.getEntity @e @m ids
-    Logger.info $ Entity.nameOf @e <> " was found."
+    Logger.info $ nameOf @e <> " was found."
     json @_ @(e a) entity

@@ -7,6 +7,11 @@ import Data.Maybe
 import Data.Kind (Type)
 import Data.List
 
+import Database.PostgreSQL.Simple qualified as Postgres
+import Database.PostgreSQL.Simple.FromField qualified as Postgres
+import Database.PostgreSQL.Simple.FromRow qualified as Postgres
+
+import Postgres.Internal qualified as Postgres
 import GHC.Generics (Generic)
 
 import App.Types
@@ -18,16 +23,23 @@ data Entity e a = Entity
   , entity :: e a }
   deriving stock Generic
 
-
 deriving instance (FromJSON (e a), FromJSON (NamedID "_id" a e))
     => FromJSON (Entity e a)
+deriving instance (Show (e a), Show (NamedID "_id" a e))
+    => Show (Entity e a)
 deriving instance (ToJSON (e a), ToJSON (NamedID "_id" a e))
     => ToJSON (Entity e a)
+instance (Postgres.FromRow (e a), Postgres.FromField (NamedID "_id" a e))
+    => Postgres.FromRow (Entity e a) where
+        fromRow = do
+            entityID <- Postgres.field
+            entity   <- Postgres.fromRow
+            pure Entity{..}
+
 
 type family NamedID n a (e :: * -> *) :: * where
     NamedID n Schema          e = Named n
     NamedID n Filter          e =   [ID (e Filter)]
-    NamedID n (Front Display) e = e (Front Display)
     NamedID n a               e =    ID (e a)
 
 type family EntityOrID (e :: Type -> Type) a :: * where
@@ -38,12 +50,3 @@ type family EntityOrID (e :: Type -> Type) a :: * where
     EntityOrID e Display         = Entity e Display
     EntityOrID e Delete          = ID (e Delete)
 
-nameOf :: forall (e :: Type -> Type) s. (Typeable e, IsString s) => s
-nameOf = let t = show (typeOf (Proxy @e))
-         in fromString $ fromMaybe t $ stripPrefix "Proxy (* -> *) " t
-
-fieldsOf :: forall e. Data e => [String]
-fieldsOf = concatMap constrFields . dataTypeConstrs . dataTypeOf $ (undefined :: e)
-
-fieldsQuery :: forall e s. (Data e, IsString s) => s
-fieldsQuery = fromString $ intercalate ", " $ fieldsOf @e

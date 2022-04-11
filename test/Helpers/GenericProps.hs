@@ -92,16 +92,18 @@ propGetEntities :: forall (e :: Type -> Type).
     ( GPropsConstr e (Front Display)
     , FromJSON    (e (Front Display))
     ) => Text -> TDB e -> Property
-propGetEntities path db = property $ length (M.toList db) < testPaginationConstant ==> do
+propGetEntities path db = property $ condition ==> do
     Right (ResJSON es) <- evalTest (withGetPath path) (withDatabase @e db)
     let Right es' = eitherDecode es
     sort es' `shouldBe` sort (map eDisplayToFrontDisplay (M.elems db))
+  where
+    condition = length (M.toList db) < testPaginationConstant
 
 newtype BigTDB e = BigTDB {unBigTDB :: TDB e}
 deriving instance Show (e Display) => Show      (BigTDB e)
 instance Arbitrary     (e Display) => Arbitrary (BigTDB e) where
     arbitrary = do
-        n <- choose (50,100)
+        n <- choose (1000,2000)
         BigTDB . mconcat <$> replicateM n arbitrary
 
 propGetEntitiesIsPaginated :: forall (e :: Type -> Type).

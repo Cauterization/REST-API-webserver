@@ -9,7 +9,6 @@ import Logger qualified
 import Extended.Text ( Text )
 import Control.Exception
 import App.Types
-import qualified Entity.Internal as Entity
 import Control.Monad.Catch
 import Data.Data
 
@@ -40,14 +39,15 @@ class IsDatabase db where
         ConnectionOf db -> QueryOf db -> [ID (Path Current)] 
             -> (DatabaseMonad db) Integer
 
+getSingle :: forall e a m. (MonadThrow m, Typeable e) => [e a] -> m (e a)
+getSingle = \case 
+    [a] -> pure a
+    [] -> throwM $ EntityNotFound  $ nameOf @e 
+    _  -> throwM $ TooManyEntities $ nameOf @e 
+
 data DBError
     = EntityNotFound  Text
     | TooManyEntities Text
     | AlreadyExists   Text
     deriving (Show, Exception)
 
-getSingle :: forall e a m. (MonadThrow m, Typeable e) => [e a] -> m (e a)
-getSingle = \case 
-    [a] -> pure a
-    [] -> throwM $ EntityNotFound  $ Entity.nameOf @e 
-    _  -> throwM $ TooManyEntities $ Entity.nameOf @e 

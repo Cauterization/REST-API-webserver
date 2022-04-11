@@ -35,10 +35,10 @@ putEntity :: forall (e :: Type -> Type) m.
     , FromJSON (e (Front Update))
     ) => Endpoint m
 putEntity eID = do
-    Logger.info $ "Attempt to update " <> Entity.nameOf @e
+    Logger.info $ "Attempt to update " <> nameOf @e
     e <- decodedBody @(e (Front Update))
     Database.putEntity @e @m eID e
-    Logger.info $ Entity.nameOf @e <> " was found."
+    Logger.info $ nameOf @e <> " was found."
     text @_ @String "Successfuly updated."
 
 -- type instance ToOneRow (e (FrontUpdate)) IDs = ()
