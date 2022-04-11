@@ -1,6 +1,7 @@
 module Helpers.Update where
 
 import Entity.Author
+import Entity.Tag
 import HKD.HKD
 import Data.Maybe (fromMaybe)
 
@@ -20,3 +21,6 @@ instance TestUpdate Author where
         { description = description au >\ description a
         , user        = user a
         }
+
+instance TestUpdate Tag where
+    testUpdate tu t = Tag $ name tu >\ name t

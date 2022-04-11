@@ -1,13 +1,9 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Database.Query where
 
-import Data.String (IsString(..), fromString)
-import Data.Maybe (isNothing, catMaybes, fromMaybe)
-import Data.Char (toUpper)
-import Data.List (intersperse, intercalate)
+import Data.String (IsString(..))
 
 import Database.Internal
-import Text.Read (readEither)
 
 -- | A newtype for database queries
 -- an associated type is needed here in order 

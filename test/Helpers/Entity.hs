@@ -1,6 +1,7 @@
 module Helpers.Entity where
 
 import Entity.Author
+import Entity.Tag
 import Entity.User
 
 import Helpers.Database
@@ -10,9 +11,13 @@ import Helpers.Monad
 
 import HKD.HKD
 
+import Unsafe.Coerce
+
+-- | Class for generic props
 
 class TestEntity e where
     eDisplayToFrontDisplay :: e Display -> e (Front Display)
+    eDisplayToFrontCreate  :: e Display -> e (Front Create)
     withDatabase           ::  TDB e -> StateMod
     dbFromTestState        ::  TestState -> EMap (e Display)
 
@@ -25,3 +30,9 @@ instance TestEntity User where
     eDisplayToFrontDisplay = userDisplayToUserFrontDisplay
     withDatabase db TestState{..} = TestState{userDB = db, ..}
     dbFromTestState TestState{..} = userDB
+
+instance TestEntity Tag where
+    eDisplayToFrontDisplay        = unsafeCoerce
+    eDisplayToFrontCreate         = unsafeCoerce
+    withDatabase db TestState{..} = TestState{tagDB = db, ..}
+    dbFromTestState TestState{..} = tagDB

@@ -3,14 +3,11 @@
 
 module App.Get where
 
-import Control.Monad.Catch
 import Data.Aeson (ToJSON)
 
-import Data.Data
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Kind (Type)
-import Data.String
 
 import Database.Database qualified as Database
 
@@ -21,7 +18,6 @@ import Entity.Internal qualified as Entity
 import App.Result
 import App.Router
 import App.Internal
-import App.Types
 
 import HKD.HKD
 

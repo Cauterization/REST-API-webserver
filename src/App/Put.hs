@@ -3,14 +3,10 @@
 
 module App.Put where
 
-import Control.Monad.Catch
 import Data.Aeson (FromJSON)
 
-import Data.Data
 import Data.Text (Text)
-import Data.Text qualified as T
 import Data.Kind (Type)
-import Data.String
 
 import Database.Database qualified as Database
 
@@ -21,7 +17,6 @@ import Entity.Internal qualified as Entity
 import App.Result
 import App.Router
 import App.Internal
-import App.Types
 
 import HKD.HKD
 
@@ -43,6 +38,6 @@ putEntity eID = do
     e <- decodedBody @(e (Front Update))
     Database.putEntity @e @m eID e
     Logger.info $ Entity.nameOf @e <> " was found."
-    text "Successfuly updated."
+    text @_ @String "Successfuly updated."
 
 -- type instance ToOneRow (e (FrontUpdate)) IDs = ()

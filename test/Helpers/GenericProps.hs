@@ -28,6 +28,8 @@ import Test.QuickCheck
 import Data.String
 import Data.Kind
 import Data.List (sort)
+import Control.Monad (replicateM)
+import Unsafe.Coerce
 
 type GPropsConstr e a =
     ( TestEntity e 
@@ -49,13 +51,25 @@ propPostsEntity path db e = property $ not (alreadyExists e db) ==> do
     x <- runTest 
         ( withBody (eCreateToFrontCreate e)
         . withPostPath path)
-        ( withDatabase @e db )
+        ( withDatabase @e db)
     case x of
         (Right (ResText t), st) -> do
             let Right eID = T.read @(ID (e Display)) t
             fromDisplay <$> M.lookup eID (dbFromTestState @e st) 
                 `shouldBe` Just e
-        (Left err, _) -> print err
+
+propPostsAlreadyExists :: forall e.
+    ( GPropsConstr e Create 
+    , FromJSON    (e (Front Create))
+    , ToJSON (e (Front Create))
+    , ToRowOfT    (e Create)
+    ) => Text -> TDB e -> ID (e Display) -> e Display -> Property
+propPostsAlreadyExists path db eID e = property $ do
+    Left err <- evalTest 
+        ( withBody (eDisplayToFrontCreate e)
+        . withPostPath path)
+        ( withDatabase @e $ M.insert eID (unsafeCoerce e) db)
+    err `shouldSatisfy` isAlreadyExistsError
 
 eCreateToFrontCreate :: forall e.
     ( ToJSON (e Create)
@@ -77,29 +91,34 @@ propPostsParsingFail path (fromString . show -> obj) =
 propGetEntities :: forall (e :: Type -> Type).
     ( GPropsConstr e (Front Display)
     , FromJSON    (e (Front Display))
-    ) => Text -> TDB e-> Property
+    ) => Text -> TDB e -> Property
 propGetEntities path db = property $ length (M.toList db) < testPaginationConstant ==> do
     Right (ResJSON es) <- evalTest (withGetPath path) (withDatabase @e db)
     let Right es' = eitherDecode es
     sort es' `shouldBe` sort (map eDisplayToFrontDisplay (M.elems db))
 
+newtype BigTDB e = BigTDB {unBigTDB :: TDB e}
+deriving instance Show (e Display) => Show      (BigTDB e)
+instance Arbitrary     (e Display) => Arbitrary (BigTDB e) where
+    arbitrary = do
+        n <- choose (50,100)
+        BigTDB . mconcat <$> replicateM n arbitrary
+
 propGetEntitiesIsPaginated :: forall (e :: Type -> Type).
     ( GPropsConstr e (Front Display)
     , FromJSON    (e (Front Display))
-    ) => Text -> TDB e -> TDB e -> TDB e -> TDB e -> TDB e -> Property
-propGetEntitiesIsPaginated path db1 db2 db3 db4 db5 = 
+    ) => Text -> BigTDB e -> Property
+propGetEntitiesIsPaginated path (unBigTDB -> db) = 
     property $ do
         Right (ResJSON es) <- evalTest (withGetPath path) (withDatabase @e db)
         let Right es' = eitherDecode @[e (Front Display)] es
         length es' <= testPaginationConstant `shouldBe` True
-  where
-    db = mconcat [db1, db2, db3, db4, db5]
 
 propGetEntitiesWithPage :: forall (e :: Type -> Type).
     ( GPropsConstr e (Front Display)
     , FromJSON    (e (Front Display))
-    ) => Text -> Int -> TDB e -> TDB e -> TDB e ->  Property
-propGetEntitiesWithPage path page db1 db2 db3 = let db = db1 <> db2 <> db3 in
+    ) => Text -> Int -> BigTDB e ->  Property
+propGetEntitiesWithPage path page (unBigTDB -> db) =
     property $ page > 0 ==> do
         Right (ResJSON es) <- evalTest 
             ( withGetPath path
@@ -158,10 +177,10 @@ propPutEntityDoesntExists path db eu eID = property $ not (eID `M.member` db) ==
         ( withDatabase @e db )
     res `shouldSatisfy` isEntityNotFoundError 
 
-propPutParsingFail :: forall e. 
+propPutEntityParsingFail :: forall e. 
     ( FromJSON (e (Front Update))
     ) => Text -> TDB e -> Value -> ID (e Display) -> Property
-propPutParsingFail path db (fromString . show -> obj) eID = 
+propPutEntityParsingFail path db (fromString . show -> obj) eID = 
     property $ conditions ==> do
         Left res <- evalTest 
             ( withBLBody obj

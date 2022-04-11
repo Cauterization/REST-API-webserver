@@ -6,7 +6,7 @@ module HKD.HKD
     , NotAllowedFromFront
     , Create
     , Display
-    , NotDisplayed(..)
+    , NotDisplayed
     , Hidden
     , Update
     , NotUpdated

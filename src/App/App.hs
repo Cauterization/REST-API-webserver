@@ -7,6 +7,7 @@ module App.App
     ) where
 
 import App.Config
+import App.Post
 import App.Get
 import App.Put
 import App.Delete
@@ -18,6 +19,7 @@ import App.QueryParams
 import Api.ProtectedResources (protectedResources)
 import Api.Author qualified as Author
 import Api.User qualified as User
+import Api.Tag qualified as Tag
 
 import Control.Exception ( IOException ) 
 import Control.Monad.Catch
@@ -41,7 +43,7 @@ import Database.Database qualified as Database
 import Logger qualified
 import Logger ((.<))
 import Entity.Author (Author)
-
+import Entity.Tag (Tag)
 import Entity.User (User)
 import Postgres.Internal
 
@@ -103,18 +105,27 @@ instance Routed Main Postgres where
         addMiddleware protectedResources
         newRouter @User 
         newRouter @Author 
+        newRouter @Tag 
         
 instance Routed User Postgres where
     router = do
-        post    "users"             User.postUser
-        get     "users/me"          User.getCurrentUser
+        post    "users"              User.postUser
+        get     "users/me"           User.getCurrentUser
         delete_ "admin/users/{ID}" 
-        post    "auth"              User.authUser
+        post    "auth"               User.authUser
 
 instance Routed Author Postgres where
     router = do
-        post    "admin/authors"     Author.postAuthor   
+        post    "admin/authors"      Author.postAuthor   
         get_    "admin/authors"          
         get_    "admin/authors/{ID}" 
         put_    "admin/authors/{ID}"     
         delete_ "admin/authors/{ID}"  
+
+instance Routed Tag Postgres where
+    router = do
+        post_   "admin/tags"       
+        get_    "tags"    
+        get_    "tags/{ID}"    
+        put_    "admin/tags/{ID}"
+        delete_ "admin/tags/{ID}"

@@ -14,11 +14,10 @@ import Extended.Text qualified as T
 
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.Migration
-import Database.PostgreSQL.Simple.ToField
 
 import System.Exit 
 
-import Database.Database (Database, Config, IsDatabase)
+import Database.Database (IsDatabase)
 import Database.Database qualified as Database
 
 import Logger qualified

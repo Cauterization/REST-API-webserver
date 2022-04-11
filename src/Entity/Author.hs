@@ -1,7 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Entity.Author where
 
-import Control.Monad.Identity
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Text (Text)
@@ -16,10 +15,9 @@ import GHC.Generics ( Generic )
 import App.Internal
 
 
-import Data.Coerce
 import HKD.HKD
 
-import Entity.Internal ( EntityOrID, NamedID, fieldsQuery )
+import Entity.Internal ( EntityOrID )
 import Entity.User 
 
 import Database.Database qualified as Database
@@ -82,14 +80,4 @@ instance Database.PuttableTo Postgres Author where
         , "WHERE id = ?"
         ]
 
--- class ToOneRow a b where
-
---     type family MkOneRow a b :: Type 
-
---     toOneRow :: a -> b -> MkOneRow a b 
-
-
 deriving instance Data (Author Delete)
-
-
--- deriving instance Postgres.ToRow (Author Delete)

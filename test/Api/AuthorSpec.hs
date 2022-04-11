@@ -29,7 +29,6 @@ import Extended.Text (Text)
 import Data.Kind (Type)
 import App.Types
 
-
 spec :: Spec
 spec = do
     postSpec
@@ -81,7 +80,7 @@ putSpec = describe "PUT" $ do
         $ property $ propPutEntityDoesntExists @Author "authors"
 
     it "Throws error when it fails to parse request body"
-        $ property $ propPutParsingFail @Author "authors"
+        $ property $ propPutEntityParsingFail @Author "authors"
 
 deleteSpec :: Spec
 deleteSpec = describe "DELETE" $ do

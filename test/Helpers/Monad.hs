@@ -15,12 +15,14 @@ import Control.Monad.Writer
 import Data.Map qualified as M
 
 import Entity.Author
+import Entity.Tag
 import Entity.User
 import Entity.Internal
 
 import Extended.Text (Text)
 
 import Helpers.Author
+import Helpers.Tag
 import Helpers.User
 import Helpers.Internal
 
@@ -63,11 +65,12 @@ instance Logger.RunLogger TestMonad where
 
 type EMap e = M.Map (ID e) e
 
-type TDB e = M.Map (ID (e Display)) (e Display)
+type TDB e = EMap (e Display)
 
 data TestState = TestState
     { userDB           :: EMap (User   Display)
     , authorDB         :: EMap (Author Display)
+    , tagDB            :: EMap (Tag    Display)
     , ids              :: [Int]
     , tsPage           :: Int
     , tsPaginationSize :: Int
@@ -78,6 +81,7 @@ initialState :: TestState
 initialState = TestState
     { userDB           = M.empty
     , authorDB         = M.empty
+    , tagDB            = M.empty
     , ids              = []
     , tsPage           = 1
     , tsPaginationSize = testPaginationConstant
@@ -89,10 +93,12 @@ deleteAllEntitiesWithID eID = do
     TestState{..} <- State.get
     let u = maybe 0 (const 1) $ M.lookup (coerce eID) userDB
         a = maybe 0 (const 1) $ M.lookup (coerce eID) authorDB
+        t = maybe 0 (const 1) $ M.lookup (coerce eID) tagDB
     put $ TestState
         { userDB   = M.delete (coerce eID) userDB
         , authorDB = M.delete (coerce eID) authorDB
+        , tagDB    = M.delete (coerce eID) tagDB
         , ..
         }
-    pure $ u + a
+    pure $ u + a + t
 

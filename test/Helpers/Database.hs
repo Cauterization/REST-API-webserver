@@ -16,6 +16,7 @@ import Data.Time qualified as Time
 import Database.Database
 
 import Entity.Author
+import Entity.Tag
 import Entity.User
 import Entity.Internal
 import Extended.Text (Text)
@@ -23,6 +24,7 @@ import Extended.Text (Text)
 import HKD.HKD
 
 import Helpers.Author
+import Helpers.Tag
 import Helpers.User
 import Helpers.Monad
 import Helpers.Update
@@ -80,9 +82,6 @@ instance IsDatabase TestDB  where
         putToState q
         deleteEntityFromTestDatabase @q q
 
-addIDs :: [ID a] -> TestMonad ()
-addIDs ids' = modify (\TestState{..} -> TestState{ids = ids ++ map idVal ids', ..})
-
 class ToRowOfT q where
     alreadyExists    :: q -> DBOf q -> Bool
     toDisplay        :: q -> TestMonad (ToDisplay q)
@@ -102,13 +101,18 @@ type family DBOf e where
 type family ToDisplay q where
     ToDisplay (User   a) = User   Display
     ToDisplay (Author a) = Author Display
+    ToDisplay (Tag    a) = Tag    Display
 
 instance ToRowOfT [ID (Path Current)] where
-    putToState ids = addIDs ids
+    putToState ids' = modify (\TestState{..} 
+        -> TestState{ids = ids ++ map idVal ids', ..})
     deleteEntityFromTestDatabase [eID] = deleteAllEntitiesWithID eID
 
 instance ToRowOfT [Token] where
     putToState [t] =  modify (\TestState{..} -> TestState{tsToken = Just t, ..})
+
+instance ToRowOfT [Page] where
+    putToState [p] = modify (\TestState{..} -> TestState{tsPage = p, ..})
 
 newtype TestQuery = TestQuery () deriving Show
 
@@ -126,7 +130,7 @@ instance ToRowOfT (Author Create) where
     getsDatabase = gets authorDB
 
     alreadyExists a aMap = not . null $ 
-        M.filter ((== user a) . (coerce .entityID . user)) aMap
+        M.filter ((== user a) . (coerce . entityID . user)) aMap
 
     toDisplay a = do
         let d = description a
@@ -153,7 +157,7 @@ instance FromRowOfT (Author (Front Display)) where
         db <- gets authorDB
         gets ids >>= \case
             [aID] -> case M.lookup (ID aID) db of
-                Just a -> pure $ [authorDisplayToAuthorFrontDisplay a]
+                Just a -> pure [authorDisplayToAuthorFrontDisplay a]
                 Nothing -> throwM $ EntityNotFound ""
             []    -> do
                 page <- gets tsPage
@@ -186,8 +190,6 @@ instance ToRowOfT (User Create) where
     insertIntoTestDB uID u TestState{..} 
         = TestState{userDB = M.insert uID u userDB, ..}   
 
-    -- putEntityToTestDatabase (_, )
-
 instance FromRowOfT (User Display) where
 
 instance FromRowOfT (ID (User Create)) where
@@ -200,5 +202,42 @@ instance FromRowOfT (User (Front Display)) where
             Just t -> pure $ map userDisplayToUserFrontDisplay 
                 $ filter (\User{..} -> token == t) $ M.elems db
 
-instance ToRowOfT [Page] where
-    putToState [p] = modify (\TestState{..} -> TestState{tsPage = p, ..})
+instance ToRowOfT (Tag Create) where
+
+    getsDatabase = gets tagDB
+
+    alreadyExists t tMap =  not . null $ M.filter ((== name t) . name) tMap
+
+    toDisplay = pure . unsafeCoerce -- pure $ Tag name
+
+    fromDisplay = unsafeCoerce --Tag name
+
+    insertIntoTestDB tID t TestState{..} 
+        = TestState{tagDB = M.insert tID t tagDB, ..}
+
+instance FromRowOfT (ID (Tag Create))
+
+type TagUpdateT = (Maybe Text, ID (Path Current))
+
+instance FromRowOfT (Tag (Front Display)) where
+    getEntityFromTestDatabase q = do
+        db <- gets tagDB
+        gets ids >>= \case
+            [tID] -> case M.lookup (ID tID) db of
+                Just t -> pure [tagDisplayToFrontDisplay t]
+                Nothing -> throwM $ EntityNotFound ""
+            []    -> do
+                page <- gets tsPage
+                pag  <- gets tsPaginationSize
+                return $ map tagDisplayToFrontDisplay 
+                    $ take pag $ drop (pag * (page - 1)) $ M.elems db
+
+instance ToRowOfT TagUpdateT where
+    putEntityToTestDatabase (newName, coerce -> tID) = do
+        db <- gets tagDB
+        case M.lookup tID db of
+            Nothing -> throwM $ EntityNotFound ""
+            Just Tag{..} -> 
+                let t' = Tag{name = newName >\ name, .. }
+                    db' = M.insert tID t' db
+                in modify $ \TestState{..} -> TestState{tagDB = db', .. }

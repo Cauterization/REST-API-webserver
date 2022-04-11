@@ -7,6 +7,7 @@ import App.Internal
 import App.Result
 import App.Router
 import App.Types
+import App.Post
 import App.Put
 import App.Delete
 
@@ -24,6 +25,7 @@ import Database.Database
 
 import Entity.Internal
 import Entity.Author
+import Entity.Tag
 import Entity.User
 
 import Extended.Text (Text)
@@ -81,6 +83,7 @@ instance Routed Main TestDB where
         addMiddleware protectedResources
         newRouter @User 
         newRouter @Author 
+        newRouter @Tag 
 
 -- | Note that urls listed here doesn't have an "admin" prefix
 --   coz we have separated tests for protected content
@@ -99,6 +102,14 @@ instance Routed Author TestDB where
         get_    "authors/{ID}" 
         put_    "authors/{ID}"     
         delete_ "authors/{ID}"  
+
+instance Routed Tag TestDB where
+    router = do
+        post_   "tags"       
+        get_    "tags"    
+        get_    "tags/{ID}"    
+        put_    "tags/{ID}"
+        delete_ "tags/{ID}"
 
 defaultEnv :: Env TestMonad
 defaultEnv  = Env 

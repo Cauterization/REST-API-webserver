@@ -16,7 +16,6 @@ import Data.String
 import Database.HasDatabase
 import qualified Logger
 import App.Types (ID)
-import Data.Coerce
 import Data.List (intercalate)
 
 class PostableTo db (e :: Type -> Type) where 

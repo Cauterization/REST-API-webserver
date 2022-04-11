@@ -4,18 +4,16 @@ module App.Internal where
 
 import Control.Monad.Catch 
 import Control.Monad.Reader 
-import Control.Monad.IO.Class
 
 import Data.Aeson (FromJSON, eitherDecode)
 import Data.Kind (Type)
 import Extended.Text (Text)
 import Extended.Text qualified as T
-import App.Config qualified as App
 import App.QueryParams
 
 import App.Types
 import System.Random
-import Logger ((>.), (.<))
+import Logger ((.<))
 import Logger qualified 
 import qualified Network.HTTP.Types as HTTP
 import qualified Data.Map as M
@@ -27,10 +25,8 @@ import qualified Network.Wai as Wai
 
 import Database.Database qualified as Database
 
-import Database.PostgreSQL.Simple
 import Postgres.Internal
 import qualified Data.Time as Time
-import App.Result
 
 newtype AppT m a = App {unApp :: ReaderT (Env m) m a}
     deriving newtype 
@@ -132,7 +128,7 @@ toPath req =
         "GET"    -> GET     path
         "PUT"    -> PUT     path
         "DELETE" -> DELETE  path
-        unknown  -> Unknown path
+        _        -> Unknown path
 
 data AppError 
     = Err404 (Path Current)

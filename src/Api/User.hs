@@ -4,8 +4,6 @@ import Control.Monad.Catch
 import Control.Monad.Writer
 import Crypto.Hash qualified as Crypto
 
-import Data.Aeson (ToJSON)
-import Data.Data
 
 import HKD.HKD
 
@@ -21,9 +19,6 @@ import Database.Database qualified as Database
 import Database.Database (Database)
 import Logger qualified
 import Logger ((.<))
-import qualified Data.Time as Time
-import Data.Functor
-import Data.Aeson.Types (FromJSON)
 
 
 getMe :: forall a m.

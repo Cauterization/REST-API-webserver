@@ -27,12 +27,14 @@ library
   exposed-modules:
       Api.Author
       Api.ProtectedResources
+      Api.Tag
       Api.User
       App.App
       App.Config
       App.Delete
       App.Get
       App.Internal
+      App.Post
       App.Put
       App.QueryParams
       App.Result
@@ -49,6 +51,7 @@ library
       Database.Query
       Entity.Author
       Entity.Internal
+      Entity.Tag
       Entity.User
       Extended.Functor
       Extended.Postgres
@@ -160,7 +163,7 @@ executable server-exe
       TypeFamilies
       TypeOperators
       UndecidableInstances
-  ghc-options: -j6 -O0 -threaded -rtsopts -with-rtsopts=-N -Wall -Werror -Wno-unused-do-bind -Wno-unused-matches -Wno-unused-foralls -Wno-unused-local-binds
+  ghc-options: -j6 -O0 -threaded -rtsopts -with-rtsopts=-N -Wall -Werror -Wno-unused-do-bind -Wno-unused-foralls -Wno-unused-local-binds
   build-depends:
       QuickCheck
     , aeson
@@ -195,6 +198,7 @@ test-suite server-test
   main-is: Spec.hs
   other-modules:
       Api.AuthorSpec
+      Api.TagSpec
       Api.UserSpec
       Helpers.App
       Helpers.Author
@@ -203,6 +207,7 @@ test-suite server-test
       Helpers.GenericProps
       Helpers.Internal
       Helpers.Monad
+      Helpers.Tag
       Helpers.Update
       Helpers.User
       Router.RouterSpec

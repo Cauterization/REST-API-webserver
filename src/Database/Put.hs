@@ -13,8 +13,7 @@ import Database.Query
 import Data.String
 import Database.HasDatabase
 import qualified Logger
-import App.Types (ID, IDs)
-import Data.Coerce
+import App.Types (IDs)
 import Data.List (intercalate)
 
 class PuttableTo db (e :: Type -> Type) where 

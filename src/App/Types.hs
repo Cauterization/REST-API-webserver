@@ -3,18 +3,13 @@
 module App.Types where
 
 import Data.Aeson
-import Data.Aeson.Types
 import Data.ByteString.Lazy qualified as BL
 import Data.Data
 import Data.Function (on)
 import Data.Text (Text)
-import Data.Kind (Type)
-
 import GHC.Generics
 
-import qualified Extended.Text as T
 import qualified Data.Time as Time
-import Text.Read (readMaybe)
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.ToField (ToField)
 

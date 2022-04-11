@@ -4,7 +4,6 @@ import Data.Kind (Type, Constraint)
 
 import Database.Config
 
-import HKD.HKD
 
 import Logger qualified
 import Extended.Text ( Text )

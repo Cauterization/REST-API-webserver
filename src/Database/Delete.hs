@@ -16,8 +16,6 @@ import Data.String
 import Database.HasDatabase
 import qualified Logger
 import App.Types (ID, Path, Current)
-import Data.Coerce
-import Data.List (intercalate)
 import Control.Monad (when)
 
 class DeletableFrom db (e :: Type -> Type) where 

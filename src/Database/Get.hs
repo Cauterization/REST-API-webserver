@@ -6,9 +6,7 @@ import Data.Kind ( Type )
 import Database.Internal
 import Database.HasDatabase
 import Database.Query
-import Control.Monad.Identity
 
-import HKD.HKD
 
 import App.Types
 

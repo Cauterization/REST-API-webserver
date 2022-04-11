@@ -18,7 +18,6 @@ module Logger
 import Control.Applicative ( Alternative((<|>)) )
 
 import Data.Aeson hiding (Error)
-import Data.String
 
 import qualified Extended.Text as T
 

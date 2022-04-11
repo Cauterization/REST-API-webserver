@@ -76,8 +76,8 @@ default-extensions:
 - UndecidableInstances
 
 ghc-options: 
-  -j6
-  -O0
+  - -j6
+  - -O0
 
 library:
   source-dirs: src
@@ -94,7 +94,6 @@ executables:
     - -Werror
     - -Wno-unused-do-bind
     #- -Wno-unused-imports
-    - -Wno-unused-matches
     - -Wno-unused-foralls
     - -Wno-unused-local-binds
     dependencies:

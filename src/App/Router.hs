@@ -8,9 +8,7 @@ module App.Router where
 import Control.Monad.Reader
 import Control.Monad.Catch
 import Control.Monad.Writer
-import Control.Monad.Identity
 
-import Data.Aeson
 
 import Data.Coerce
 import Data.Kind (Type)
@@ -26,12 +24,8 @@ import App.Types
 import Database.Database qualified as Database
 import Database.Database (Database)
 
-import Postgres.Internal (Postgres)
 
-import App.Config
-import App.Result
 import App.Internal
-import Network.Wai qualified as Wai
 -- import Server.Base
 -- import Server.App
 -- import Data.Aeson

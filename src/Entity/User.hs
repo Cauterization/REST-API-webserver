@@ -9,7 +9,6 @@ import GHC.Generics ( Generic )
 
 import HKD.HKD
 
-import Database.Database ( Database ) 
 
 import Database.PostgreSQL.Simple qualified as Postgres
 
@@ -20,7 +19,6 @@ import Postgres.Internal
 import Data.Data
 
 
-import Entity.Internal
 
 import App.Types
 import HKD.Utils (Contains, If)

@@ -4,7 +4,6 @@ module HKD.Display where
 
 import HKD.EmptyData
 import HKD.Field
-import HKD.Utils
 import Data.Aeson 
 
 import qualified Extended.Postgres as Postgres

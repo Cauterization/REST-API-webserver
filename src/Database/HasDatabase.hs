@@ -1,9 +1,7 @@
 module Database.HasDatabase where
 
-import Control.Monad.IO.Class
 
 import Database.Internal
-import Database.Query
 import Data.Kind (Type)
 
 import App.Types
