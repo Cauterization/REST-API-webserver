@@ -53,23 +53,26 @@ postUser _ = do
     User {..} <- decodedBody @(User (Front Create))
     let hashedPass = mkHash password
     Logger.info "Attempt to post user"
-    Database.postEntity
-        User { created = now, token = userToken, password = hashedPass, .. } 
-    text userToken
+    let user = User { created = now, token = userToken, password = hashedPass, .. } 
+    userID <- Database.postEntity user
+    json (userID, userToken)
 
 authUser :: forall m.
     ( Application m
     , Gettable m User Display
     , Database.ToRowOf (Database.Database m) [Token]
+    , Database.PuttableTo (Database.Database m) TokenUpdate
+    , Database.ToRowOf (Database m) (Text, Token)
     , Impure m
     ) => Endpoint m
 authUser _ = do
     Logger.info "Attempt to login user"
-    uFront <- decodedBody @(User Auth)
-    uDB <- Database.getSingle =<< Database.getEntitiesWith @User @Display [login uFront] 
+    User{login = al, password = ap} <- decodedBody @(User Auth)
+    User{password = up} <- Database.getSingle =<< Database.getEntitiesWith @User @Display [al] 
         (<> " WHERE login = ?")
-    when (mkHash (password uFront) /= password uDB) $ throwM WrongPassword
+    when (mkHash ap /= up) $ throwM WrongPassword
     userToken <- genToken
+    Database.putEntity @TokenUpdate @_ @Update [] $ TokenUpdate @Update al userToken
     text userToken
 
 mkHash :: Text -> Text

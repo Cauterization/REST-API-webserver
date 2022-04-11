@@ -16,6 +16,8 @@ import qualified Logger
 import App.Types (IDs)
 import Data.List (intercalate)
 
+import Extended.Text qualified as T
+
 class PuttableTo db (e :: Type -> Type) where 
 
     putQuery :: Query db (e Update)
@@ -43,7 +45,6 @@ putEntity :: forall e (m :: Type -> Type) a.
     , MonadThrow m
     , Logger.HasLogger m
     , PuttableTo (Database m) e
-    -- , ToRowOf (Database m) (e Update)
     , QConstraints (Database m)
     , ToRowOf (Database m) (MkOneRow (e a) IDs)
     , ToOneRow (e a) IDs

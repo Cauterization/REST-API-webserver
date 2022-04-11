@@ -68,21 +68,21 @@ deleteSpec = describe "DELETE" $ do
 
 propPostsUser ::  EMap (User Display) -> User Create -> Property
 propPostsUser db u = property $ not (alreadyExists u db) ==> do
-    (Right (ResText token), st) <- runTest 
+    (Right (ResJSON j), st) <- runTest 
         ( withBody (eCreateToFrontCreate u)
         . withPostPath "users")
         ( withDatabase @User db )
-    let res = filter ((== login u) . login) . M.elems $ userDB st
-    res `shouldBe` 
-        [ User
+    let Right (userID, token) = eitherDecode j
+    M.lookup userID (userDB st) `shouldBe` 
+        Just User
         { firstName = firstName u
         , lastName = lastName u
         , login = login u
-        , token = T.tail $ T.init token
+        , token = token
         , password = mkHash $ password u
         , created = Time.fromGregorian 1 2 3
         , admin = admin u
-        }]
+        }
 
 propPostsUserAlreadyExists :: User Display -> Property
 propPostsUserAlreadyExists u = property $ do

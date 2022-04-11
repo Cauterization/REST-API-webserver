@@ -16,6 +16,7 @@ import Entity.Internal qualified as Entity
 
 import App.Result
 import App.Router
+import App.Types
 import App.Internal
 
 import HKD.HKD

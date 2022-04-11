@@ -65,7 +65,7 @@ instance Database.HasDatabase (AppT IO) where
 
 class Impure m where
     getCurrentDate :: m Date 
-    genToken :: m Token
+    genToken       :: m Token
 
 instance Impure (AppT IO) where
     getCurrentDate = liftIO $ Time.getCurrentTime <&> Time.utctDay

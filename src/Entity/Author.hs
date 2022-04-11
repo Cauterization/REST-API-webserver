@@ -32,8 +32,6 @@ data Author a = Author
   , description :: Field "description" 'Required a '[]          Text
   } deriving stock (Generic)
 
-
-
 deriving instance EmptyData (Author Filter)
 
 deriving instance FromJSON  (Author (Front Create))
