@@ -28,10 +28,9 @@ type Token = Text
 newtype ID e = ID { idVal :: Int }
   deriving stock (Generic, Data)
   deriving newtype (Read, ToField, FromField, FromJSON, ToJSON, Show, Eq, Ord, Num, Enum)
-  deriving anyclass (FromRow)
+  deriving anyclass (FromRow, ToRow)
 
 type IDs = [ID (Path Current)]
-
 
 nameOf :: forall (e :: Type -> Type) s. (Typeable e, IsString s) => s
 nameOf = let t = show (typeOf (Proxy @e))

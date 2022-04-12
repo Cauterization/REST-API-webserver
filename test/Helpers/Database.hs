@@ -8,6 +8,7 @@ import Control.Monad.Catch
 import Control.Monad.State
 
 import Data.Coerce
+import Data.Data
 import Data.List.Extra
 import Data.Map qualified as M
 import Data.String
@@ -289,3 +290,11 @@ instance ToRowOfT TagUpdateT where
                 let t' = Tag{name = newName >\ name, .. }
                     db' = M.insert tID t' db
                 in modify $ \TestState{..} -> TestState{tagDB = db', .. }
+
+instance (Show (e Create), Data (e Create), Typeable e, ToRowOfT (e Create)) 
+    => PostableTo TestDB e where
+instance (Show (e a), Typeable e, Data (e a), FromRowOfT (e a)) 
+    => GettableFrom TestDB e a where
+instance PuttableTo TestDB e where
+
+

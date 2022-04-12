@@ -144,6 +144,7 @@ data AppError
     | EntityNotFound Text
     | TooManyEntities Text
     | AlreadyExists Text
+    | CategoryCycle
     deriving (Show, Typeable, Exception, Eq) 
 
 fromDBException :: Database.DBError -> AppError

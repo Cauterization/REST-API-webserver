@@ -18,11 +18,11 @@ import App.QueryParams
 
 import Api.ProtectedResources (protectedResources)
 import Api.Author qualified as Author
+import Api.Category qualified as Category
 import Api.User qualified as User
 
 import Control.Exception ( IOException ) 
 import Control.Monad.Catch
--- import Control.Monad.Writer
 
 import Data.Aeson
 import Data.Kind
@@ -30,7 +30,6 @@ import Data.ByteString.Lazy qualified as BL
 
 import Extended.Text qualified as T
 
--- import Network.HTTP.Types qualified as HTTP
 import Network.Wai qualified as Wai
 import Network.Wai.Handler.Warp qualified as Wai
 
@@ -42,6 +41,7 @@ import Database.Database qualified as Database
 import Logger qualified
 import Logger ((.<))
 import Entity.Author (Author)
+import Entity.Category (Category)
 import Entity.Tag (Tag)
 import Entity.User (User)
 import Postgres.Internal
@@ -50,7 +50,6 @@ import Control.Monad.Extra (whenM)
 import qualified Network.HTTP.Types as HTTP
 import App.Types
 import Data.String (fromString)
-import Database.Database (DBError)
 
 runServer :: IO ()
 runServer = handle handler $ do
@@ -110,17 +109,18 @@ instance Routed Main Postgres where
         newRouter @User 
         newRouter @Author 
         newRouter @Tag 
+        newRouter @Category
         
 instance Routed User Postgres where
     router = do
-        post    "users"              User.postUser
-        get     "users/me"           User.getCurrentUser
+        post    "users"                User.postUser
+        get     "users/me"             User.getCurrentUser
         delete_ "admin/users/{ID}" 
-        post    "auth"               User.authUser
+        post    "auth"                 User.authUser
 
 instance Routed Author Postgres where
     router = do
-        post    "admin/authors"      Author.postAuthor   
+        post    "admin/authors"        Author.postAuthor   
         get_    "admin/authors"          
         get_    "admin/authors/{ID}" 
         put_    "admin/authors/{ID}"     
@@ -134,3 +134,9 @@ instance Routed Tag Postgres where
         put_    "admin/tags/{ID}"
         delete_ "admin/tags/{ID}"
 
+instance Routed Category Postgres where
+    router = do
+        post_   "admin/categories"
+        get_    "categories"
+        put     "admin/categories/{ID}" Category.putCategory     
+        delete_ "admin/categories/{ID}"       

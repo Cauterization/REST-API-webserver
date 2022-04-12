@@ -19,15 +19,16 @@ import Data.List (intercalate)
 
 class PostableTo db (e :: Type -> Type) where 
 
+    tableNamePost :: Query db (e Create)
+    default tableNamePost :: (Typeable e, QConstraints db) => Query db (e Create)
+    tableNamePost =  fromString $ nameOf @e <>  "s"
+
     postQuery :: Query db (e Create)
-
-instance {-# OVERLAPS #-} (Data (e Create), Typeable e
-    , ToRowOf db (e Create)
-    , QConstraints db)
-    => PostableTo db e where
-
+    default postQuery :: (Data (e Create), Typeable e
+        , ToRowOf db (e Create)
+        , QConstraints db) =>  Query db (e Create)
     postQuery = mconcat
-        [ "INSERT INTO " , fromString $ nameOf @e, "s"
+        [ "INSERT INTO " , tableNamePost
         , " (",  fieldsQuery @(e Create), ") "
         , "VALUES ("
         , fromString $ intercalate "," $ fieldsOf @(e Create) >> pure "?"

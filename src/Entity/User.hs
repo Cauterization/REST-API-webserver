@@ -23,8 +23,6 @@ import Entity.Internal
 
 import App.Types
 import App.Internal
-import HKD.Utils (Contains, If)
-import HKD.EmptyData
 
 data User a = User
   { firstName  :: Field "first_name" 'Required a '[Immutable]                       Text
@@ -43,15 +41,17 @@ deriving instance Show             (User Create)
 deriving instance Data             (User (Front Create))
 deriving instance FromJSON         (User (Front Create))
 deriving instance Postgres.ToRow   (User Create)
+deriving instance Database.PostableTo Postgres User
 
-deriving instance Show (User Display)
-deriving instance Data             (User Display)
-deriving instance Data (Entity User Display)
-instance ToJSON (User (Front Display)) where
+deriving instance Show                          (User Display)
+deriving instance Data                          (User Display)
+deriving instance Data                   (Entity User Display)
+deriving instance Postgres.FromRow              (User Display)
+deriving instance Database.GettableFrom Postgres User Display
+
+instance ToJSON                    (User (Front Display)) where
     toJSON = genericToJSON defaultOptions { omitNothingFields = True }
-
-deriving instance Postgres.FromRow (User  Display)
-deriving instance Postgres.FromRow (User  (Front Display))
+deriving instance Postgres.FromRow (User (Front Display))
 deriving instance Data             (User (Front Display))
 instance Database.GettableFrom Postgres User  (Front Display) where
     getQuery = mconcat

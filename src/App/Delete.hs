@@ -15,7 +15,6 @@ import App.Result
 import App.Router
 import App.Types
 
-
 delete_ ::  forall (e :: Type -> Type) (m :: Type -> Type). 
     ( Application m
     , Deletable m e 

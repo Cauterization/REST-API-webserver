@@ -17,17 +17,17 @@ import Data.Data
 import qualified Logger
 import Control.Monad.Catch
 
-class FromRowOf db (e a) =>
-    GettableFrom db (e :: Type -> Type) a where 
+class FromRowOf db (e a) => GettableFrom db (e :: Type -> Type) a where 
+
+    tableNameGet :: Query db (e a)
+    default tableNameGet :: (Typeable e, QConstraints db) => Query db (e a)
+    tableNameGet =  fromString $ nameOf @e 
 
     getQuery :: Query db (e a)
-
-instance {-# OVERLAPS #-} (QConstraints db, Data (e a), Typeable e
-    , FromRowOf db (e a)) 
-    => GettableFrom db e a where
-
-    getQuery = mconcat ["SELECT ", fromString $ fieldsQuery @(e a) 
-            , " FROM ", fromString $ nameOf @e <> "s"]
+    default getQuery :: (QConstraints db, Data (e a), Typeable e) => Query db (e a)
+    getQuery = mconcat 
+        ["SELECT ", fromString $ fieldsQuery @(e a) 
+        , " FROM ", tableNameGet, "s"]
 
 getEntity :: forall e m a. 
     ( HasDatabase m

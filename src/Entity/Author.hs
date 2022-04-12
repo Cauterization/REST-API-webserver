@@ -55,18 +55,20 @@ instance Database.GettableFrom Postgres Author (Front Display) where
 
     getQuery = "SELECT *  FROM authors_view"
 
-deriving instance Data (Author (Front Update))
-deriving instance Data (Author Update)
-deriving instance EmptyData (Author Update)
-deriving instance FromJSON  (Author (Front Update))
+
+deriving instance Data           (Author Update)
+deriving instance EmptyData      (Author Update)
 deriving instance Postgres.ToRow (Author Update)
+
+deriving instance Data     (Author (Front Update))
+deriving instance FromJSON (Author (Front Update))
 instance Database.ToOneRow (Author (Front Update)) IDs where
 
     type instance MkOneRow (Author (Front Update)) IDs 
         = (Maybe NotUpdated, Maybe Text, ID (Path Current)) 
 
     toOneRow Author{..} [aID] = pure (user, description, aID)
-    toOneRow _ _ = entityIDArityMissmatch "post author"
+    toOneRow _ _ = entityIDArityMissmatch "update author"
 
 instance Database.PuttableTo Postgres Author where
 

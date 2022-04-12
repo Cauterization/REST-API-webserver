@@ -41,7 +41,6 @@ deleteEntity :: forall e (m :: Type -> Type) .
     , DeletableFrom (Database m) e
     , ToRowOf (Database m) [ID (Path Current)]
     , QConstraints (Database m)
-    -- , FromRowOf (Database m) (ID (e Delete))
     , Typeable e
     ) => [ID (Path Current)] -> m ()
 deleteEntity e = do
@@ -49,4 +48,4 @@ deleteEntity e = do
     let q = unQuery $ deleteQuery @(Database m) @e
     Logger.sql q
     res <- liftDatabase (deleteFromDatabase @(Database m) connection q e)
-    when (res == 0) (throwM $ EntityNotFound  $ nameOf @e )
+    when (res == 0) (throwM $ EntityNotFound $ nameOf @e)

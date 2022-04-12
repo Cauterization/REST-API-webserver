@@ -18,6 +18,9 @@ module HKD.HKD
     , Filter
     , Named
     , Schema
+    , Contains
+    , If
+
     , emptyData
 
     ) where
@@ -31,3 +34,4 @@ import HKD.Update
 import HKD.Delete
 import HKD.Front
 import HKD.Schema
+import HKD.Utils
