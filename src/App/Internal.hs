@@ -37,14 +37,15 @@ newtype AppT m a = App {unApp :: ReaderT (Env m) m a}
         )
 
 runApp :: (Monad m, MonadCatch (AppT m)) 
-    => Env m -> AppT m a -> m (Either AppError a)
-runApp env app = runReaderT (unApp $ try app) env
+    => Env m -> AppT m a -> m a
+runApp env app = runReaderT (unApp app) env
 
 type DB m = Database.Database (AppT m)
 
 deriving newtype  instance MonadThrow m => MonadThrow (AppT m)
 deriving newtype  instance MonadIO (AppT IO)
 deriving newtype  instance MonadCatch (AppT IO)
+
 deriving anyclass instance MonadIO (AppT m) => Logger.RunLogger (AppT m)
 
 instance MonadTrans AppT where
@@ -57,7 +58,7 @@ instance Database.HasDatabase (AppT IO) where
 
     type Database (AppT IO) = Postgres
 
-    liftDatabase = liftIO
+    liftDatabase = handle (throwM . fromDBException) . liftIO
 
     getDatabaseConnection = asks envConn
 

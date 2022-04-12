@@ -49,6 +49,8 @@ import Postgres.Internal
 import Control.Monad.Extra (whenM)
 import qualified Network.HTTP.Types as HTTP
 import App.Types
+import Data.String (fromString)
+import Database.Database (DBError)
 
 runServer :: IO ()
 runServer = handle handler $ do
@@ -90,12 +92,15 @@ responseFromResult = \case
     r200text = ToResponse HTTP.status200 
         [("ContentType","text/plain; charset=utf-8")]
     r200json = ToResponse HTTP.status200 [("ContentType","application/json")]
-    r404     = ToResponse HTTP.status404 [] "Not found."
+   
+responseFromError :: AppError -> ToResponse
+responseFromError = \case
+    EntityNotFound t -> r404 $ fromString $ T.unpack $ t <> " not found."
+    err -> responseFromResult . ResText $ T.show err <> " (not handled yet)"
+  where
+    r404     = ToResponse HTTP.status404 [] 
     r400     = ToResponse HTTP.status400 []
     r500     = ToResponse HTTP.internalServerError500 [] "Internal error."
-
-responseFromError :: AppError -> ToResponse
-responseFromError = responseFromResult . ResText . T.show
 
 data Main :: Type -> Type
 
@@ -128,3 +133,4 @@ instance Routed Tag Postgres where
         get_    "tags/{ID}"    
         put_    "admin/tags/{ID}"
         delete_ "admin/tags/{ID}"
+

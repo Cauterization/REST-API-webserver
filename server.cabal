@@ -49,6 +49,7 @@ library
       Database.Put
       Database.Query
       Entity.Author
+      Entity.Category
       Entity.Internal
       Entity.Tag
       Entity.User

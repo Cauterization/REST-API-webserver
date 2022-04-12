@@ -89,8 +89,8 @@ data TokenUpdate
 
 type instance Field name req TokenUpdate modifiers a =
     If (Contains TU modifiers)
-        (Maybe a)
-        (Maybe NotUpdated)
+       (Maybe a)
+       (Maybe NotUpdated)
 
 deriving instance Data (User Delete)
 
@@ -102,5 +102,5 @@ data Auth
 
 type instance Field name req Auth modifiers a = 
     If (Contains Authfield modifiers) 
-        (Field name req Create modifiers a)
-        (Maybe NotAllowedFromFront)
+       (Field name req Create modifiers a)
+       (Maybe NotAllowedFromFront)

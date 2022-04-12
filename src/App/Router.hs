@@ -26,9 +26,6 @@ import Database.Database (Database)
 
 
 import App.Internal
--- import Server.Base
--- import Server.App
--- import Data.Aeson
 import HKD.HKD
 
 import Logger qualified
@@ -81,13 +78,15 @@ runRouterWith :: forall e m a.
     -> AppT m a
     -> m (Either AppError AppResult)
 runRouterWith logger connDB path body qparams token pagSize with 
-    = runApp (Env logger connDB path body qparams token pagSize) $ with >> do
+    = appHandler $ runApp (Env logger connDB path body qparams token pagSize) $ with >> do
         execWriterT (runReaderT (unRouter (router @e @(DB m))) path) 
             >>= \case
                 Route _ success      -> success
                 AmbiguousPatterns ps -> ambiguousPatterns ps
                 _                    -> throw404
 
+appHandler :: MonadCatch m => m AppResult -> m (Either AppError AppResult)
+appHandler = try . handle (throwM . fromDBException)
 
 withPathCmp :: Endpoint m -> Path Pattern -> Path Current -> RouterResult m
 withPathCmp f pp pc
