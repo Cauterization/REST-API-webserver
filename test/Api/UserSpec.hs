@@ -28,6 +28,8 @@ import HKD.HKD
 
 import Test.Hspec
 import Test.QuickCheck
+import Data.Either
+import Data.String (fromString)
 
 spec :: Spec
 spec = do
@@ -77,6 +79,9 @@ authSpec = describe "User authentication" $ do
 
     it "Throws error when user with this login doesn't exists"
         $ property propAuthUserDoesntExists
+
+    it "Throws error when invalid request body is provided"
+        $ property propAuthParsingFail
 
 propPostsUser :: TDB User -> User Create -> Property
 propPostsUser db u = property $ not (alreadyExists u db) ==> do
@@ -184,3 +189,15 @@ propAuthUserDoesntExists user uID (M.filter ((/= login user) . login) -> db)
         , created = Nothing
         , admin = Nothing
         } :: User Auth
+
+propAuthParsingFail :: TDB User -> Value -> Property
+propAuthParsingFail db obj
+    = property $ conditions ==> do
+        Left err <- evalTest 
+            ( withBody obj 
+            . withPostPath "auth" ) 
+            ( withDatabase db )
+        err `shouldSatisfy` isParsingError 
+  where
+    conditions = isLeft $ eitherDecode @(User Auth) $ fromString $ show obj
+

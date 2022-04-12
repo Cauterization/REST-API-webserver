@@ -46,7 +46,7 @@ import Api.ProtectedResources
 
 runTest :: EnvMod -> StateMod -> IO (Either AppError AppResult, TestState)
 runTest eMod sMod = do
-    let ((res ,log), st) = runTestMonad eMod sMod runState
+    let ((res, log), st) = runTestMonad eMod sMod runState
     forM_ log (putStrLn . (\(v, t) -> show v <> ": " <> T.unpack t)) 
     pure (res, st)
 
