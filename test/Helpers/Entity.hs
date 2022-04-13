@@ -1,13 +1,17 @@
 module Helpers.Entity where
 
 import Entity.Author
+import Entity.Category
 import Entity.Tag
 import Entity.User
 
-import Helpers.Database
+
 import Helpers.Author
+import Helpers.Category
+import Helpers.Database
 import Helpers.User 
 import Helpers.Monad
+
 
 import HKD.HKD
 
@@ -36,3 +40,9 @@ instance TestEntity Tag where
     eDisplayToFrontCreate         = unsafeCoerce
     withDatabase db TestState{..} = TestState{tagDB = db, ..}
     dbFromTestState TestState{..} = tagDB
+
+instance TestEntity Category where
+    eDisplayToFrontDisplay        = error "catDisplayToFrontDisplay"
+    eDisplayToFrontCreate         = unsafeCoerce
+    withDatabase db TestState{..} = TestState{catDB = db, ..}
+    dbFromTestState TestState{..} = catDB

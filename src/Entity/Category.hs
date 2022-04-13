@@ -40,6 +40,8 @@ type family CatParent a where
     CatParent (Front Display) = [CategoryName Display]
     CatParent (Front Update)  = (ID (Category (Front Update)))
     CatParent Delete          = ()
+    CatParent a               = Maybe (ID (Category Display)) -- for tests
+
 
 data Category a = Category
   { name ::   Field "name"   'Required a '[] (CategoryName a)

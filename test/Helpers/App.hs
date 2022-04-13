@@ -1,7 +1,8 @@
 module Helpers.App where
 
-import Api.Author qualified as Author
-import Api.User   qualified as User
+import Api.Author   qualified as Author
+import Api.Category qualified as Category
+import Api.User     qualified as User
 import App.App
 import App.Internal
 import App.Result
@@ -15,7 +16,7 @@ import Control.Monad.Catch
 import Control.Monad.Except
 import Control.Monad.Extra (whenM)
 import Control.Monad.Reader
-import Control.Monad.State hiding (get)
+import Control.Monad.State hiding (get, put)
 import Control.Monad.Writer 
 
 import Data.Aeson
@@ -25,6 +26,7 @@ import Database.Database
 
 import Entity.Internal
 import Entity.Author
+import Entity.Category
 import Entity.Tag
 import Entity.User
 
@@ -36,7 +38,11 @@ import Logger qualified
 import Helpers.Database
 import Helpers.Monad
 import Helpers.Author
+import Helpers.AuthorDB
+import Helpers.CategoryDB
+import Helpers.TagDB
 import Helpers.User
+import Helpers.UserDB
 import Helpers.Internal
 
 import Test.Hspec
@@ -84,6 +90,7 @@ instance Routed Main TestDB where
         newRouter @User 
         newRouter @Author 
         newRouter @Tag 
+        newRouter @Category
 
 -- | Note that urls listed here doesn't have an "admin" prefix
 --   coz we have separated tests for protected content
@@ -110,6 +117,13 @@ instance Routed Tag TestDB where
         get_    "tags/{ID}"    
         put_    "tags/{ID}"
         delete_ "tags/{ID}"
+
+instance Routed Category TestDB where
+    router = do
+        post_   "categories"
+        -- get_    "categories"
+        -- put     "admin/categories/{ID}" Category.putCategory     
+        delete_ "categories/{ID}"       
 
 defaultEnv :: Env TestMonad
 defaultEnv  = Env 

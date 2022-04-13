@@ -15,6 +15,7 @@ import Control.Monad.Writer
 import Data.Map qualified as M
 
 import Entity.Author
+import Entity.Category
 import Entity.Tag
 import Entity.User
 import Entity.Internal
@@ -22,6 +23,7 @@ import Entity.Internal
 import Extended.Text (Text)
 
 import Helpers.Author
+import Helpers.Category
 import Helpers.Tag
 import Helpers.User
 import Helpers.Internal
@@ -68,9 +70,10 @@ type EMap e = M.Map (ID e) e
 type TDB e = EMap (e Display)
 
 data TestState = TestState
-    { userDB           :: EMap (User   Display)
-    , authorDB         :: EMap (Author Display)
-    , tagDB            :: EMap (Tag    Display)
+    { userDB           :: EMap (User     Display)
+    , authorDB         :: EMap (Author   Display)
+    , tagDB            :: EMap (Tag      Display)
+    , catDB            :: EMap (Category Display)
     , ids              :: [Int]
     , tsPage           :: Int
     , tsPaginationSize :: Int
@@ -84,6 +87,7 @@ initialState = TestState
     { userDB           = M.empty
     , authorDB         = M.empty
     , tagDB            = M.empty
+    , catDB            = M.empty
     , ids              = []
     , tsPage           = 1
     , tsPaginationSize = testPaginationConstant
@@ -98,13 +102,15 @@ deleteAllEntitiesWithID eID = do
     let u = maybe 0 (const 1) $ M.lookup (coerce eID) userDB
         a = maybe 0 (const 1) $ M.lookup (coerce eID) authorDB
         t = maybe 0 (const 1) $ M.lookup (coerce eID) tagDB
+        c = maybe 0 (const 1) $ M.lookup (coerce eID) catDB
     put $ TestState
         { userDB   = M.delete (coerce eID) userDB
         , authorDB = M.delete (coerce eID) authorDB
         , tagDB    = M.delete (coerce eID) tagDB
+        , catDB    = M.delete (coerce eID) catDB
         , ..
         }
-    pure $ u + a + t
+    pure $ u + a + t + c
 
 instance MonadFail TestMonad where
     fail = error

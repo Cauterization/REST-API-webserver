@@ -34,8 +34,7 @@ putCategory [cID] = do
     text @_ @String "Successfuly updated."
   where
     validate c parent = do
-        parents <- Database.getEntitiesWith (parent) id
-        Logger.error $ T.show parents
+        parents <- Database.getEntitiesWith parent id
         when (cast cID `elem` parents) $ throwM CategoryCycle
     cast = coerce @_ @(ID (Category (Front Update)))
 putCategory _ = entityIDArityMissmatch "put category api"

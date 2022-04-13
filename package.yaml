@@ -110,3 +110,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - server
+    - split

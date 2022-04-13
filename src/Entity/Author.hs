@@ -11,7 +11,6 @@ import Database.PostgreSQL.Simple.FromRow qualified as Postgres
 
 import GHC.Generics ( Generic )
 
-
 import App.Internal
 
 

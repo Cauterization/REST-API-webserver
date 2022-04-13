@@ -23,4 +23,4 @@ instance TestUpdate Author where
         }
 
 instance TestUpdate Tag where
-    testUpdate tu t = Tag $ name tu >\ name t
+    testUpdate tu t = Tag $ tag tu >\ tag t

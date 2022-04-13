@@ -17,7 +17,7 @@ import HKD.HKD
 import App.Types (IDs, Current, ID, Path)
 
 newtype Tag a = Tag
-  { name :: Field "name" 'Required a '[] Text
+  { tag :: Field "name" 'Required a '[] Text
   } deriving stock Generic
 
 deriving instance Show           (Tag Create)
@@ -44,7 +44,7 @@ instance Database.ToOneRow       (Tag (Front Update)) IDs where
     type instance MkOneRow (Tag (Front Update)) IDs 
         = (Maybe Text, ID (Path Current)) 
 
-    toOneRow Tag{..} [aID] = pure (name, aID)
+    toOneRow Tag{..} [aID] = pure (tag, aID)
     toOneRow _ _ = entityIDArityMissmatch "update tag"
 
 

@@ -36,8 +36,8 @@ type GPropsConstr e a =
     , ToDisplay (e a) ~ e Display
     , ToDisplay (e Display) ~ e Display
     , Show (e a)
-    , Eq (e a)
-    , Ord (e a)
+    , Eq   (e a)
+    , Ord  (e a)
     )
 
 propPostsEntity :: forall e. 
@@ -57,6 +57,7 @@ propPostsEntity path db e = property $ not (alreadyExists e db) ==> do
             let Right eID = T.read @(ID (e Display)) t
             fromDisplay <$> M.lookup eID (dbFromTestState @e st) 
                 `shouldBe` Just e
+        (Left err, _) -> print err >> undefined
 
 propPostsAlreadyExists :: forall e.
     ( GPropsConstr e Create 
@@ -94,6 +95,8 @@ propGetEntities :: forall (e :: Type -> Type).
     ) => Text -> TDB e -> Property
 propGetEntities path db = property $ condition ==> do
     Right (ResJSON es) <- evalTest (withGetPath path) (withDatabase @e db)
+    print es --DEBUG
+    print $  eitherDecode @[e (Front Display)] es -- DEBUG
     let Right es' = eitherDecode es
     sort es' `shouldBe` sort (map eDisplayToFrontDisplay (M.elems db))
   where
