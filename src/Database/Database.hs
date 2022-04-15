@@ -7,10 +7,12 @@ module Database.Database
     , PostableTo(..)
     , postEntityWith
     , postEntity
+    , publish
 
     , GettableFrom(..)
     , getEntity
-    , getEntities
+    , getManyEntities
+    , getManyEntitiesWith
     , getEntitiesWith
     , getSingle
 

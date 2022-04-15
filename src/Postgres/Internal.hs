@@ -4,7 +4,8 @@ module Postgres.Internal where
 
 import Control.Monad
 
-import Data.ByteString qualified as B
+import Data.ByteString qualified as B hiding (putStrLn)
+-- import Data.ByteString.Char8 qualified as B
 import Data.List qualified as L
 import Data.Function (on)
 import Data.Pool qualified as Pool
@@ -23,7 +24,7 @@ import Database.Config qualified as Database
 
 import Logger qualified
 
-data Postgres -- undefined
+data Postgres 
 
 instance IsDatabase Postgres where
 
@@ -66,16 +67,21 @@ instance IsDatabase Postgres where
                         l Logger.Error $ "Migration failed: " <> T.pack reason
                         exitFailure
 
-    postToDatabase pc q a = Pool.withResource pc $ \conn -> query conn q a 
-        >>= Database.getSingle 
+    postToDatabase pc q a = Pool.withResource pc $ \conn -> 
+        formatQuery conn q a >>= B.putStr >>
+        query conn q a  >>= Database.getSingle 
 
     getFromDatabase pc q a =  Pool.withResource pc $ \conn -> query conn q a
 
     putIntoDatabase pc q a = void 
-        $ Pool.withResource pc $ \conn -> execute conn q a
+        $ Pool.withResource pc $ \conn -> 
+            formatQuery conn q a >>= B.putStr >>
+            execute conn q a
  
     deleteFromDatabase pc q a = fmap fromIntegral 
-        $ Pool.withResource pc $ \conn -> execute conn q a
+        $ Pool.withResource pc $ \conn -> 
+            formatQuery conn q a >>= B.putStr >>
+            execute conn q a
 
 sortedMigrations :: [(FilePath, B.ByteString)]
 sortedMigrations =

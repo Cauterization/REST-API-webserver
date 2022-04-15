@@ -12,6 +12,8 @@ module HKD.HKD
     , NotUpdated
     , Immutable
     , Delete
+    , Publish
+    , NoPublish
     , Field
     , Required(..)
     , EmptyData
@@ -32,6 +34,7 @@ import HKD.Filter
 import HKD.Field
 import HKD.Update
 import HKD.Delete
+import HKD.Publish
 import HKD.Front
 import HKD.Schema
 import HKD.Utils

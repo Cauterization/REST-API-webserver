@@ -43,7 +43,7 @@ getEntities :: forall (e :: Type -> Type) a m env.
 getEntities _ = do
     Logger.info $ "Attempt to get " <> nameOf @e <> "s"
     page <- getPage
-    entities <- Database.getEntities @e @a @m page
+    entities <- Database.getManyEntities @e @a @m page
     Logger.info $ nameOf @e <> " was found."
     json entities
 

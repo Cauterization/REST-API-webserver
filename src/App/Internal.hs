@@ -42,9 +42,9 @@ runApp env app = runReaderT (unApp app) env
 
 type DB m = Database.Database (AppT m)
 
-deriving newtype  instance MonadThrow m => MonadThrow (AppT m)
-deriving newtype  instance MonadIO (AppT IO)
-deriving newtype  instance MonadCatch (AppT IO)
+deriving newtype instance MonadThrow m => MonadThrow (AppT m)
+deriving newtype instance MonadIO (AppT IO)
+deriving newtype instance MonadCatch (AppT IO)
 
 deriving anyclass instance MonadIO (AppT m) => Logger.RunLogger (AppT m)
 
@@ -125,11 +125,12 @@ toPath ::  Wai.Request -> Path a
 toPath req = 
     let path = Wai.pathInfo req 
     in case Wai.requestMethod req of
-        "POST"   -> POST    path
-        "GET"    -> GET     path
-        "PUT"    -> PUT     path
-        "DELETE" -> DELETE  path
-        _        -> Unknown path
+        "POST"    -> POST    path
+        "GET"     -> GET     path
+        "PUT"     -> PUT     path
+        "DELETE"  -> DELETE  path
+        "PUBLISH" -> PUBLISH path
+        _         -> Unknown path
 
 data AppError 
     = Err404 (Path Current)

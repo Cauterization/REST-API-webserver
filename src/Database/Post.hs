@@ -64,4 +64,19 @@ postEntityWith f e = do
     connection <- getDatabaseConnection
     let q = unQuery $ postQuery @(Database m) @e
     Logger.sql q
-    liftDatabase (postToDatabase @(Database m)  connection (f q) e)
+    liftDatabase (postToDatabase @(Database m) connection (f q) e)
+
+publish :: forall e (m :: Type -> Type) a x.
+    ( HasDatabase m
+    , IsDatabase (Database m)
+    , Monad m
+    , MonadThrow m
+    , Logger.HasLogger m
+    , ToRowOf (Database m) (e a)
+    , QConstraints (Database m)
+    , FromRowOf (Database m) (ID (e a))
+    ) => QueryOf (Database m)  -> e a -> m (ID (e a))
+publish q e = do
+    connection <- getDatabaseConnection
+    Logger.sql q
+    liftDatabase (postToDatabase @(Database m) connection q e)

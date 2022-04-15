@@ -17,6 +17,7 @@ import App.Internal
 import App.QueryParams
 
 import Api.ProtectedResources (protectedResources)
+import Api.Article qualified as Article
 import Api.Author qualified as Author
 import Api.Category qualified as Category
 import Api.User qualified as User
@@ -41,6 +42,7 @@ import Database.Database qualified as Database
 import Logger qualified
 import Logger ((.<))
 import Entity.Author (Author)
+import Entity.Article (Article)
 import Entity.Category (Category)
 import Entity.Tag (Tag)
 import Entity.User (User)
@@ -66,7 +68,7 @@ runServer = handle handler $ do
             (toPath req) 
             body
             (toQueryParams $ Wai.queryString req)
-            (T.decodeUtf8 <$> lookup "Authorization" (Wai.requestHeaders req))
+            (T.decodeUtf8 <$> lookup "Authorization" (Wai.requestHeaders req))           
             (Database.cPagSize cDatabase)
             (Logger.debug $ T.take 500 $ "Recieved request:\n" .< req)
         respond $ Wai.responseLBS respStatus respHeaders respBody
@@ -95,11 +97,12 @@ responseFromResult = \case
 responseFromError :: AppError -> ToResponse
 responseFromError = \case
     EntityNotFound t -> r404 $ fromString $ T.unpack $ t <> " not found."
-    err -> responseFromResult . ResText $ T.show err <> " (not handled yet)"
+    err -> r500 $ toBL $ "Internal error:" <> T.show err <> " (not handled yet)"
   where
     r404     = ToResponse HTTP.status404 [] 
     r400     = ToResponse HTTP.status400 []
-    r500     = ToResponse HTTP.internalServerError500 [] "Internal error."
+    r500     = ToResponse HTTP.internalServerError500 [] 
+    toBL     = BL.fromStrict . T.encodeUtf8 
 
 data Main :: Type -> Type
 
@@ -110,17 +113,18 @@ instance Routed Main Postgres where
         newRouter @Author 
         newRouter @Tag 
         newRouter @Category
+        newRouter @Article
         
 instance Routed User Postgres where
     router = do
-        post    "users"                User.postUser
-        get     "users/me"             User.getCurrentUser
+        post    "users"                   User.postUser
+        get     "users/me"                User.getCurrentUser
         delete_ "admin/users/{ID}" 
-        post    "auth"                 User.authUser
+        post    "auth"                    User.authUser
 
 instance Routed Author Postgres where
     router = do
-        post    "admin/authors"        Author.postAuthor   
+        post    "admin/authors"           Author.postAuthor   
         get_    "admin/authors"          
         get_    "admin/authors/{ID}" 
         put_    "admin/authors/{ID}"     
@@ -138,5 +142,14 @@ instance Routed Category Postgres where
     router = do
         post_   "admin/categories"
         get_    "categories"
-        put     "admin/categories/{ID}" Category.putCategory     
+        put     "admin/categories/{ID}"   Category.putCategory     
         delete_ "admin/categories/{ID}"       
+
+instance Routed Article Postgres where
+    router = do
+        get     "articles"                Article.getArticles  
+        get     "articles/{ID}"           Article.getArticle
+        post    "drafts"                  Article.postDraft      
+        get     "drafts"                  Article.getDrafts
+        get     "drafts/{ID}"             Article.getDraftbyID
+        publish "drafts/{ID}"             Article.publishDraft

@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 module Entity.Internal where
 
 import Data.Aeson
@@ -23,6 +24,8 @@ data Entity e a = Entity
   , entity :: e a }
   deriving stock Generic
 
+deriving instance (Data (e a) , Data (NamedID "_id" a e), Typeable e, Typeable a)
+    => Data (Entity e a)
 deriving instance (FromJSON (e a), FromJSON (NamedID "_id" a e))
     => FromJSON (Entity e a)
 deriving instance (Show (e a), Show (NamedID "_id" a e))
@@ -36,7 +39,6 @@ instance (Postgres.FromRow (e a), Postgres.FromField (NamedID "_id" a e))
             entity   <- Postgres.fromRow
             pure Entity{..}
 
-
 type family NamedID n a (e :: * -> *) :: * where
     NamedID n Schema          e = Named n
     NamedID n Filter          e =   [ID (e Filter)]
@@ -49,4 +51,5 @@ type family EntityOrID (e :: Type -> Type) a :: * where
     EntityOrID e (Front Display) = e (Front Display)
     EntityOrID e Display         = Entity e Display
     EntityOrID e Delete          = ID (e Delete)
+    EntityOrID e Publish         = ID (e Publish)
 

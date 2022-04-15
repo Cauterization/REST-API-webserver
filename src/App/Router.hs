@@ -156,16 +156,16 @@ addRoute :: Monad m
     -> Router (e :: Type -> Type) m ()
 addRoute pp f = ask >>= tell . withPathCmp f pp
 
-post, get, put, delete :: forall (e :: Type -> Type) (m :: Type -> Type). Application m
+post, get, put, delete, publish 
+    :: forall (e :: Type -> Type) (m :: Type -> Type). Application m
     => Text 
     -> Endpoint m
     -> Router e m ()
-
-post   p ep = addRoute (POST   $ T.splitOn "/" p) $ ep @e @Create
-get    p ep = addRoute (GET    $ T.splitOn "/" p) $ ep @e @(Front Display)
-put    p ep = addRoute (PUT    $ T.splitOn "/" p) $ ep @e @Update
-delete p ep = addRoute (DELETE $ T.splitOn "/" p) $ ep @e @Delete
-
+post    p ep = addRoute (POST    $ T.splitOn "/" p) $ ep @e @Create
+get     p ep = addRoute (GET     $ T.splitOn "/" p) $ ep @e @(Front Display)
+put     p ep = addRoute (PUT     $ T.splitOn "/" p) $ ep @e @Update
+delete  p ep = addRoute (DELETE  $ T.splitOn "/" p) $ ep @e @Delete
+publish p ep = addRoute (PUBLISH $ T.splitOn "/" p) $ ep @e @Publish
 class Routed e db where
     router :: forall m. 
         ( Database.Database m ~ db

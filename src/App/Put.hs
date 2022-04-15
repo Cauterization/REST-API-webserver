@@ -41,4 +41,3 @@ putEntity eID = do
     Logger.info $ nameOf @e <> " was found."
     text @_ @String "Successfuly updated."
 
--- type instance ToOneRow (e (FrontUpdate)) IDs = ()

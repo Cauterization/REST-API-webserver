@@ -38,26 +38,26 @@ instance ToRowOfT (Category Create) where
 
 instance FromRowOfT (ID (Category Create)) where
 
--- instance FromRowOfT (Category (Front Display)) where
+instance FromRowOfT (Category (Front Display)) where
 
---     getEntityFromTestDatabase q = do
---         db <- gets catDB
---         gets ids >>= \case
---             [cID] -> case M.lookup (ID cID) db of
---                 Just c -> pure . pure $ collectCat db [c]
---                 Nothing -> throwM $ EntityNotFound ""
---             []    -> do
---                 page <- gets tsPage
---                 pag  <- gets tsPaginationSize
---                 return $ take pag $ drop (pag * (page - 1)) $ 
---                     map (collectCat db . pure) $ M.elems db 
+    getEntityFromTestDatabase q = do
+        db <- gets catDB
+        gets ids >>= \case
+            [cID] -> case M.lookup (ID cID) db of
+                Just c -> pure . pure $ collectCat db [c]
+                Nothing -> throwM $ EntityNotFound ""
+            []    -> do
+                page <- gets tsPage
+                pag  <- gets tsPaginationSize
+                return $ take pag $ drop (pag * (page - 1)) $ 
+                    map (collectCat db . pure) $ M.elems db 
 
--- collectCat :: TDB Category -> [Category Display] -> Category (Front Display)
--- collectCat db (c:cs) = case parent c of
---     Nothing -> Category (coerce $ name c) (map name cs)
---     Just pID  -> case M.lookup pID db of
---         Just p -> collectCat (M.filter ((/= Just pID) . parent) db) (p:c:cs)
---         Nothing -> Category (coerce $ name c) (map name cs)
+collectCat :: TDB Category -> [Category Display] -> Category (Front Display)
+collectCat db (c:cs) = case parent c of
+    Nothing -> Category (coerce $ name c) (map name cs)
+    Just pID  -> case M.lookup pID db of
+        Just p -> collectCat (M.filter ((/= Just pID) . parent) db) (p:c:cs)
+        Nothing -> Category (coerce $ name c) (map name cs)
 
 
 

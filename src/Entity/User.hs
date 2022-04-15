@@ -30,7 +30,7 @@ data User a = User
   , login      :: Field "login"      'Required a '[Immutable, Authfield, TU]        Text
   , token      :: Field "token"      'Required a '[NotAllowedFromFront, Hidden, TU] Text
   , password   :: Field "password"   'Required a '[Immutable, Hidden, Authfield]    Text
-  , created    :: Field "created"    'Required a '[Immutable, NotAllowedFromFront]  Date
+  , registered :: Field "registered" 'Required a '[Immutable, NotAllowedFromFront]  Date
   , admin      :: Field "admin"      'Required a '[Immutable]                       Bool 
   } deriving stock (Generic)
 
@@ -45,23 +45,23 @@ deriving instance Database.PostableTo Postgres User
 
 deriving instance Show                          (User Display)
 deriving instance Data                          (User Display)
-deriving instance Data                   (Entity User Display)
 deriving instance Postgres.FromRow              (User Display)
 deriving instance Database.GettableFrom Postgres User Display
 
 instance ToJSON                    (User (Front Display)) where
     toJSON = genericToJSON defaultOptions { omitNothingFields = True }
+    
 deriving instance Postgres.FromRow (User (Front Display))
 deriving instance Data             (User (Front Display))
 instance Database.GettableFrom Postgres User  (Front Display) where
     getQuery = mconcat
-        [ "SELECT firstname, lastname, login, token, password, created, admin"
+        [ "SELECT ", fieldsQuery @(User (Front Display))
         , " FROM users" ]
 
 instance Database.GettableFrom Postgres (Entity User) Display where
     getQuery = mconcat
-        [ "SELECT id, firstname, lastname, login, token, password, created, admin  "
-        , "FROM users" ]
+        [ "SELECT id, ", fieldsQuery @(User Display)
+        , " FROM users" ]
 
 instance Database.PuttableTo Postgres User where
 

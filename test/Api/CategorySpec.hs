@@ -56,3 +56,5 @@ deleteSpec = describe "DELETE" $ do
     it "Throws error when category with this ID doesn't exists"
         $ property $ propDeleteEntityDoesntExists @Category "categories"
 
+-- | Other endpoints rely heavily on Postgres recursive queries so I don't think
+-- it makes sense to test them.

@@ -25,6 +25,7 @@ source-repository head
 
 library
   exposed-modules:
+      Api.Article
       Api.Author
       Api.Category
       Api.ProtectedResources
@@ -49,6 +50,7 @@ library
       Database.Post
       Database.Put
       Database.Query
+      Entity.Article
       Entity.Author
       Entity.Category
       Entity.Internal
@@ -64,6 +66,7 @@ library
       HKD.Filter
       HKD.Front
       HKD.HKD
+      HKD.Publish
       HKD.Schema
       HKD.Update
       HKD.Utils
@@ -202,6 +205,7 @@ test-suite server-test
       Api.CategorySpec
       Api.TagSpec
       Api.UserSpec
+      App.TypesSpec
       Helpers.App
       Helpers.Author
       Helpers.AuthorDB

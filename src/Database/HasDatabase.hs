@@ -6,9 +6,7 @@ import Data.Kind (Type)
 
 import App.Types
 
-class ( IsDatabase (Database m)
-      ) 
-    => HasDatabase m where
+class ( IsDatabase (Database m)) => HasDatabase m where
 
     type family Database (m :: Type -> Type) :: Type
 

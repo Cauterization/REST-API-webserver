@@ -4,7 +4,7 @@ CREATE OR REPLACE VIEW cat_branches AS (
   	    FROM categories 
   	    WHERE parent_id IS NULL 
       UNION 
-	    SELECT child.id, branch || child.name, child.name, branch_id || child.id
+	    SELECT child.id, child.name || branch, child.name,  child.id || branch_id
 	    FROM categories child 
 	    INNER JOIN cats ON cats.id = child.parent_id 
 	) 

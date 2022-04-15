@@ -44,7 +44,7 @@ getEntity :: forall e m a.
     ) => IDs -> m (e a)
 getEntity eIDs = getEntitiesWith eIDs (<> " WHERE id = ?") >>= getSingle
 
-getEntities :: forall e a m. 
+getManyEntities :: forall e a m. 
     ( HasDatabase m
     , Monad m
     , Logger.HasLogger m
@@ -56,10 +56,24 @@ getEntities :: forall e a m.
     , Typeable e 
     ) => 
     Page -> m [e a]
-getEntities page = do
+getManyEntities = getManyEntitiesWith id
+
+getManyEntitiesWith :: forall e a m. 
+    ( HasDatabase m
+    , Monad m
+    , Logger.HasLogger m
+    , IsDatabase (Database m)
+    , ToRowOf (Database m) [Page]
+    , GettableFrom (Database m) e  a
+    , QConstraints (Database m)
+    , Data (e a)
+    , Typeable e 
+    ) => 
+    (Query (Database m) (e a) -> Query (Database m) (e a)) -> Page -> m [e a]
+getManyEntitiesWith f page = do
     pagination <- fromString . show <$> getPaginationSize
     getEntitiesWith [page] 
-        (<> mconcat [" LIMIT ", pagination, " OFFSET ", pagination , " * (? - 1)"])
+        ((<> mconcat [" LIMIT ", pagination, " OFFSET ", pagination , " * (? - 1)"]) . f)
 
 getEntitiesWith :: forall e a m x. 
     ( HasDatabase m

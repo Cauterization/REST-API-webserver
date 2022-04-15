@@ -11,9 +11,7 @@ import Data.Text (Text)
 import GHC.Generics
 
 import qualified Data.Time as Time
-import Database.PostgreSQL.Simple
-import Database.PostgreSQL.Simple.ToField (ToField)
-import Database.PostgreSQL.Simple.FromField (FromField)
+import Extended.Postgres 
 import Data.String (IsString(..))
 import Data.Maybe (fromMaybe)
 import Data.List
@@ -32,6 +30,9 @@ newtype ID e = ID { idVal :: Int }
 
 type IDs = [ID (Path Current)]
 
+instance ToField [ID a] where
+    toField a = toField $ PGArray a 
+
 nameOf :: forall (e :: Type -> Type) s. (Typeable e, IsString s) => s
 nameOf = let t = show (typeOf (Proxy @e))
          in fromString $ fromMaybe t $ stripPrefix "Proxy (* -> *) " t
@@ -48,15 +49,17 @@ data Path a
   | GET     URL 
   | PUT     URL
   | DELETE  URL
+  | PUBLISH URL
   | Unknown URL
   deriving (Show, Eq, Generic, Typeable, Data)
 
 getURL :: Path a -> URL
 getURL = \case
-    POST   t -> t
-    GET    t -> t
-    PUT    t -> t
-    DELETE t -> t
+    POST    t -> t
+    GET     t -> t
+    PUT     t -> t
+    DELETE  t -> t
+    PUBLISH t -> t
     Unknown t -> t
 
 type Method = forall a. [Text] -> Path a
@@ -67,6 +70,7 @@ getMethod = \case
     GET    _ -> GET
     PUT    _ -> PUT
     DELETE _ -> DELETE
+    PUBLISH _ -> PUBLISH
     Unknown _ -> Unknown
 
 instance Eq ([Text] -> Path a) where

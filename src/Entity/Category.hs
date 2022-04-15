@@ -31,6 +31,11 @@ import HKD.HKD
 
 import Postgres.Internal
 
+data Category a = Category
+  { name ::   Field "name"   'Required a '[] (CategoryName a)
+  , parent :: Field "parent" 'Required a '[] (CatParent a)
+  } deriving stock Generic
+
 newtype CategoryName a = CategoryName {unCatName :: Text}
     deriving newtype (Show, FromJSON, ToJSON, Eq, Postgres.ToField, Postgres.FromField)
     deriving stock Data
@@ -42,12 +47,6 @@ type family CatParent a where
     CatParent Delete          = ()
     CatParent a               = Maybe (ID (Category Display)) -- for tests
 
-
-data Category a = Category
-  { name ::   Field "name"   'Required a '[] (CategoryName a)
-  , parent :: Field "parent" 'Required a '[] (CatParent a)
-  } deriving stock Generic
-
 deriving instance Data           (Category Create)
 deriving instance Show           (Category Create)
 deriving instance FromJSON       (Category Create) 
@@ -58,16 +57,14 @@ instance Database.PostableTo Postgres Category where
 deriving instance Data    (Category (Front Display))
 deriving instance Show    (Category (Front Display))
 instance ToJSON           (Category (Front Display)) where
-    toJSON Category{..} = object 
-        [ "category" .= T.intercalate "/" (reverse $ map unCatName parent)
-        ]
+    toJSON Category{..} = toJSON $ map unCatName $ coerce name : parent
 instance Postgres.FromRow (Category (Front Display)) where
     fromRow = do
         name   <- Postgres.field
         parent <- Postgres.fromPGArray <$> Postgres.field
         pure Category{..}
 instance Database.GettableFrom Postgres Category (Front Display) where
-    getQuery = "SELECT last, branch FROM cat_branches"
+    getQuery = "SELECT last, branch[2:] FROM cat_branches"
 
 
 deriving instance Data (Category (Front Update))
@@ -94,7 +91,7 @@ instance Database.ToOneRow  (Category (Front Update)) IDs where
     toOneRow Category{..} [cID] = pure (name, parent, cID)
     toOneRow _ _ = entityIDArityMissmatch "update tag"
 
--- | Checking cycles on category update
+-- | Cycles checking on category update
 instance Database.GettableFrom Postgres ID (Category (Front Update)) where
 
     getQuery = mconcat
@@ -114,9 +111,23 @@ instance Database.DeletableFrom Postgres Category where
         ,   "SET parent = (SELECT parent FROM categories WHERE id = "
         ,       "(SELECT cat_id FROM ARG)) "
         ,   "WHERE parent = (SELECT cat_id FROM ARG) "
-        ,   "RETURNING (SELECT cat_id FROM ARG) "
-        , ")"
+        ,   "RETURNING (SELECT cat_id FROM ARG)"
+        , ") "
         , "DELETE FROM categories "
-        , "WHERE id = (SELECT * FROM UPD)"
+        , "WHERE id =  "
+        , "(SELECT cat_id FROM UPD UNION ALL SELECT cat_id FROM ARG "
+        , "LIMIT 1 )"
         ]
+    -- deleteQuery = mconcat
+    --     [ "WITH ARG (cat_id) AS (VALUES (?)), "
+    --     , "UPD AS "
+    --     ,   "(UPDATE categories "
+    --     ,   "SET parent = (SELECT parent FROM categories WHERE id = "
+    --     ,       "(SELECT cat_id FROM ARG)) "
+    --     ,   "WHERE parent = (SELECT cat_id FROM ARG) "
+    --     ,   "RETURNING null"
+    --     , ")"
+    --     , "DELETE FROM categories "
+    --     , "WHERE id = (SELECT cat_id FROM UPD CROSS JOIN ARG)"
+    --     ]
 

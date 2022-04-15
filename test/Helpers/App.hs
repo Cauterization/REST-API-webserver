@@ -122,7 +122,8 @@ instance Routed Category TestDB where
     router = do
         post_   "categories"
         -- get_    "categories"
-        -- put     "admin/categories/{ID}" Category.putCategory     
+        -- get_    "categories{ID}"
+        -- put     "categories/{ID}" Category.putCategory     
         delete_ "categories/{ID}"       
 
 defaultEnv :: Env TestMonad

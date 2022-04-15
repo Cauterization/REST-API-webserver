@@ -57,6 +57,25 @@ putEntity eID e = do
     liftDatabase $ putIntoDatabase @(Database m) @(MkOneRow (e a) IDs)
         connection q row
 
+putEntityWith :: forall e (m :: Type -> Type) a.
+    ( HasDatabase m
+    , IsDatabase (Database m)
+    , Monad m
+    , MonadThrow m
+    , Logger.HasLogger m
+    , PuttableTo (Database m) e
+    , QConstraints (Database m)
+    , ToRowOf (Database m) (MkOneRow (e a) IDs)
+    , ToOneRow (e a) IDs
+    ) => IDs -> e a -> m ()
+putEntityWith eID e = do
+    connection <- getDatabaseConnection 
+    let q = unQuery $ putQuery @(Database m) @e
+    Logger.sql q
+    row <- toOneRow e eID
+    liftDatabase $ putIntoDatabase @(Database m) @(MkOneRow (e a) IDs)
+        connection q row
+
 class ToOneRow a b where
 
     type family MkOneRow a b :: Type 

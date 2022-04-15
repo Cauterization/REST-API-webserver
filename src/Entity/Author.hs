@@ -16,7 +16,7 @@ import App.Internal
 
 import HKD.HKD
 
-import Entity.Internal ( EntityOrID )
+import Entity.Internal ( EntityOrID, Entity )
 import Entity.User 
 
 import Database.Database qualified as Database
@@ -52,7 +52,11 @@ instance Postgres.FromRow   (Author (Front Display)) where
         pure Author{..}
 instance Database.GettableFrom Postgres Author (Front Display) where
 
-    getQuery = "SELECT *  FROM authors_view"
+    getQuery = mconcat
+        [ "SELECT ", fieldsQuery @(User (Front Display))
+        , ", description"
+        , " FROM authors_view"
+        ]
 
 
 deriving instance Data           (Author Update)
@@ -80,3 +84,19 @@ instance Database.PuttableTo Postgres Author where
         ]
 
 deriving instance Data (Author Delete)
+
+deriving instance Data (Author Display)
+instance Postgres.FromRow (Author Display) where
+    fromRow = do
+        user        <- Postgres.fromRow
+        description <- Postgres.field
+        pure Author{..}
+
+instance Database.GettableFrom Postgres (Entity Author) Display where
+
+    getQuery = mconcat
+        [ "SELECT id, user_id, firstname, lastname, login, token, "
+        , "password, registered, admin, "
+        , "description "
+        , "FROM authors_view"
+        ]

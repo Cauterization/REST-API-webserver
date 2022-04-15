@@ -18,6 +18,7 @@ import HKD.HKD
 import App.Result
 
 import Logger qualified
+import Extended.Text (Text)
 import Extended.Text qualified as T
 
 putCategory :: forall m.
@@ -31,7 +32,7 @@ putCategory [cID] = do
     c <- decodedBody @(Category (Front Update))
     mapM_ (validate c) $ parent c
     Database.putEntity @_ @m [cID] c
-    text @_ @String "Successfuly updated."
+    text @_ @Text "Successfuly updated."
   where
     validate c parent = do
         parents <- Database.getEntitiesWith parent id
