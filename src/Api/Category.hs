@@ -1,5 +1,7 @@
 module Api.Category where
 
+import Api.Put
+
 import App.Router
 import App.Internal
 import App.Types
@@ -13,6 +15,7 @@ import Database.Database qualified as Database
 import Database.Database (Database)
 
 import Entity.Category
+import Entity.Internal (Entity(..))
 
 import HKD.HKD
 import App.Result
@@ -23,15 +26,15 @@ import Extended.Text qualified as T
 
 putCategory :: forall m.
     ( Application m
-    , Database.GettableFrom (Database m) ID (Category (Front Update))
+    , Puttable m (Entity Category) (Front Update)
+    , Database.Gettable ID (Category (Front Update))
+    , Database.FromRowOf (Database m) (ID (Category (Front Update)))
     , Database.ToRowOf (Database m) (ID (Category (Front Update)))
-    , Database.PuttableTo (Database m) Category
-    , Database.ToRowOf (Database m) CatPutFiels
     ) => Endpoint m
 putCategory [cID] = do
     c <- decodedBody @(Category (Front Update))
     mapM_ (validate c) $ parent c
-    Database.putEntity @_ @m [cID] c
+    Database.putEntity @_ @m $ Entity (coerce cID) c
     text @_ @Text "Successfuly updated."
   where
     validate c parent = do

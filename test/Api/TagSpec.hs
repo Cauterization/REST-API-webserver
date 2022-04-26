@@ -26,10 +26,10 @@ import Test.QuickCheck
 spec :: Spec
 spec = do
     pure ()
-    -- postSpec
-    -- getSpec
-    -- putSpec
-    -- deleteSpec
+    postSpec
+    getSpec
+    putSpec
+    deleteSpec
     
 postSpec :: Spec
 postSpec = describe "POST" $ do
@@ -46,24 +46,24 @@ postSpec = describe "POST" $ do
 getSpec :: Spec
 getSpec = describe "GET" $ do
 
-  context "many" $ do
+    context "many" $ do
 
-    it "When all is ok it gets list of tags"
-        $ property $ propGetEntities @Tag "tags"
+        it "When all is ok it gets list of tags"
+            $ property $ propGetEntities @Tag "tags"
 
-    it "This list is paginated"
-        $ property $ propGetEntitiesIsPaginated @Tag "tags"
+        it "This list is paginated"
+            $ property $ propGetEntitiesIsPaginated @Tag "tags"
 
-    it "Allows to get various pages of this list"
-        $ property $ propGetEntitiesWithPage @Tag "tags"
+        it "Allows to get various pages of this list"
+            $ property $ propGetEntitiesWithLimitOffset @Tag "tags"
 
-  context "single" $ do
+    context "single" $ do
 
-    it "When all is ok it allows to get an tag by its own ID"
-        $ property $ propGetEntity @Tag "tags"
-
-    it "Throws error when tag with this ID doesn't exists"
-        $ property $ propGetEntityDoesntExists @Tag "tags"
+        it "When all is ok it allows to get an tag by its own ID"
+            $ property $ propGetEntity @Tag "tags"
+    
+        it "Throws error when tag with this ID doesn't exists"
+            $ property $ propGetEntityDoesntExists @Tag "tags"
 
 putSpec :: Spec
 putSpec = describe "PUT" $ do

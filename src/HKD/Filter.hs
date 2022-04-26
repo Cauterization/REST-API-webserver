@@ -41,7 +41,7 @@ type family ApplyFilter req qs a where
   ApplyFilter req (nq ': qs)             a = ApplyFilter req qs a
   ApplyFilter req '[]                    a = Maybe (ApplyRequired req Exists [a])  
 
-type instance Field name req Filter modifiers a = 
+type instance Field req Filter modifiers a = 
   If (Contains (CustomFilter ItSelf) modifiers) 
      (Maybe (ApplyRequired req Exists a)) 
      (ApplyFilter req modifiers a)

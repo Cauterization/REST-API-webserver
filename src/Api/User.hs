@@ -14,6 +14,11 @@ import App.Router
 import App.Internal
 import App.Types
 import App.Result
+
+import Api.Post
+import Api.Put
+import Api.Get
+
 import Entity.User
 
 import Database.Database qualified as Database
@@ -22,24 +27,23 @@ import Logger qualified
 import Logger ((.<))
 import Data.Coerce
 
-
 getMe :: forall a m.
     ( Application m
-    , Gettable m User a
+    , Gettable m (Entity User) a
     , Database.ToRowOf (Database m) [Token]
-    ) => IDs -> m (User a)
+    ) => IDs -> m (Entity User a)
 getMe _ = do
     Logger.info  "Attempt to get user"
     token <- getToken
     Logger.debug $ "With token: " .< token
-    u <- Database.getSingle =<< Database.getEntitiesWith @User @a [token] 
-        (<> " WHERE token = ? AND NOT token IS NULL")
+    u <- Database.getSingle =<< Database.getEntitiesWith @(Entity User) @a [token]
+        (<> " WHERE token = ?")
     Logger.info $ "User was found : " .< u
     pure u
 
 getCurrentUser ::  forall a m.
     ( Application m
-    , Gettable m User (Front Display)
+    , Gettable m (Entity User) (Front Display)
     , Database.ToRowOf (Database m) [Token]
     ) => Endpoint m
 getCurrentUser = const $ getMe @(Front Display) [] >>= json
@@ -52,7 +56,7 @@ postUser :: forall m.
 postUser _ = do
     userToken <- genToken
     now       <- getCurrentDate
-    User {..} <- decodedBody @(User (Front Create))
+    User{..}  <- decodedBody @(User (Front Create))
     let hashedPass = mkHash password
     Logger.info "Attempt to post user"
     let user = User { registered = now, token = userToken, password = hashedPass, .. } 
@@ -63,7 +67,7 @@ authUser :: forall m.
     ( Application m
     , Impure m
     , Gettable m (Entity User) Display
-    , Puttable m User TokenUpdate
+    , Puttable m (Entity User) Update
     , Database.ToRowOf (Database.Database m) [Text]
     ) => Endpoint m
 authUser _ = do
@@ -75,10 +79,11 @@ authUser _ = do
     let passwordDB = password entity
     when (mkHash ap /= passwordDB) $ throwM WrongPassword
     newToken <- genToken
-    let User{..} = emptyData @(User TokenUpdate)
-    Database.putEntity @User @_ @TokenUpdate 
-        [coerce entityID] User{token = Just newToken, ..}
+    let User{..} = emptyData @(User Update)
+    Database.putEntity @User @m @Update $ Entity 
+        (coerce entityID) User{token = Just newToken, ..}
     text newToken
 
 mkHash :: Text -> Text
 mkHash = T.show @(Crypto.Digest Crypto.Blake2b_160) . Crypto.hash . T.encodeUtf8 
+

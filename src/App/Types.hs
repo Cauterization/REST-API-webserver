@@ -3,6 +3,7 @@
 module App.Types where
 
 import Data.Aeson
+import Data.Char (toLower)
 import Data.ByteString.Lazy qualified as BL
 import Data.Data
 import Data.Kind (Type)
@@ -35,7 +36,10 @@ instance ToField [ID a] where
 
 nameOf :: forall (e :: Type -> Type) s. (Typeable e, IsString s) => s
 nameOf = let t = show (typeOf (Proxy @e))
-         in fromString $ fromMaybe t $ stripPrefix "Proxy (* -> *) " t
+         in fromString $ unCapitalize $ fromMaybe t $ stripPrefix "Proxy (* -> *) " t
+  where
+    unCapitalize (x:xs) = toLower x : xs
+    unCapitalize xs = xs
 
 fieldsOf :: forall e. Data e => [String]
 fieldsOf = concatMap constrFields . dataTypeConstrs . dataTypeOf $ (undefined :: e)

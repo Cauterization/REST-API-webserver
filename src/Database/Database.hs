@@ -4,23 +4,26 @@ module Database.Database
     , HasDatabase(..)
     , Config(..)
     
-    , PostableTo(..)
+    , Postable(..)
     , postEntityWith
     , postEntity
     , publish
 
-    , GettableFrom(..)
-    , getEntity
-    , getManyEntities
-    , getManyEntitiesWith
+    , Gettable(..)
+    , EntityFilter(..)
+    , EntityFilterParam(..)
+    , getEntityFilters
+    , getEntityGeneric
+    , getEntitiesGeneric
+    -- , getManyEntitiesWith
     , getEntitiesWith
     , getSingle
 
-    , PuttableTo(..)
+    , Puttable(..)
     , putEntity
     , ToOneRow(..)
 
-    , DeletableFrom(..)
+    , Deletable(..)
     , deleteEntity
 
     , QConstraints

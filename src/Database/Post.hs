@@ -17,18 +17,13 @@ import qualified Logger
 import App.Types 
 import Data.List (intercalate)
 
-class PostableTo db (e :: Type -> Type) where 
+class Postable (e :: Type -> Type) a where 
 
-    tableNamePost :: Query db (e Create)
-    default tableNamePost :: (Typeable e, QConstraints db) => Query db (e Create)
-    tableNamePost =  fromString $ nameOf @e <>  "s"
+    postQuery :: (IsString s, Monoid s) => s
 
-    postQuery :: Query db (e Create)
-    default postQuery :: (Data (e Create), Typeable e
-        , ToRowOf db (e Create)
-        , QConstraints db) =>  Query db (e Create)
+instance {-# OVERLAPPABLE #-} (Data (e Create), Typeable e) => Postable e a where
     postQuery = mconcat
-        [ "INSERT INTO " , tableNamePost
+        [ "INSERT INTO " , fromString $ withPluralEnding $ nameOf @e
         , " (",  fieldsQuery @(e Create), ") "
         , "VALUES ("
         , fromString $ intercalate "," $ fieldsOf @(e Create) >> pure "?"
@@ -41,7 +36,7 @@ postEntity :: forall e (m :: Type -> Type).
     , Monad m
     , MonadThrow m
     , Logger.HasLogger m
-    , PostableTo (Database m) e
+    , Postable e Create
     , ToRowOf (Database m) (e Create)
     , QConstraints (Database m)
     , FromRowOf (Database m) (ID (e Create))
@@ -54,7 +49,7 @@ postEntityWith :: forall e (m :: Type -> Type) x.
     , Monad m
     , MonadThrow m
     , Logger.HasLogger m
-    , PostableTo (Database m) e
+    , Postable e Create
     , ToRowOf (Database m) (e Create)
     , QConstraints (Database m)
     , FromRowOf (Database m) (ID (e Create))
@@ -62,7 +57,7 @@ postEntityWith :: forall e (m :: Type -> Type) x.
     (QueryOf (Database m) -> QueryOf (Database m)) -> e Create -> m (ID (e Create))
 postEntityWith f e = do
     connection <- getDatabaseConnection
-    let q = unQuery $ postQuery @(Database m) @e
+    let q = postQuery @e @Create
     Logger.sql q
     liftDatabase (postToDatabase @(Database m) connection (f q) e)
 

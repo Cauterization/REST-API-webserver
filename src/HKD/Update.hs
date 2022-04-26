@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE EmptyDataDeriving #-}
 module HKD.Update where
 
 import HKD.EmptyData
@@ -12,7 +13,7 @@ import Data.Data
 data Update deriving Data
 
 data Immutable
-data NotUpdated deriving Data
+data NotUpdated deriving (Data, Eq, Ord)
 
 instance J.FromJSON NotUpdated where
   parseJSON _ = fail "Can't update this field"
@@ -20,7 +21,7 @@ instance J.FromJSON NotUpdated where
 instance Postgres.ToField NotUpdated where
   toField _ = Postgres.renderNull
 
-type instance Field name req Update modifiers a = 
+type instance Field req Update modifiers a = 
   If (Contains Immutable modifiers) 
      (Maybe (ApplyRequired req Maybe NotUpdated)) 
      (Maybe (ApplyRequired req Maybe a))

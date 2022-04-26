@@ -11,6 +11,11 @@ import Control.Exception
 import App.Types
 import Control.Monad.Catch
 import Data.Data
+import Data.List
+
+import HKD.HKD
+import Deriving.Aeson (Generic)
+import qualified Database.PostgreSQL.Simple as Postgres
 
 class IsDatabase db where
 
@@ -33,11 +38,19 @@ class IsDatabase db where
         ) => ConnectionOf db -> QueryOf db -> q -> (DatabaseMonad db) [r]
 
     putIntoDatabase :: ToRowOf db q => 
-        ConnectionOf db -> QueryOf db -> q -> (DatabaseMonad db) ()
+        ConnectionOf db -> QueryOf db -> q -> (DatabaseMonad db) Integer
 
-    deleteFromDatabase :: ToRowOf db [ID (Path Current)] => 
-        ConnectionOf db -> QueryOf db -> [ID (Path Current)] 
+    deleteFromDatabase :: ToRowOf db [ID (e Delete)] => 
+        ConnectionOf db -> QueryOf db -> [ID (e Delete)]
             -> (DatabaseMonad db) Integer
+
+data DBError
+    = EntityNotFound  Text
+    | TooManyEntities Text
+    | AlreadyExists   Text
+    | IsNull          Text
+    | UnknwonError    Text
+    deriving (Show, Exception)
 
 getSingle :: forall e a m. (MonadThrow m, Typeable e) => [e a] -> m (e a)
 getSingle = \case 
@@ -45,9 +58,6 @@ getSingle = \case
     [] -> throwM $ EntityNotFound  $ nameOf @e 
     _  -> throwM $ TooManyEntities $ nameOf @e 
 
-data DBError
-    = EntityNotFound  Text
-    | TooManyEntities Text
-    | AlreadyExists   Text
-    deriving (Show, Exception)
-
+withPluralEnding :: String -> String
+withPluralEnding s | "y" `isInfixOf` s = init s <> "ies"
+                   | otherwise = s <> "s"

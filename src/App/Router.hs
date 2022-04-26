@@ -31,6 +31,7 @@ import HKD.HKD
 import Logger qualified
 import App.QueryParams
 import Data.Data (Data, Typeable)
+import qualified Database.Get as Database
 
 type Middleware m = m AppResult -> m AppResult
 
@@ -109,42 +110,8 @@ type Application (m :: Type -> Type) =
     , HasEnv m
     , Impure m
     , Logger.HasLogger m
-    , Database.ToRowOf (Database.Database m) IDs
-    , Database.ToRowOf (Database.Database m) [Page]
     , Database.HasDatabase m
     , Database.QConstraints (Database.Database m)
-    )
-
-type Postable m e =
-    ( Database.PostableTo (Database m) e
-    , Database.ToRowOf (Database m) (e Create)
-    , Database.FromRowOf (Database m) (ID (e Create))
-    , Show (ID (e Create))
-    , Data (e Create)
-    , Show (e Create)
-    , Typeable e
-    )
-
-type Gettable m e a =
-    ( Database.GettableFrom (Database.Database m) e a
-    , Database.FromRowOf (Database m) (e a)
-    , Data (e a)
-    , Show (e a)
-    , Typeable e
-    )
-
-type Puttable m e a =
-    ( Database.PuttableTo (Database.Database m) e 
-    , Database.ToOneRow (e a) IDs
-    , Database.ToRowOf (Database.Database m) (Database.MkOneRow (e a) IDs)
-    , Data (e a)
-    , Typeable e
-    )
-
-type Deletable m e =
-    ( Database.DeletableFrom (Database m) e
-    , Data (e Delete)
-    , Typeable e
     )
 
 addMiddleware ::Monad m => Middleware m -> Router e m ()
@@ -166,6 +133,7 @@ get     p ep = addRoute (GET     $ T.splitOn "/" p) $ ep @e @(Front Display)
 put     p ep = addRoute (PUT     $ T.splitOn "/" p) $ ep @e @Update
 delete  p ep = addRoute (DELETE  $ T.splitOn "/" p) $ ep @e @Delete
 publish p ep = addRoute (PUBLISH $ T.splitOn "/" p) $ ep @e @Publish
+
 class Routed e db where
     router :: forall m. 
         ( Database.Database m ~ db

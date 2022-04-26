@@ -18,19 +18,16 @@ import qualified Logger
 import App.Types 
 import Control.Monad (when)
 
-class DeletableFrom db (e :: Type -> Type) where 
+class Deletable (e :: Type -> Type) a where 
 
-    deleteQuery :: Query db (e Delete)
+    deleteQuery :: (IsString s, Monoid s) => s
 
-instance {-# OVERLAPS #-} (Data (e Delete), Typeable e
-    , ToRowOf db [ID (Path Current)]
-    , QConstraints db)
-    => DeletableFrom db e where
+instance {-# OVERLAPPABLE #-} (Data (e Delete), Typeable e) => Deletable e a where
 
     deleteQuery = mconcat
-        [ "DELETE FROM " , fromString $ nameOf @e, "s "
-        , "WHERE id = ?"
-        ]
+        [ "DELETE FROM " , fromString $ withPluralEnding $ nameOf @e
+        , " WHERE id = ?"
+        ]                   
 
 deleteEntity :: forall e (m :: Type -> Type) .
     ( HasDatabase m
@@ -38,14 +35,14 @@ deleteEntity :: forall e (m :: Type -> Type) .
     , Monad m
     , MonadThrow m
     , Logger.HasLogger m
-    , DeletableFrom (Database m) e
-    , ToRowOf (Database m) [ID (Path Current)]
+    , Deletable e Delete
+    , ToRowOf (Database m) [ID (e Delete)]
     , QConstraints (Database m)
     , Typeable e
-    ) => [ID (Path Current)] -> m ()
+    ) => [ID (e Delete)] -> m ()
 deleteEntity e = do
     connection <- getDatabaseConnection
-    let q = unQuery $ deleteQuery @(Database m) @e
+    let q = deleteQuery @e @Delete
     Logger.sql q
     res <- liftDatabase (deleteFromDatabase @(Database m) connection q e)
-    when (res == 0) (throwM $ EntityNotFound $ nameOf @e)
+    when (res == 0) (throwM $ EntityNotFound $ nameOf @e <> " not found.")

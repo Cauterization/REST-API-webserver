@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module App.Internal where
 
@@ -6,6 +7,7 @@ import Control.Monad.Catch
 import Control.Monad.Reader 
 
 import Data.Aeson (FromJSON, eitherDecode)
+import Data.Char (toLower)
 import Data.Kind (Type)
 import Extended.Text (Text)
 import Extended.Text qualified as T
@@ -27,6 +29,15 @@ import Database.Database qualified as Database
 
 import Postgres.Internal
 import qualified Data.Time as Time
+
+-- | This things are needed to ToJSON picture isntances 
+-- therefore they are here and not in config file
+
+serverPort :: Int
+serverPort = 3000
+
+serverAddress :: Text
+serverAddress = "http://localhost:" <> T.show serverPort
 
 newtype AppT m a = App {unApp :: ReaderT (Env m) m a}
     deriving newtype 
@@ -75,10 +86,6 @@ instance Impure (AppT IO) where
             idx <- randomRIO (0, length chars - 1)
             return $ chars !! idx
 
-instance {-# OVERLAPPABLE #-} Monad m => Impure (AppT m) where
-    getCurrentDate = pure $ Time.fromGregorian 1 2 3
-    genToken = pure "super unique token"
-
 data Env (m :: Type -> Type) = Env
     { envLogger     :: Logger.Logger m
     , envConn       :: Database.ConnectionOf (Database.Database (AppT m))
@@ -108,15 +115,26 @@ decode :: (Monad m, FromJSON a, MonadThrow m) => Body -> m a
 decode = either parsingError pure . eitherDecode  
 
 getParam :: (HasEnv m, MonadThrow m) => Text -> m (Maybe Text)
-getParam p = asks (M.lookup p . envQParams) >>= \case
+getParam (T.map toLower -> p) = asks (M.lookup p . envQParams) >>= \case
     Just [a] -> pure $ Just a
     Nothing -> pure Nothing
     _ -> throwM $ QParamsErr $ "multiparam " <> p 
 
-getPage :: (Monad m, MonadThrow m, Logger.HasLogger m, HasEnv m)  => m Page
-getPage = getParam "page" <&> (fromMaybe "1" >>> T.read) >>= either
-    (parsingError . ("page: " <>) .  T.unpack)
-    (\n -> if n > 0 then pure n else throwM $ QParamsErr "zero or negative page")
+getNumParam :: (Monad m, MonadThrow m, Logger.HasLogger m, HasEnv m
+    ) => Text -> m (Maybe Int)
+getNumParam p = fmap T.read <$> getParam p >>= \case
+    Just (Right n) -> pure $ Just n
+    Nothing        -> pure Nothing
+    Just (Left err) -> parsingError $ "Unparsable num param " <> (T.unpack p)
+
+getDateParam :: (Monad m, MonadThrow m, Logger.HasLogger m, HasEnv m
+    ) => Text -> m (Maybe Date)
+getDateParam p = fmap (parseTime . T.unpack) <$> getParam p >>= \case
+    Just (Just d) -> pure $ Just d
+    Nothing -> pure Nothing
+    Just Nothing ->  parsingError $ "Unparsable date param " <> (T.unpack p)
+  where
+    parseTime = Time.parseTimeM True Time.defaultTimeLocale "%Y-%m-%d"
 
 getToken :: (Monad m, HasEnv m, MonadThrow m) =>  m Token
 getToken = asks envToken >>= maybe (unathorized "No token.") pure
@@ -146,6 +164,8 @@ data AppError
     | TooManyEntities Text
     | AlreadyExists Text
     | CategoryCycle
+    | IsNull Text
+    | UnknownError  Text
     deriving (Show, Typeable, Exception, Eq) 
 
 fromDBException :: Database.DBError -> AppError
@@ -153,6 +173,8 @@ fromDBException = \case
     Database.EntityNotFound  t -> EntityNotFound  t
     Database.TooManyEntities t -> TooManyEntities t
     Database.AlreadyExists   t -> AlreadyExists   t
+    Database.IsNull          t -> IsNull t
+    Database.UnknwonError    t -> UnknownError t
 
 parsingError :: (MonadThrow m) => String -> m a
 parsingError = throwM . ParsingErr . T.pack 

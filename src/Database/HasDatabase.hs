@@ -16,3 +16,4 @@ class ( IsDatabase (Database m)) => HasDatabase m where
 
     getPaginationSize :: m PaginationSize 
 
+

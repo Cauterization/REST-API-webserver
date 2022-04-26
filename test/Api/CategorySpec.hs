@@ -23,8 +23,6 @@ import Helpers.CategoryDB
 import Helpers.Internal
 import Helpers.Entity
 import Helpers.GenericProps
-import Helpers.Update
-
 import HKD.HKD
 
 import Test.Hspec 
@@ -32,6 +30,7 @@ import Test.QuickCheck
 
 spec :: Spec 
 spec = do
+    pure ()
     postSpec
     deleteSpec
 

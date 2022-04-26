@@ -26,17 +26,17 @@ instance FromJSON NotAllowedFromFront where
 instance Postgres.ToField NotAllowedFromFront where
   toField _ = Postgres.renderNull
 
-type instance Field name req (Front Create) modifiers a =
+type instance Field req (Front Create) modifiers a =
   If (Contains NotAllowedFromFront modifiers) 
      (Maybe NotAllowedFromFront)
-     (Field name req Create modifiers a)
+     (Field req Create modifiers a)
 
-type instance Field name req (Front Update) modifiers a =
+type instance Field req (Front Update) modifiers a =
   If (Contains NotAllowedFromFront modifiers) 
      (Maybe NotAllowedFromFront)
-     (Field name req Update modifiers a)
+     (Field req Update modifiers a)
 
-type instance Field name req (Front Display) modifiers a =
+type instance Field req (Front Display) modifiers a =
   If (Contains Hidden modifiers) 
      (Maybe NotDisplayed)
-     (Field name req Display modifiers a)
+     (Field req Display modifiers a)

@@ -3,6 +3,7 @@ module Helpers.Internal where
 import App.Types
 import App.Internal
 import Data.Aeson
+import Data.Time qualified as Time
 import Data.Char
 
 import Entity.Internal
@@ -16,6 +17,12 @@ import Control.Monad (replicateM)
 
 testPaginationConstant :: PaginationSize
 testPaginationConstant = 20
+
+testDate :: Date
+testDate = Time.fromGregorian 1 2 3
+
+testToken :: Token
+testToken = "super unique token"
 
 isParsingError :: AppError -> Bool
 isParsingError ParsingErr{} = True
@@ -31,10 +38,14 @@ isAlreadyExistsError _               = False
 
 isUnathorizedError :: AppError -> Bool
 isUnathorizedError Unathorized{} = True
-isUnathorizedError_              = False
+isUnathorizedError _             = False
 
-deriving instance (Eq (e a),  Eq  (NamedID "_id" a e)) => Eq  (Entity e a)
-deriving instance (Ord (e a), Ord (NamedID "_id" a e)) => Ord (Entity e a)
+isWrongPasswordError :: AppError -> Bool
+isWrongPasswordError WrongPassword{} = True
+isWrongPasswordError _               = False
+
+deriving instance Eq (e a) => Eq  (Entity e a)
+deriving instance Ord (e a) => Ord (Entity e a)
 
 instance Arbitrary (ID e) where
     arbitrary = ID <$> chooseInt (1, 20)
@@ -50,10 +61,6 @@ instance {-# OVERLAPPING #-} ToJSON (Maybe NotAllowedFromFront) where
 
 instance Arbitrary Value where
     arbitrary = chooseInt (3, 6) >>= \case
-        -- 1 -> Object <$> arbitrary
-        -- 2 -> Array . fromList <$> do
-        --     len <- choose (1, 10)
-        --     replicateM len arbitrary
         3 -> String <$> arbitrary
         4 -> Number . realToFrac <$> arbitrary @Double
         5 -> Bool   <$> arbitrary 

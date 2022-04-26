@@ -81,3 +81,5 @@ CREATE OR REPLACE VIEW articles_view AS (
 );
 
 ALTER TABLE authors ADD CONSTRAINT user_id_constraint UNIQUE(user_id);
+
+ALTER TABLE users ALTER COLUMN token SET NOT NULL;

@@ -7,20 +7,22 @@ module App.App
     ) where
 
 import App.Config
-import App.Post
-import App.Get
-import App.Put
-import App.Delete
+
+import Api.Put
 import App.Result
 import App.Router 
 import App.Internal
 import App.QueryParams
 
-import Api.ProtectedResources (protectedResources)
+-- import Api.ProtectedResources (protectedResources)
 import Api.Article qualified as Article
 import Api.Author qualified as Author
 import Api.Category qualified as Category
+import Api.Draft qualified as Draft
 import Api.User qualified as User
+import Api.Post
+import Api.Get
+import Api.Delete
 
 import Control.Exception ( IOException ) 
 import Control.Monad.Catch
@@ -42,7 +44,7 @@ import Database.Database qualified as Database
 import Logger qualified
 import Logger ((.<))
 import Entity.Author (Author)
-import Entity.Article (Article)
+import Entity.Article (Article, Draft)
 import Entity.Category (Category)
 import Entity.Tag (Tag)
 import Entity.User (User)
@@ -60,7 +62,7 @@ runServer = handle handler $ do
     let logger = Logger.runLogger @IO cLogger
     whenM (("migrations" `elem`) <$> getArgs)
         $ Database.runMigrations @(DB IO) cDatabase logger
-    Wai.run cPort $ \req respond -> do
+    Wai.run serverPort $ \req respond -> do
         body <- Wai.strictRequestBody req
         ToResponse{..} <- toResponse <$> runRouterWith @Main
             logger 
@@ -96,7 +98,8 @@ responseFromResult = \case
    
 responseFromError :: AppError -> ToResponse
 responseFromError = \case
-    EntityNotFound t -> r404 $ fromString $ T.unpack $ t <> " not found."
+    EntityNotFound t -> r404 $ fromString $ T.unpack $ t
+    ParsingErr t -> r400 $ toBL t
     err -> r500 $ toBL $ "Internal error:" <> T.show err <> " (not handled yet)"
   where
     r404     = ToResponse HTTP.status404 [] 
@@ -108,12 +111,13 @@ data Main :: Type -> Type
 
 instance Routed Main Postgres where
     router = do
-        addMiddleware protectedResources
+        -- addMiddleware protectedResources
         newRouter @User 
         newRouter @Author 
         newRouter @Tag 
         newRouter @Category
         newRouter @Article
+        newRouter @Draft
         
 instance Routed User Postgres where
     router = do
@@ -124,7 +128,8 @@ instance Routed User Postgres where
 
 instance Routed Author Postgres where
     router = do
-        post    "admin/authors"           Author.postAuthor   
+
+        post_   "admin/authors"         
         get_    "admin/authors"          
         get_    "admin/authors/{ID}" 
         put_    "admin/authors/{ID}"     
@@ -147,9 +152,16 @@ instance Routed Category Postgres where
 
 instance Routed Article Postgres where
     router = do
-        get     "articles"                Article.getArticles  
-        get     "articles/{ID}"           Article.getArticle
-        post    "drafts"                  Article.postDraft      
-        get     "drafts"                  Article.getDrafts
-        get     "drafts/{ID}"             Article.getDraftbyID
-        publish "drafts/{ID}"             Article.publishDraft
+        get_     "articles"      
+        get_     "articles/{ID}" 
+        -- post    "drafts"                  Article.postDraft      
+
+        -- put     "drafts/{ID}"             Article.putDraft
+        -- publish "drafts/{ID}"             Article.publishDraft
+        -- put    "drafts/{ID}/pic"         Article.putPic -- was post
+        -- get     "article/{ID}/pic"        Article.getPic
+
+instance Routed Draft Postgres where
+    router = do
+        get     "drafts"                    Draft.getDrafts
+        get     "drafts/{ID}"               Draft.getDraft

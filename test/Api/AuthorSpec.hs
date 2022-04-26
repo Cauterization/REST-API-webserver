@@ -7,7 +7,7 @@ import App.Result
 
 import Data.Aeson
 import Data.Either
-import Data.Map qualified as M
+import Data.IntMap qualified as IM
 import Data.Coerce
 import Data.Kind (Type)
 import Data.List
@@ -23,32 +23,32 @@ import Helpers.Author
 import Helpers.Internal
 import Helpers.Entity
 import Helpers.GenericProps
-import Helpers.Update
 import Test.Hspec 
 import Test.QuickCheck
 import Helpers.Monad
 import Helpers.App
 import Helpers.Database
 import HKD.HKD
+import Data.Data (Typeable)
 
 
 
 spec :: Spec
 spec = do
     pure ()
-    -- postSpec
-    -- getSpec
-    -- putSpec
-    -- deleteSpec
+    postSpec
+    getSpec
+    putSpec
+    deleteSpec
     
 postSpec :: Spec
 postSpec = describe "POST" $ do
 
     it "When all is ok it posts author into the database" 
-        $ property propPostsAuthor 
+        $ property $ propPostsEntity @Author "authors" 
 
     it "Throws error when author already in the database"
-        $ property propPostsAuthorAlreadyExists
+        $ property $ propPostsAlreadyExists @Author "authors"
         
     it "Throws error when it fails to parse request body"
         $ property $ propPostsParsingFail @Author "authors"
@@ -65,7 +65,7 @@ getSpec = describe "GET" $ do
             $ property $ propGetEntitiesIsPaginated @Author "authors"
 
         it "Allows to get various pages of this list"
-            $ property $ propGetEntitiesWithPage @Author "authors"
+            $ property $ propGetEntitiesWithLimitOffset @Author "authors"
 
     context "single" $ do
 
@@ -96,26 +96,26 @@ deleteSpec = describe "DELETE" $ do
     it "Throws error when author with this ID doesn't exists"
         $ property $ propDeleteEntityDoesntExists @Author "authors"
 
-propPostsAuthor :: EMap (Author Display) -> User Display -> Author Create -> Property
-propPostsAuthor db u a = property $ not (alreadyExists a db) ==> do
-    (Right (ResText aIDtext), st) <- runTest 
-        ( withBody (eCreateToFrontCreate a)
-        . withPostPath "authors")
-        ( withDatabase @User (M.fromList [(coerce $ user a, u)]) 
-        . withDatabase @Author db)
-    let Right aID = T.read aIDtext
-    let res = M.lookup aID $ authorDB st
-    fmap fromDisplay res `shouldBe` Just a
+-- propPostsAuthor :: EMap (Author Display) -> User Display -> Author Create -> Property
+-- propPostsAuthor db u a = property $ not (alreadyExists a db) ==> do
+--     (Right (ResText aIDtext), st) <- runTest 
+--         ( withBody (eCreateToFrontCreate a)
+--         . withPostPath "authors")
+--         ( withDatabase @User (M.fromList [(coerce $ user a, u)]) 
+--         . withDatabase @Author db)
+--     let Right aID = T.read aIDtext
+--     let res = M.lookup aID $ authorDB st
+--     fmap fromDisplay res `shouldBe` Just a
 
-propPostsAuthorAlreadyExists :: 
-    BigTDB Author -> User Display -> Author Create -> Property
-propPostsAuthorAlreadyExists (unBigTDB -> db) u a = property $ alreadyExists a db ==> do
-    res <- evalTest 
-        ( withBody (eCreateToFrontCreate a)
-        . withPostPath "authors")
-        ( withDatabase @User (M.fromList [(coerce $ user a, u)]) 
-        . withDatabase @Author db)
-    isLeft res `shouldBe` True
+-- propPostsAuthorAlreadyExists :: 
+--     BigTDB Author -> User Display -> Author Create -> Property
+-- propPostsAuthorAlreadyExists (unBigTDB -> db) u a = property $ alreadyExists a db ==> do
+--     res <- evalTest 
+--         ( withBody (eCreateToFrontCreate a)
+--         . withPostPath "authors")
+--         ( withDatabase @User (M.fromList [(coerce $ user a, u)]) 
+--         . withDatabase @Author db)
+--     isLeft res `shouldBe` True
 
 
 

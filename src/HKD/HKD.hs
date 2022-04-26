@@ -18,8 +18,6 @@ module HKD.HKD
     , Required(..)
     , EmptyData
     , Filter
-    , Named
-    , Schema
     , Contains
     , If
 
@@ -36,5 +34,4 @@ import HKD.Update
 import HKD.Delete
 import HKD.Publish
 import HKD.Front
-import HKD.Schema
 import HKD.Utils
