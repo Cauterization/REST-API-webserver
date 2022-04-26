@@ -34,7 +34,6 @@ SELECT title, content, created, author_id, category_id, false FROM drafts;
 ALTER TABLE tags RENAME COLUMN name TO tag;
 ALTER TABLE articles RENAME COLUMN category_id TO category;
 
-
 CREATE OR REPLACE VIEW articles_view AS (
 
     SELECT AR.id                  AS id, 
@@ -83,3 +82,9 @@ CREATE OR REPLACE VIEW articles_view AS (
 ALTER TABLE authors ADD CONSTRAINT user_id_constraint UNIQUE(user_id);
 
 ALTER TABLE users ALTER COLUMN token SET NOT NULL;
+
+DROP TABLE drafts CASCADE;
+
+UPDATE article_tag SET tag_id = (SELECT tag_id FROM draft_tag WHERE draft_id = article_id);
+
+DROP TABLE draft_tag;

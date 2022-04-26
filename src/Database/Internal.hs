@@ -7,6 +7,7 @@ import Database.Config
 
 import Logger qualified
 import Extended.Text ( Text )
+import Extended.Text qualified as T
 import Control.Exception
 import App.Types
 import Control.Monad.Catch
@@ -52,12 +53,14 @@ data DBError
     | UnknwonError    Text
     deriving (Show, Exception)
 
-getSingle :: forall e a m. (MonadThrow m, Typeable e) => [e a] -> m (e a)
+getSingle :: forall e a m. (MonadThrow m, Typeable e, Eq (e a)) => [e a] -> m (e a)
 getSingle = \case 
     [a] -> pure a
-    [] -> throwM $ EntityNotFound  $ nameOf @e 
-    _  -> throwM $ TooManyEntities $ nameOf @e 
-
+    []  -> throwM $ EntityNotFound  $ nameOf @e <> " not found."
+    a:as -> if all (== a) as 
+            then pure a 
+            else throwM $ TooManyEntities $ "Too many " <> T.pack (withPluralEnding (nameOf @e))
+            
 withPluralEnding :: String -> String
 withPluralEnding s | "y" `isInfixOf` s = init s <> "ies"
                    | otherwise = s <> "s"

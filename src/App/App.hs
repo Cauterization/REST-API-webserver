@@ -27,7 +27,7 @@ import Api.Delete
 import Control.Exception ( IOException ) 
 import Control.Monad.Catch
 
-import Data.Aeson
+import Data.Aeson (eitherDecode)
 import Data.Kind
 import Data.ByteString.Lazy qualified as BL
 
@@ -44,7 +44,8 @@ import Database.Database qualified as Database
 import Logger qualified
 import Logger ((.<))
 import Entity.Author (Author)
-import Entity.Article (Article, Draft)
+import Entity.Article (Article)
+import Entity.Draft (Draft)
 import Entity.Category (Category)
 import Entity.Tag (Tag)
 import Entity.User (User)
@@ -98,14 +99,20 @@ responseFromResult = \case
    
 responseFromError :: AppError -> ToResponse
 responseFromError = \case
-    EntityNotFound t -> r404 $ fromString $ T.unpack $ t
-    ParsingErr t -> r400 $ toBL t
+    Err404 path      -> r404 $ T.concat 
+        [serverAddress, "/", T.intercalate "/" (getURL path), " doesn't exists!"]
+    EntityNotFound  t -> r404 t
+    AlreadyExists   t -> r409 t
+    AccessViolation t -> r403 t
+    ParsingErr      t -> r400 $ toBL t
     err -> r500 $ toBL $ "Internal error:" <> T.show err <> " (not handled yet)"
   where
-    r404     = ToResponse HTTP.status404 [] 
-    r400     = ToResponse HTTP.status400 []
-    r500     = ToResponse HTTP.internalServerError500 [] 
-    toBL     = BL.fromStrict . T.encodeUtf8 
+    r400  = ToResponse HTTP.status400 []
+    r403  = ToResponse HTTP.status403 [] . fromString . T.unpack
+    r404  = ToResponse HTTP.status404 [] . fromString . T.unpack
+    r409  = ToResponse HTTP.status409 [] . fromString . T.unpack
+    r500  = ToResponse HTTP.internalServerError500 [] 
+    toBL  = BL.fromStrict . T.encodeUtf8 
 
 data Main :: Type -> Type
 
@@ -122,7 +129,7 @@ instance Routed Main Postgres where
 instance Routed User Postgres where
     router = do
         post    "users"                   User.postUser
-        get     "users/me"                User.getCurrentUser
+        get     "users/me"                User.getMe
         delete_ "admin/users/{ID}" 
         post    "auth"                    User.authUser
 
@@ -163,5 +170,8 @@ instance Routed Article Postgres where
 
 instance Routed Draft Postgres where
     router = do
+        post    "drafts"                    Draft.postDraft
         get     "drafts"                    Draft.getDrafts
         get     "drafts/{ID}"               Draft.getDraft
+        put     "drafts/{ID}"               Draft.putDraft
+        

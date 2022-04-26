@@ -21,7 +21,8 @@ module Database.Database
 
     , Puttable(..)
     , putEntity
-    , ToOneRow(..)
+    , putEntityWith
+    , toCoalesce
 
     , Deletable(..)
     , deleteEntity

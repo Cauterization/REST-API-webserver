@@ -158,6 +158,7 @@ data AppError
     | RouterAmbiguousPatterns [Path Pattern]
     | Unathorized Text
     | AccessViolation Text
+    | AdminAccessViolation Text
     | WrongPassword
     | EntityIDArityMissmatch Text
     | EntityNotFound Text

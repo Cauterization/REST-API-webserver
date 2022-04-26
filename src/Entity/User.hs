@@ -4,6 +4,7 @@
 module Entity.User where
 
 import Data.Aeson (FromJSON(..), ToJSON(..), omitNothingFields, defaultOptions, genericToJSON, fieldLabelModifier, camelTo2, genericParseJSON)
+import Data.Aeson qualified as A
 import Data.Text (Text)
 import Data.Generics.Product.Fields qualified as GL
 import GHC.Generics ( Generic )
@@ -61,33 +62,37 @@ type instance Field req Auth modifiers a =
        (Field req Create modifiers a)
        (Maybe NotAllowedFromFront)
 
+aesonOpts :: A.Options
+aesonOpts = defaultOptions 
+        { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+
 -- | Post / Create
 instance FromJSON                             (User (Front Create)) where
-    parseJSON = genericParseJSON defaultOptions 
-        { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+    parseJSON = genericParseJSON aesonOpts
 deriving instance Show                        (User Create)
 deriving instance Data                        (User Create)
 deriving instance Postgres.ToRow              (User Create)
 
 -- | Get / Front Display
+deriving instance Eq               (User (Front Display))
 deriving instance Show             (User (Front Display))
 deriving instance Data             (User (Front Display))
 instance ToJSON                    (User (Front Display)) where
-    toJSON = genericToJSON defaultOptions 
-        { omitNothingFields = True, fieldLabelModifier = camelTo2 '_' }
+    toJSON = genericToJSON aesonOpts
 deriving instance Postgres.FromRow (User (Front Display))
 
 -- | Put / Update on Auth
-deriving instance FromJSON         (User  Auth)
-deriving instance Show             (User  Display)
-deriving instance Data             (User  Display)
-deriving instance Postgres.FromRow (User  Display)
-deriving instance EmptyData        (User  Update)
-deriving instance Data             (User  Update)
-deriving instance Postgres.ToRow   (User  Update)
+deriving instance FromJSON         (User Auth)
+deriving instance Eq               (User Display)
+deriving instance Show             (User Display)
+deriving instance Data             (User Display)
+deriving instance Postgres.FromRow (User Display)
+deriving instance EmptyData        (User Update)
+deriving instance Data             (User Update)
+deriving instance Postgres.ToRow   (User Update)
 
 -- | Delete
-deriving instance Data             (User  Delete)
+deriving instance Data             (User Delete)
 
 
 

@@ -32,6 +32,7 @@ deriving anyclass instance Postgres.ToRow   (Tag Create)
 
 -- | Get / Front Display
 
+deriving instance Eq                        (Tag (Front Display))
 deriving instance Show                      (Tag (Front Display))
 deriving instance Data                      (Tag (Front Display))
 deriving anyclass instance ToJSON           (Tag (Front Display))

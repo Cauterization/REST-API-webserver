@@ -27,8 +27,11 @@ data Entity e a = Entity
   , entity :: e a }
   deriving stock Generic
 
-deriving instance (Show (e a))
+deriving instance (Show (e a)) 
     => Show (Entity e a)
+
+deriving instance Eq (e a) 
+    => Eq (Entity e a)
 
 deriving instance (Data (e a) , Typeable e, Typeable a)
     => Data (Entity e a)
@@ -58,7 +61,7 @@ instance (Postgres.FromRow (e a))
             entity   <- Postgres.fromRow
             pure Entity{..}
 
-instance Postgres.ToRow (e a) => Postgres.ToRow (Entity e a) where
+instance {-# OVERLAPPABLE #-} Postgres.ToRow (e a) => Postgres.ToRow (Entity e a) where
     toRow Entity{..} = Postgres.toRow entity ++ Postgres.toRow entityID
 
 type family EntityOrID (e :: Type -> Type) a :: * where

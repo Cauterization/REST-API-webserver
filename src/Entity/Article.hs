@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TemplateHaskell #-}
+
 module Entity.Article where
 
 import App.Types
@@ -56,8 +56,17 @@ toPicLink articleID picID = T.concat
     , T.show picID
     ] 
 
--- | Get / Front Display
+-- | Post
+deriving instance Generic        (Article (Front Create))
+deriving instance FromJSON       (Article (Front Create))
+deriving instance Show           (Article Create)
+deriving instance Generic        (Article Create)
+deriving instance Data           (Article Create)
+deriving instance Postgres.ToRow (Article Create)
 
+
+-- | Get / Front Display
+deriving instance Eq      (Article (Front Display))
 deriving instance Data    (Article (Front Display))
 deriving instance Show    (Article (Front Display))
 deriving instance Generic (Article (Front Display))
@@ -105,22 +114,15 @@ articleGetQuery = mconcat
     , "FROM articles_view "
     ]
 
-newtype Draft a = Draft (Article a)
+-- | Put
+deriving instance Generic        (Article (Front Update))
+deriving instance Data           (Article (Front Update))
+deriving instance FromJSON       (Article (Front Update))
+deriving instance Postgres.ToRow (Article (Front Update))
 
-deriving instance Data                          (Draft (Front Display))
-deriving instance Show                          (Draft (Front Display))
-deriving instance Generic                       (Draft (Front Display))
-instance {-# OVERLAPPING #-} ToJSON      (Entity Draft (Front Display)) where
-    toJSON Entity{entity = Draft a, ..} 
-        = toJSON Entity{entity = a, entityID = coerce entityID}
-instance Postgres.FromRow                       (Draft (Front Display)) where
-    fromRow = Draft <$> Postgres.fromRow
-instance Database.Gettable (Entity Draft) (Front Display) where
-    getQuery = articleGetQuery <> " WHERE NOT published AND token = ?"
     -- type Filters (Entity Draft) (Front Display) = ArticleFilters
     -- getFilters = error "getFilters"
     
-data ArticleFilters
 
 -- instance ToJSON               (Draft  (Front Display)) where
 --     toJSON (Draft d) = toJSON d

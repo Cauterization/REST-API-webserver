@@ -101,6 +101,7 @@ getEntityGeneric :: forall e m a.
     , QConstraints (Database m)
     , Data (e a)
     , Typeable e 
+    , (Eq (e a))
     ) => [ID (e a)] -> m (e a)
 getEntityGeneric eID = getEntitiesWith eID (<> " WHERE id = ?") >>= getSingle
 

@@ -38,6 +38,7 @@ type Gettable m e a =
     , Data (e a)
     , Show (e a)
     , Typeable e
+    , Eq (e a)
     )
 
 singleE :: Text -> Bool

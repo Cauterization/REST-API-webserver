@@ -54,6 +54,7 @@ library
       Entity.Article
       Entity.Author
       Entity.Category
+      Entity.Draft
       Entity.Internal
       Entity.Picture
       Entity.Tag

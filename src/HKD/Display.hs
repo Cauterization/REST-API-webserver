@@ -16,7 +16,7 @@ data Display deriving (Data)
 -- instance (Show NotDisplayed)
 
 data Hidden
-data NotDisplayed deriving (Generic, ToJSON, Data, Show)
+data NotDisplayed deriving (Generic, ToJSON, Data, Show, Eq)
 
 instance {-# OVERLAPPING #-} Postgres.FromField (Maybe NotDisplayed) where
     fromField _ _ = pure Nothing

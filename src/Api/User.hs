@@ -27,12 +27,12 @@ import Logger qualified
 import Logger ((.<))
 import Data.Coerce
 
-getMe :: forall a m.
+getCurrentUser :: forall a m.
     ( Application m
     , Gettable m (Entity User) a
     , Database.ToRowOf (Database m) [Token]
-    ) => IDs -> m (Entity User a)
-getMe _ = do
+    ) => m (Entity User a)
+getCurrentUser = do
     Logger.info  "Attempt to get user"
     token <- getToken
     Logger.debug $ "With token: " .< token
@@ -41,12 +41,12 @@ getMe _ = do
     Logger.info $ "User was found : " .< u
     pure u
 
-getCurrentUser ::  forall a m.
+getMe ::  forall a m.
     ( Application m
     , Gettable m (Entity User) (Front Display)
     , Database.ToRowOf (Database m) [Token]
     ) => Endpoint m
-getCurrentUser = const $ getMe @(Front Display) [] >>= json
+getMe = const $ getCurrentUser @(Front Display) >>= json
 
 postUser :: forall m.
     ( Application m

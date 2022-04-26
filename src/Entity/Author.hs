@@ -49,6 +49,7 @@ instance Database.Postable        Author Create where
 
 -- | Get / Front Display
 
+deriving instance Eq      (Author (Front Display))
 deriving instance Show    (Author (Front Display))
 deriving instance Data    (Author (Front Display))
 deriving instance ToJSON  (Author (Front Display))
@@ -73,7 +74,7 @@ instance Database.Gettable (Entity Author) (Front Display) where
 deriving instance FromJSON (Author (Front Update))
 deriving instance Data (Author (Front Update))
 deriving instance Postgres.ToRow (Author (Front Update))
-instance Database.Puttable (Entity Author) (Front Update) where
+instance Database.Puttable (Entity Author (Front Update)) where
 
     putQuery = mconcat
         [ "UPDATE authors "

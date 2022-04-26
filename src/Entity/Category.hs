@@ -55,6 +55,7 @@ deriving instance Postgres.ToRow              (Category Create)
 
 
 -- | Get / Front Display
+deriving instance Eq      (Category (Front Display))
 deriving instance Data    (Category (Front Display))
 deriving instance Show    (Category (Front Display))
 instance ToJSON           (Category (Front Display)) where

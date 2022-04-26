@@ -27,7 +27,7 @@ import HKD.HKD
 import Data.Coerce
 
 type Puttable m e a =
-    ( Database.Puttable e a
+    ( Database.Puttable (e a)
     , Database.ToRowOf (Database m) (e a)
     , Database.ToRowOf (Database m) (ID (e a))
     , Data (e a)
