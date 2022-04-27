@@ -98,21 +98,23 @@ instance Database.Puttable (Entity Draft (Front Update)) where
         , "ELSE (SELECT * FROM tags_update) "
         ]
 
-UPDATE articles 
-SET title = COALESCE (null, title)
-, content = COALESCE (null, content)
-, category = COALESCE (null, category) 
-WHERE id = 45; 
+-- UPDATE articles 
+-- SET title = COALESCE (null, title)
+-- , content = COALESCE (null, content)
+-- , category = COALESCE (null, category) 
+-- WHERE id = 45; 
 
-WITH 
-    new_tags (tags) AS (VALUES (null :: INT [])),
-    tags_update AS 
-        ( DELETE FROM article_tag 
-          WHERE id = 45 AND tag_id NOT IN (SELECT * FROM new_tags)
-        ) 
-INSERT INTO article_tag 
-VALUES (IF (SELECT tags FROM new_tags) IS NULL
-       THEN SELECT * FROM tags_update END IF);
+-- WITH new_tags AS (VALUES (null :: INT []))
+
+-- WITH 
+--     new_tags (tags) AS (VALUES (null :: INT [])),
+--     tags_update AS 
+--         ( DELETE FROM article_tag 
+--           WHERE id = 45 AND tag_id NOT IN (SELECT * FROM new_tags)
+--         ) 
+-- INSERT INTO article_tag 
+-- VALUES (IF (SELECT tags FROM new_tags) IS NULL
+--        THEN SELECT * FROM tags_update END IF);
 
 -- UPDATE articles 
 -- SET title = COALESCE (null, title)

@@ -6,6 +6,10 @@ ALTER TABLE article_tag RENAME COLUMN post_id to article_id;
 
 DROP VIEW authors_view CASCADE;
 
+ALTER TABLE users RENAME COLUMN created TO registered;
+
+ALTER TABLE articles RENAME COLUMN author_id TO author;
+
 CREATE OR REPLACE VIEW authors_view AS (
 
     SELECT authors.id  AS id,
@@ -28,7 +32,7 @@ ALTER TABLE articles ADD COLUMN IF NOT EXISTS published bool default false;
 
 UPDATE articles SET published = true;
 
-INSERT INTO into articles (title, content, created, author_id, category_id, published) 
+INSERT INTO articles (title, content, created, author, category_id, published) 
 SELECT title, content, created, author_id, category_id, false FROM drafts;
 
 ALTER TABLE tags RENAME COLUMN name TO tag;
@@ -42,7 +46,7 @@ CREATE OR REPLACE VIEW articles_view AS (
            AR.content             AS content,
            AR.published           AS published,
        
-           authors_view.id        AS author_id, 
+           authors_view.id        AS author, 
            description,
        
            user_id, 
@@ -57,7 +61,7 @@ CREATE OR REPLACE VIEW articles_view AS (
            branch                 AS category,
            branch_id              AS category_id,
   
-           array_agg(tags.tag)   AS tags_names,
+           array_agg(tags.tag)    AS tags_names,
            array_agg(tags.id)     AS tags_id,
   
            pic                    AS pic,

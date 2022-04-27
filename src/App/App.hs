@@ -61,8 +61,8 @@ runServer = handle handler $ do
     Config{..} <- BL.readFile "config.json" >>= parseOrFail
     connectionDB <- Database.mkConnectionIO @(DB IO) cDatabase
     let logger = Logger.runLogger @IO cLogger
-    whenM (("migrations" `elem`) <$> getArgs)
-        $ Database.runMigrations @(DB IO) cDatabase logger
+    whenM (("migrations" `elem`) <$> getArgs) $
+        Database.runMigrations @(DB IO) cDatabase logger
     Wai.run serverPort $ \req respond -> do
         body <- Wai.strictRequestBody req
         ToResponse{..} <- toResponse <$> runRouterWith @Main
