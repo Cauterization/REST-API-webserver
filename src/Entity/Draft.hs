@@ -38,66 +38,56 @@ newtype Draft a = Draft {unDraft :: Article a}
 
 -- | Post
 
-deriving instance Generic          (Draft (Front Create))
-deriving newtype instance FromJSON (Draft (Front Create))
-deriving instance Show (Draft Create)
-deriving instance Data (Draft Create)
-
-instance Postgres.ToRow (Draft Create) where
-    toRow (Draft Article{..}) 
-        = Postgres.toRow (title, created, content, author, category, tags, title)
-
-instance Database.Postable Draft Create where
-    postQuery = mconcat
-        [ "WITH insertion AS "
-        , "(  INSERT INTO articles "
-        , "   (title, created, content, author, category, published) "
-        , "   VALUES(?,?,?,(SELECT id FROM authors WHERE user_id = ?),?,false) "
-        , "   RETURNING ID "
-        , ") "
-        , "INSERT INTO article_tag (article_id, tag_id) "
-        , "(SELECT id, UNNEST(?::INTEGER[]) FROM INSERTION); "
-        , "SELECT id FROM articles WHERE title = ? "
-        ]
+deriving instance Generic                             (Draft (Front Create))
+deriving newtype instance FromJSON                    (Draft (Front Create))
+deriving instance Show                                (Draft Create)
+deriving instance Data                                (Draft Create)
+deriving via (Article Create) instance Postgres.ToRow (Draft Create) 
+instance Database.Postable                             Draft Create where
+    postQuery = "SELECT post_draft " <> Database.qmarkFields @Article @Create
 
 -- | Get
-deriving instance Eq                            (Draft (Front Display))
-deriving instance Data                          (Draft (Front Display))
-deriving instance Show                          (Draft (Front Display))
-deriving instance Generic                       (Draft (Front Display))
-instance {-# OVERLAPPING #-} ToJSON      (Entity Draft (Front Display)) where
+deriving instance Eq                                  (Draft (Front Display))
+deriving instance Data                                (Draft (Front Display))
+deriving instance Show                                (Draft (Front Display))
+deriving instance Generic                             (Draft (Front Display))
+instance {-# OVERLAPPING #-} ToJSON            (Entity Draft (Front Display)) where
     toJSON Entity{entity = Draft a, ..} 
         = toJSON Entity{entity = a, entityID = coerce entityID}
-instance Postgres.FromRow                       (Draft (Front Display)) where
+instance Postgres.FromRow                             (Draft (Front Display)) where
     fromRow = Draft <$> Postgres.fromRow
-instance Database.Gettable (Entity Draft) (Front Display) where
+instance Database.Gettable                    (Entity Draft) (Front Display) where
     getQuery = articleGetQuery <> " WHERE NOT published "
 
 -- | Put
 deriving instance Generic  (Draft (Front Update))
 deriving instance Data     (Draft (Front Update))
 deriving newtype instance FromJSON (Draft (Front Update))
-type DraftPutArgs = (Draft (Front Update), Token, ID (Draft (Front Update)))
-instance Postgres.ToRow (Entity Draft (Front Update)) where
-    toRow Entity{entityID = eID, entity = Draft Article{..}}
-        = Postgres.toRow (title, content, category, eID, tags, eID) 
 
+instance Postgres.ToRow (Entity Draft (Front Update)) where
+    toRow (Entity draftID (Draft Article{..})) 
+        = Postgres.toRow (title, content, category, tags, pics, draftID, draftID) 
+
+-- | Last query here preventing entity not found error due to procedure execution
 instance Database.Puttable (Entity Draft (Front Update)) where
     putQuery = mconcat
-        [ "UPDATE articles "
-        , "SET "
-        , Database.toCoalesce ["title", "content", "category"]
-        , " WHERE id = ?"
-        , "; "
-        , "WITH new_tags AS (VALUES (? :: INT []))"
-        , ", tags_update AS "
-        , "(DELETE FROM article_tag WHERE id = ? AND tag_id NOT IN (SELECT * FROM new_tags)) "
-        , "INSERT INTO article_tag VALUES "
-        , "IF IS NULL new_tags "
-        , "THEN () "
-        , "ELSE (SELECT * FROM tags_update) "
+        [ "CALL put_draft"
+        , "("
+        , "? :: TEXT,"
+        , "? :: TEXT,"
+        , "? :: INTEGER,"
+        , "? :: INTEGER [],"
+        , "? :: INTEGER [],"
+        , "? :: INTEGER"
+        , "); "
+        , "UPDATE articles SET title = title WHERE id = ?"
         ]
 
+
+
+{-
+>>> Database.putQuery @(Entity Article (Front Update))
+-}
 -- UPDATE articles 
 -- SET title = COALESCE (null, title)
 -- , content = COALESCE (null, content)

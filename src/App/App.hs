@@ -61,7 +61,7 @@ runServer = handle handler $ do
     Config{..} <- BL.readFile "config.json" >>= parseOrFail
     connectionDB <- Database.mkConnectionIO @(DB IO) cDatabase
     let logger = Logger.runLogger @IO cLogger
-    whenM (("migrations" `elem`) <$> getArgs) $
+    whenM (("run_migrations" `elem`) <$> getArgs) $
         Database.runMigrations @(DB IO) cDatabase logger
     Wai.run serverPort $ \req respond -> do
         body <- Wai.strictRequestBody req
@@ -101,10 +101,11 @@ responseFromError :: AppError -> ToResponse
 responseFromError = \case
     Err404 path      -> r404 $ T.concat 
         [serverAddress, "/", T.intercalate "/" (getURL path), " doesn't exists!"]
-    EntityNotFound  t -> r404 t
-    AlreadyExists   t -> r409 t
-    AccessViolation t -> r403 t
-    ParsingErr      t -> r400 $ toBL t
+    EntityNotFound     t -> r404 t
+    AlreadyExists      t -> r409 t
+    AccessViolation    t -> r403 t
+    ParsingErr         t -> r400 $ toBL t
+    DatabaseOtherError t -> r400 $ toBL t
     err -> r500 $ toBL $ "Internal error:" <> T.show err <> " (not handled yet)"
   where
     r400  = ToResponse HTTP.status400 []
@@ -116,7 +117,7 @@ responseFromError = \case
 
 data Main :: Type -> Type
 
-instance Routed Main Postgres where
+instance Routed Main (AppT IO) where
     router = do
         -- addMiddleware protectedResources
         newRouter @User 
@@ -126,23 +127,22 @@ instance Routed Main Postgres where
         newRouter @Article
         newRouter @Draft
         
-instance Routed User Postgres where
+instance Routed User (AppT IO) where
     router = do
         post    "users"                   User.postUser
         get     "users/me"                User.getMe
         delete_ "admin/users/{ID}" 
         post    "auth"                    User.authUser
 
-instance Routed Author Postgres where
+instance Routed Author (AppT IO) where
     router = do
-
         post_   "admin/authors"         
         get_    "admin/authors"          
         get_    "admin/authors/{ID}" 
         put_    "admin/authors/{ID}"     
         delete_ "admin/authors/{ID}"  
 
-instance Routed Tag Postgres where
+instance Routed Tag (AppT IO) where
     router = do
         post_   "admin/tags"       
         get_    "tags"    
@@ -150,25 +150,22 @@ instance Routed Tag Postgres where
         put_    "admin/tags/{ID}"
         delete_ "admin/tags/{ID}"
 
-instance Routed Category Postgres where
+instance Routed Category (AppT IO) where
     router = do
         post_   "admin/categories"
         get_    "categories"
         put     "admin/categories/{ID}"   Category.putCategory     
         delete_ "admin/categories/{ID}"       
 
-instance Routed Article Postgres where
+instance Routed Article (AppT IO) where
     router = do
         get_     "articles"      
-        get_     "articles/{ID}" 
-        -- post    "drafts"                  Article.postDraft      
+        get_     "articles/{ID}"    
 
-        -- put     "drafts/{ID}"             Article.putDraft
         -- publish "drafts/{ID}"             Article.publishDraft
-        -- put    "drafts/{ID}/pic"         Article.putPic -- was post
         -- get     "article/{ID}/pic"        Article.getPic
 
-instance Routed Draft Postgres where
+instance Routed Draft (AppT IO) where
     router = do
         post    "drafts"                    Draft.postDraft
         get     "drafts"                    Draft.getDrafts

@@ -50,6 +50,7 @@ data DBError
     | TooManyEntities Text
     | AlreadyExists   Text
     | IsNull          Text
+    | OtherError      Text
     | UnknwonError    Text
     deriving (Show, Exception)
 

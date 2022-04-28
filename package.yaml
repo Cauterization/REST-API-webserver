@@ -80,8 +80,8 @@ default-extensions:
 - UndecidableInstances
 
 ghc-options: 
-  - "-j6 -O0" 
-  # - -O0
+  - "-j6 " 
+  - -O0
 
 library:
   source-dirs: src
@@ -94,10 +94,10 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    # - -Wall
-    # - -Werror
+    - -Wall
+    - -Werror
     - -Wno-unused-do-bind
-    #- -Wno-unused-imports
+    - -Wno-unused-imports
     - -Wno-unused-foralls
     - -Wno-unused-local-binds
     dependencies:

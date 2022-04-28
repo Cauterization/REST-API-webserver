@@ -105,7 +105,7 @@ library
       TypeFamilies
       TypeOperators
       UndecidableInstances
-  ghc-options: -j6 -O0
+  ghc-options: -j6  -O0
   build-depends:
       QuickCheck
     , aeson
@@ -170,7 +170,7 @@ executable server-exe
       TypeFamilies
       TypeOperators
       UndecidableInstances
-  ghc-options: -j6 -O0 -threaded -rtsopts -with-rtsopts=-N -Wno-unused-do-bind -Wno-unused-foralls -Wno-unused-local-binds
+  ghc-options: -j6  -O0 -threaded -rtsopts -with-rtsopts=-N -Wall -Werror -Wno-unused-do-bind -Wno-unused-imports -Wno-unused-foralls -Wno-unused-local-binds
   build-depends:
       QuickCheck
     , aeson
@@ -258,7 +258,7 @@ test-suite server-test
       TypeFamilies
       TypeOperators
       UndecidableInstances
-  ghc-options: -j6 -O0 -threaded -rtsopts -with-rtsopts=-N -Wno-missing-methods
+  ghc-options: -j6  -O0 -threaded -rtsopts -with-rtsopts=-N -Wno-missing-methods
   build-depends:
       QuickCheck
     , aeson

@@ -67,7 +67,7 @@ runRouterWith :: forall e m a.
     , Logger.RunLogger m
     , MonadCatch m
     , Application (AppT m)
-    , Routed e (DB m)
+    , Routed e (AppT m)
     ) 
     => Logger.Logger m 
     -> Database.ConnectionOf (DB m)
@@ -80,7 +80,7 @@ runRouterWith :: forall e m a.
     -> m (Either AppError AppResult)
 runRouterWith logger connDB path body qparams token pagSize with 
     = appHandler $ runApp (Env logger connDB path body qparams token pagSize) $ with >> do
-        execWriterT (runReaderT (unRouter (router @e @(DB m))) path) 
+        execWriterT (runReaderT (unRouter (router @e @(AppT m))) path) 
             >>= \case
                 Route _ success      -> success
                 AmbiguousPatterns ps -> ambiguousPatterns ps
@@ -134,15 +134,12 @@ put     p ep = addRoute (PUT     $ T.splitOn "/" p) $ ep @e @Update
 delete  p ep = addRoute (DELETE  $ T.splitOn "/" p) $ ep @e @Delete
 publish p ep = addRoute (PUBLISH $ T.splitOn "/" p) $ ep @e @Publish
 
-class Routed e db where
-    router :: forall m. 
-        ( Database.Database m ~ db
-        , Application m
-        ) => Router e m ()
+class Routed e m where
+    router :: Application m => Router e m ()
 
 newRouter :: forall e m a. 
     ( Application m
-    , Routed e (Database.Database m)
+    , Routed e m
     ) => Router a m ()
-newRouter = coerce (router @e @(Database.Database m) @m)
+newRouter = coerce (router @e @m)
 

@@ -5,7 +5,7 @@ module Api.Post where
 
 import Data.Aeson (FromJSON)
 
-import Data.Coerce (Coercible(..), coerce)
+import Data.Coerce (Coercible, coerce)
 import Data.Text (Text)
 import Data.Kind (Type)
 import Data.Data

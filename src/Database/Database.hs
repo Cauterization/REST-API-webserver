@@ -8,6 +8,7 @@ module Database.Database
     , postEntityWith
     , postEntity
     , publish
+    , qmarkFields
 
     , Gettable(..)
     , EntityFilter(..)

@@ -33,13 +33,14 @@ putCategory :: forall m.
     ) => Endpoint m
 putCategory [cID] = do
     c <- decodedBody @(Category (Front Update))
-    mapM_ (validate c) $ parent c
+    mapM_ validate $ parent c
     Database.putEntity @_ @m $ Entity (coerce cID) c
     text @_ @Text "Successfuly updated."
   where
-    validate c parent = do
+    validate parent = do
         parents <- Database.getEntitiesWith parent id
         when (cast cID `elem` parents) $ throwM CategoryCycle
     cast = coerce @_ @(ID (Category (Front Update)))
 putCategory _ = entityIDArityMissmatch "put category api"
+
 

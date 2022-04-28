@@ -72,12 +72,12 @@ authUser :: forall m.
     ) => Endpoint m
 authUser _ = do
     Logger.info "Attempt to login user"
-    User{login = al, password = ap} <- decodedBody @(User Auth)
+    User{login = loginU, password = passwordU} <- decodedBody @(User Auth)
     Entity{..} <- Database.getSingle 
-        =<< Database.getEntitiesWith @(Entity User) @Display [al] 
+        =<< Database.getEntitiesWith @(Entity User) @Display [loginU] 
             (<> " WHERE login = ?")
     let passwordDB = password entity
-    when (mkHash ap /= passwordDB) $ throwM WrongPassword
+    when (mkHash passwordU /= passwordDB) $ throwM WrongPassword
     newToken <- genToken
     let User{..} = emptyData @(User Update)
     Database.putEntity @User @m @Update $ Entity 

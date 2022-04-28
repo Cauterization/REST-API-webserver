@@ -7,6 +7,8 @@ import Crypto.Hash qualified as Crypto
 
 import Control.Lens
 
+import Data.Maybe
+
 import HKD.HKD
 
 import Extended.Text (Text)
@@ -14,6 +16,7 @@ import Extended.Text qualified as T
 import Entity.Author
 import Entity.User
 import Entity.Internal
+import Entity.Tag
 import App.Router
 import App.Internal
 import App.Types
@@ -79,26 +82,7 @@ getDrafts _ = do
     token  <- getToken
     json =<< Database.getEntitiesWith @(Entity Draft) @(Front Display) 
         (token, limit, offset) 
-        (<> " " <> Database.entityFiltersQuery @(Entity Draft) @(Front Display))
-
-checkDraftAccess :: forall m a.
-    ( Application m
-    , Gettable m (Entity User) (Front Display)
-    , Database.ToRowOf (Database m) [Token]
-    , Gettable m (Entity Draft) (Front Display)
-    ) => ID a -> m (Entity Draft (Front Display))
-checkDraftAccess draftID = do
-    Entity{entityID = userID} <- User.getCurrentUser @(Front Display)
-    e <- Database.getSingle =<< Database.getEntitiesWith 
-        @(Entity Draft) 
-        @(Front Display) 
-        @m 
-        @[ID (Entity Draft (Front Display))]
-        [coerce draftID]
-        (<> " AND id = ?")
-    when ((entityID . user . entity . author . unDraft . entity) e /= coerce userID) 
-        $ throwM $ AccessViolation "You have no access to this draft."
-    pure e
+        (<> "AND token = ? " <> Database.entityFiltersQuery @(Entity Draft) @(Front Display))
 
 getDraft :: forall m.
     ( Application m
@@ -123,7 +107,7 @@ putDraft [draftID] = do
     checkDraftAccess draftID
     body <- asks envBody
     case A.eitherDecode @(Draft (Front Update)) body of
-        Right d -> do
+        Right d@(Draft Article{..}) -> do
             Database.putEntity (Entity (coerce draftID) d)
             text @_ @Text "Successfuly updated."
         Left err -> text err
@@ -131,6 +115,24 @@ putDraft [draftID] = do
     -- cast = coerce @_ @(ID (Draft (Front Update)))
 putDraft _ = entityIDArityMissmatch "put draft"
 
+checkDraftAccess :: forall m a.
+    ( Application m
+    , Gettable m (Entity User) (Front Display)
+    , Database.ToRowOf (Database m) [Token]
+    , Gettable m (Entity Draft) (Front Display)
+    ) => ID a -> m (Entity Draft (Front Display))
+checkDraftAccess draftID = do
+    Entity{entityID = userID} <- User.getCurrentUser @(Front Display)
+    e <- Database.getSingle =<< Database.getEntitiesWith 
+        @(Entity Draft) 
+        @(Front Display) 
+        @m 
+        @[ID (Entity Draft (Front Display))]
+        [coerce draftID]
+        (<> " AND id = ?")
+    when ((entityID . user . entity . author . unDraft . entity) e /= coerce userID) 
+        $ throwM $ AccessViolation "You have no access to this draft."
+    pure e
 
 -- putEntity :: forall (e :: Type -> Type) m. 
 --     ( Application m

@@ -6,6 +6,7 @@ import Control.Monad.Catch
 
 import Data.Kind
 import Data.Data
+import Data.Functor
 
 import HKD.HKD
 
@@ -25,10 +26,12 @@ instance {-# OVERLAPPABLE #-} (Data (e Create), Typeable e) => Postable e a wher
     postQuery = mconcat
         [ "INSERT INTO " , fromString $ withPluralEnding $ nameOf @e
         , " (",  fieldsQuery @(e Create), ") "
-        , "VALUES ("
-        , fromString $ intercalate "," $ fieldsOf @(e Create) >> pure "?"
-        , ")"
+        , "VALUES "
+        , qmarkFields @e @Create
         ]
+
+qmarkFields :: forall e a s. (Data (e a), IsString s) => s
+qmarkFields = fromString $ mconcat [ "(", intercalate "," $ fieldsOf @(e a) $> "?", ")"]
 
 postEntity :: forall e (m :: Type -> Type).
     ( HasDatabase m

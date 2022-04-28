@@ -48,6 +48,11 @@ deriving anyclass instance Postgres.ToRow   (Tag (Front Update))
 
 deriving instance Data                      (Tag  Delete)
 
+-- | Other
+
+deriving instance Data (Tag Update)
+
+
 -- deriving instance Show           (Tag Create)
 -- deriving instance Data           (Tag Create)
 -- deriving anyclass instance FromJSON       (Tag Create)

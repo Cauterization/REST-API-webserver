@@ -68,20 +68,20 @@ instance IsDatabase Postgres where
                         l Logger.Error $ "Migration failed: " <> T.pack reason
                         exitFailure
 
-    postToDatabase pc q a = handleSql $ Pool.withResource pc $ \conn -> 
+    postToDatabase pc q a = pgHandler $ Pool.withResource pc $ \conn -> 
         formatQuery conn q a >>= B.putStr >>
         query conn q a >>= Database.getSingle 
 
-    getFromDatabase pc q a = handleSql $ Pool.withResource pc $ \conn -> 
+    getFromDatabase pc q a = pgHandler $ Pool.withResource pc $ \conn -> 
         formatQuery conn q a >>= B.putStr >>
         query conn q a
 
-    putIntoDatabase pc q a = handleSql $ fmap fromIntegral  
+    putIntoDatabase pc q a = pgHandler $ fmap fromIntegral  
         $ Pool.withResource pc $ \conn -> 
             formatQuery conn q a >>= B.putStr >>
             execute conn q a
  
-    deleteFromDatabase pc q a = handleSql $ fmap fromIntegral 
+    deleteFromDatabase pc q a = pgHandler $ fmap fromIntegral 
         $ Pool.withResource pc $ \conn -> 
             formatQuery conn q a >>= B.putStr >>
             execute conn q a
@@ -91,12 +91,22 @@ sortedMigrations =
   let unsorted = $(embedDir "migrations")
   in L.sortBy (compare `on` fst) unsorted
 
-handleSql :: IO a -> IO a
-handleSql = handle $ \SqlError{..} -> case sqlState of
-        "23503" -> throwM $ Database.EntityNotFound $ T.decodeUtf8 sqlErrorDetail
-        "23502" -> throwM $ Database.IsNull $ T.decodeUtf8 sqlErrorDetail
-        "23505" -> throwM $ Database.AlreadyExists $ T.decodeUtf8 sqlErrorDetail
-        _       -> throwM $ Database.UnknwonError $ T.show SqlError{..}
+pgHandler :: IO a -> IO a
+pgHandler = flip catches 
+    [ Handler handleSqlErrror
+    , Handler handleFormatError
+    ]
+
+handleSqlErrror :: SqlError -> IO a
+handleSqlErrror SqlError{..} = throwM $ case sqlState of
+        "23503" -> Database.EntityNotFound $ T.decodeUtf8 sqlErrorDetail
+        "23502" -> Database.IsNull $ T.decodeUtf8 sqlErrorDetail
+        "23505" -> Database.AlreadyExists $ T.decodeUtf8 sqlErrorDetail
+        "23514" -> Database.OtherError $  T.decodeUtf8 sqlErrorMsg
+        _       -> Database.UnknwonError $ T.show SqlError{..}
+
+handleFormatError :: FormatError -> IO a
+handleFormatError f = throwM $ Database.UnknwonError $ T.show f
 
 -- catchSQLE :: IO (Either DBError b) -> IO (Either DBError b)
 -- catchSQLE = handle (\PG.SqlError{..} -> return $ Left $ toDbE $ parseSqlE PG.SqlError{..})

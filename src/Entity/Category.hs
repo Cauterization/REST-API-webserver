@@ -10,6 +10,7 @@ import Data.Coerce
 import Data.Data
 import Data.List
 import Data.String
+import Data.Maybe
 
 import Database.Database qualified as Database
 
@@ -37,7 +38,7 @@ data Category a = Category
   } deriving stock Generic
 
 newtype CategoryName a = CategoryName {unCatName :: Text}
-    deriving newtype (Show, FromJSON, ToJSON, Eq, Postgres.ToField, Postgres.FromField)
+    deriving newtype (Show, IsString, FromJSON, ToJSON, Eq, Postgres.ToField, Postgres.FromField)
     deriving stock Data
 
 type family CatParent a where
@@ -84,6 +85,10 @@ instance Database.Gettable ID (Category (Front Update)) where
 
 -- | Delete
 deriving instance Data             (Category  Delete)
+
+-- | Other
+deriving instance Data (Category Display)
+
 
 -- 
 --

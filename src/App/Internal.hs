@@ -125,7 +125,7 @@ getNumParam :: (Monad m, MonadThrow m, Logger.HasLogger m, HasEnv m
 getNumParam p = fmap T.read <$> getParam p >>= \case
     Just (Right n) -> pure $ Just n
     Nothing        -> pure Nothing
-    Just (Left err) -> parsingError $ "Unparsable num param " <> (T.unpack p)
+    Just (Left _) -> parsingError $ "Unparsable num param " <> (T.unpack p)
 
 getDateParam :: (Monad m, MonadThrow m, Logger.HasLogger m, HasEnv m
     ) => Text -> m (Maybe Date)
@@ -166,6 +166,7 @@ data AppError
     | AlreadyExists Text
     | CategoryCycle
     | IsNull Text
+    | DatabaseOtherError Text
     | UnknownError  Text
     deriving (Show, Typeable, Exception, Eq) 
 
@@ -175,6 +176,7 @@ fromDBException = \case
     Database.TooManyEntities t -> TooManyEntities t
     Database.AlreadyExists   t -> AlreadyExists   t
     Database.IsNull          t -> IsNull t
+    Database.OtherError      t -> DatabaseOtherError t
     Database.UnknwonError    t -> UnknownError t
 
 parsingError :: (MonadThrow m) => String -> m a

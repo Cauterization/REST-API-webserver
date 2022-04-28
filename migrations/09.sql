@@ -46,7 +46,7 @@ CREATE OR REPLACE VIEW articles_view AS (
            AR.content             AS content,
            AR.published           AS published,
        
-           authors_view.id        AS author, 
+           authors_view.id        AS author_id, 
            description,
        
            user_id, 
@@ -58,8 +58,8 @@ CREATE OR REPLACE VIEW articles_view AS (
            registered, 
            admin,
          
-           branch                 AS category,
-           branch_id              AS category_id,
+           coalesce(branch, ARRAY['no_category']) AS category,
+           coalesce(branch_id, ARRAY[0])          AS category_id,
   
            array_agg(tags.tag)    AS tags_names,
            array_agg(tags.id)     AS tags_id,
@@ -69,7 +69,7 @@ CREATE OR REPLACE VIEW articles_view AS (
 
     FROM articles AR
     	INNER JOIN authors_view          ON authors_view.id = AR.author
-        INNER JOIN cat_branches          ON AR.category = cat_branches.id
+        LEFT JOIN cat_branches           ON AR.category = cat_branches.id
         LEFT  JOIN article_tag           ON article_tag.article_id = AR.id 
         LEFT  JOIN tags                  ON article_tag.tag_id  = tags.id 
         LEFT  JOIN post_pic_main_view PM ON PM.post_id = AR.id
@@ -92,3 +92,52 @@ DROP TABLE drafts CASCADE;
 UPDATE article_tag SET tag_id = (SELECT tag_id FROM draft_tag WHERE draft_id = article_id);
 
 DROP TABLE draft_tag;
+
+CREATE OR REPLACE VIEW articles_view AS (
+
+    SELECT AR.id                  AS id, 
+           AR.title               AS title, 
+           AR.created             AS created, 
+           AR.content             AS content,
+           AR.published           AS published,
+
+           authors_view.id        AS author_id, 
+           description,
+       
+           user_id, 
+           firstname, 
+           lastname,  
+           login, 
+           token,
+           null                   AS password,
+           registered, 
+           admin,
+
+           branch                 AS category,
+           branch_id              AS category_id,
+
+           array_agg(tags.tag)    AS tags_names,
+           array_agg(tags.id)     AS tags_id,
+  
+           pic                    AS pic,
+           pics                   AS pics
+
+    FROM articles AR
+        INNER JOIN authors_view          ON authors_view.id = AR.author
+        LEFT  JOIN cat_branches          ON AR.category = cat_branches.id
+        LEFT  JOIN article_tag           ON article_tag.article_id = AR.id 
+        LEFT  JOIN tags                  ON article_tag.tag_id  = tags.id 
+        LEFT  JOIN post_pic_main_view PM ON PM.post_id = AR.id
+        LEFT  JOIN post_pic_sub_view  PS ON PS.post_id = AR.id
+
+
+     GROUP BY AR.id, AR.title, AR.created, AR.content, 
+             authors_view.id, description, 
+             user_id, firstname, lastname, login, 
+             token, registered, admin, 
+             branch, branch_id,
+             pic, pics
+
+);
+
+ALTER TABLE categories ADD CONSTRAINT parent_key_constraint CHECK (id != parent);
