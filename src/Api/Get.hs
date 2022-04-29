@@ -22,9 +22,12 @@ import Entity.Internal qualified as Entity
 import Entity.Internal (Entity(..))
 
 import App.Result
+import App.ResultJSON
 import App.Types
 import App.Router
 import App.Internal
+import App.Config
+
 
 import HKD.HKD
 import Control.Monad (forM)
@@ -41,22 +44,20 @@ type Gettable m e a =
     , Eq (e a)
     )
 
-singleE :: Text -> Bool
-singleE = T.isSuffixOf "{ID}"  
-
 get_ :: forall (e :: Type -> Type) (m :: Type -> Type). 
     ( Application m
     , Gettable m (Entity e) (Front Display)
-    , ToJSON (Entity e (Front Display))
+    , ToJSONResult (Entity e (Front Display))
     ) => Text -> Router e m ()
 get_ p 
-    | singleE p = get p (getEntity   @(Entity e) @(Front Display))
-    | otherwise = get p (getEntities @(Entity e) @(Front Display))
+    | T.isSuffixOf "{ID}" p = get p (getEntity   @(Entity e) @(Front Display))
+    | otherwise             = get p (getEntities @(Entity e) @(Front Display))
+
 
 getEntity :: forall (e :: Type -> Type) a m. 
     ( Application m
     , Gettable m e a
-    , ToJSON (e a)
+    , ToJSONResult (e a)
     ) => Endpoint m
 getEntity eIDs = do
     Logger.info $ "Attempt to get " <> nameOf @e
@@ -67,7 +68,7 @@ getEntity eIDs = do
 getEntities :: forall (e :: Type -> Type) a m. 
     ( Application m
     , Gettable m e a
-    , ToJSON (e a)
+    , ToJSONResult (e a)
     ) => Endpoint m
 getEntities _ = do
     Logger.info $ "Attempt to get " <> nameOf @e <> "s"
@@ -81,15 +82,16 @@ getFilters :: forall e a m.
     , Gettable m e a
     ) => m [Database.EntityFilterParam]
 getFilters = forM (sort $ Database.getEntityFilters @e @a) $ \case
-    Database.EFString p -> Database.EFPTextOptional <$> getParam p
-    Database.EFNum    p -> Database.EFPIntOptional  <$> getNumParam p
-    Database.EFDate   p -> Database.EFPDateOptional <$> getDateParam p
-    Database.EFLimit    -> getLimit
-    Database.EFOffset   -> getOffset
+    Database.EFString  p -> Database.EFPTextOptional <$> getParam p
+    Database.EFNum     p -> Database.EFPIntOptional  <$> getNumParam p
+    Database.EFNumList p -> Database.EFPIntOptional  <$> getNumParam p
+    Database.EFDate    p -> Database.EFPDateOptional <$> getDateParam p
+    Database.EFLimit     -> getLimit
+    Database.EFOffset    -> getOffset
 
 getLimit :: Application m => m Database.EntityFilterParam
 getLimit = do
-    maxLimit <- asks envPagination
+    maxLimit <- asks (Database.cPagSize . cDatabase . envConfig)
     Database.EFPInt . maybe maxLimit (min maxLimit) <$> getNumParam "limit"
 
 getOffset :: Application m =>  m Database.EntityFilterParam

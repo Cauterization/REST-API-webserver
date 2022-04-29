@@ -13,7 +13,6 @@ module HKD.HKD
     , Immutable
     , Delete
     , Publish
-    , NoPublish
     , Field
     , Required(..)
     , EmptyData

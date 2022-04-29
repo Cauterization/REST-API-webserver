@@ -11,7 +11,6 @@ import Data.Functor
 import HKD.HKD
 
 import Database.Internal
-import Database.Query
 import Data.String
 import Database.HasDatabase
 import qualified Logger
@@ -27,11 +26,11 @@ instance {-# OVERLAPPABLE #-} (Data (e Create), Typeable e) => Postable e a wher
         [ "INSERT INTO " , fromString $ withPluralEnding $ nameOf @e
         , " (",  fieldsQuery @(e Create), ") "
         , "VALUES "
-        , qmarkFields @e @Create
+        , qmarkFields @(e Create)
         ]
 
-qmarkFields :: forall e a s. (Data (e a), IsString s) => s
-qmarkFields = fromString $ mconcat [ "(", intercalate "," $ fieldsOf @(e a) $> "?", ")"]
+qmarkFields :: forall e s. (Data e, IsString s) => s
+qmarkFields = fromString $ mconcat [ "(", intercalate "," $ fieldsOf @e $> "?", ")"]
 
 postEntity :: forall e (m :: Type -> Type).
     ( HasDatabase m
@@ -64,17 +63,3 @@ postEntityWith f e = do
     Logger.sql q
     liftDatabase (postToDatabase @(Database m) connection (f q) e)
 
-publish :: forall e (m :: Type -> Type) a x.
-    ( HasDatabase m
-    , IsDatabase (Database m)
-    , Monad m
-    , MonadThrow m
-    , Logger.HasLogger m
-    , ToRowOf (Database m) (e a)
-    , QConstraints (Database m)
-    , FromRowOf (Database m) (ID (e a))
-    ) => QueryOf (Database m)  -> e a -> m (ID (e a))
-publish q e = do
-    connection <- getDatabaseConnection
-    Logger.sql q
-    liftDatabase (postToDatabase @(Database m) connection q e)

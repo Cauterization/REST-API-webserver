@@ -42,6 +42,7 @@ dependencies:
 - resource-pool
 - text
 - time
+- vector
 - wai
 - wai-extra
 - warp
@@ -57,6 +58,7 @@ default-extensions:
 - DataKinds
 - DefaultSignatures
 - DeriveAnyClass
+- DeriveDataTypeable
 - DeriveFunctor 
 - DeriveGeneric
 - DerivingStrategies

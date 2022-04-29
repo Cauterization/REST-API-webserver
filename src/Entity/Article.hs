@@ -7,7 +7,7 @@ import App.Types
 import App.Internal
 
 import Data.Aeson
-import Data.ByteString (ByteString)
+
 import Data.Coerce
 import Data.Data
 import Data.Maybe   
@@ -18,6 +18,7 @@ import Entity.Category
 import Entity.Tag
 import Entity.Internal
 import Entity.User
+import Entity.Picture
 
 import Extended.Text (Text)
 import Extended.Text qualified as T
@@ -32,55 +33,36 @@ import Data.Kind (Type)
 import Data.String (IsString)
 
 data Article a = Article
-  { title    :: Field 'Required a '[NoPublish]                      Text
+  { title    :: Field 'Required a '[]                               Text
   , created  :: Field 'Required a '[NotAllowedFromFront, Immutable] Date 
-  , content  :: Field 'Required a '[NoPublish]                      Text
+  , content  :: Field 'Required a '[]                               Text
   , author   :: Field 'Required a '[NotAllowedFromFront, Immutable] (EntityOrID Author a)
-  , category :: Field 'Required a '[NoPublish]                      (EntityOrID Category a)
-  , tags     :: Field 'Required a '[NoPublish]                      [EntityOrID Tag a]
-  , pics     :: Field 'Required a '[]                               [ID Pic]
+  , category :: Field 'Required a '[]                               (EntityOrID Category a)
+  , tags     :: Field 'Required a '[]                               [EntityOrID Tag a]
+  , pics     :: Field 'Required a '[]                               [ID (Picture a)]
   }
 
-data PicFormat
-    deriving Data
+deriving instance Generic (Article a)
 
-data Pic = Pic PicFormat ByteString
-    deriving Data
-
-toPicLink :: ID a -> ID Pic -> Text
-toPicLink articleID picID = T.concat
-    [ serverAddress
-    , "/drafts/"
-    , T.show articleID
-    , "/pic/"
-    , T.show picID
-    ] 
+deriving instance 
+    ( Data a
+    , Data (Field 'Required a '[]                               Text)
+    , Data (Field 'Required a '[NotAllowedFromFront, Immutable] Date)
+    , Data (Field 'Required a '[]                               Text)
+    , Data (Field 'Required a '[NotAllowedFromFront, Immutable] (EntityOrID Author a))
+    , Data (Field 'Required a '[]                               (EntityOrID Category a))
+    , Data (Field 'Required a '[]                               [EntityOrID Tag a])
+    , Data (Field 'Required a '[] [ID (Picture a)])
+    ) => Data (Article a)
 
 -- | Post
-deriving instance Generic        (Article (Front Create))
 deriving instance FromJSON       (Article (Front Create))
 deriving instance Show           (Article Create)
-deriving instance Generic        (Article Create)
-deriving instance Data           (Article Create)
 deriving instance Postgres.ToRow (Article Create)
-
 
 -- | Get / Front Display
 deriving instance Eq      (Article (Front Display))
-deriving instance Data    (Article (Front Display))
 deriving instance Show    (Article (Front Display))
-deriving instance Generic (Article (Front Display))
-instance {-# OVERLAPPING #-} ToJSON  (Entity Article (Front Display)) where
-    toJSON Entity{entityID = entityID, entity = Article{..}} = object
-        [ "id"       .= entityID
-        , "title"    .= title
-        , "created"  .= created
-        , "content"  .= content
-        , "author"   .= author
-        , "category" .= category
-        , "tags"     .= tags
-        , "pics"     .= map (toPicLink entityID) pics
-        ]
 
 instance Postgres.FromRow (Article (Front Display)) where
     fromRow = do
@@ -92,15 +74,28 @@ instance Postgres.FromRow (Article (Front Display)) where
         tagsNames <- catMaybes . Postgres.fromPGArray <$> Postgres.field
         tagsIDs   <- catMaybes . Postgres.fromPGArray <$> Postgres.field
         let tags = zipWith Entity tagsIDs (map Tag tagsNames)
-        pics      <- map ID 
-                     .  Postgres.fromPGArray 
-                     .  fromMaybe (Postgres.PGArray [])
-                    <$> Postgres.field --- @(Maybe (Postgres.PGArray Int))
-        return Article{..}
+        pics      <- map ID . catMaybes . Postgres.fromPGArray <$> Postgres.field 
+        pure Article{..}
+        
 instance Database.Gettable (Entity Article) (Front Display) where
-    getQuery = articleGetQuery <> " WHERE published"
 
-    -- getFilters = error "getFilters"
+    getQuery = articleGetQuery <> "WHERE published"
+
+    entityFilters = (<> Database.defaultFilters)
+        [ Database.EFDate    "crAt"
+        , Database.EFDate    "crAtLt"
+        , Database.EFDate    "crAtGt"
+        , Database.EFString  "author_login"
+        , Database.EFNum     "category_id"
+        , Database.EFNum     "tag_id"
+        , Database.EFNumList "tag_in"
+        , Database.EFNumList "tag_all"
+        , Database.EFString  "title"
+        , Database.EFString  "content"
+        , Database.EFString  "substring"
+        ]
+
+    entityFiltersQuery = ""
 
 articleGetQuery :: (IsString s, Monoid s) => s
 articleGetQuery = mconcat
@@ -114,87 +109,55 @@ articleGetQuery = mconcat
     , "FROM articles_view "
     ]
 
+articlesGetQuery :: (IsString s, Monoid s) => s -> s
+articlesGetQuery ordering = mconcat
+    [ "WITH F (crAt, crAtLt, crAtGt, authorF, catF, tagF, tagsIn, tagsAll, "
+    , "titleF, contentF, substring) AS (VALUES"
+    , "( ? :: DATE "
+    , ", ? :: DATE "
+    , ", ? :: DATE "
+    , ", ? :: TEXT "
+    , ", ? :: INT "
+    , ", ? :: INT "
+    , ", ? :: INT [] "
+    , ", ? :: INT [] "
+    , ", ? :: TEXT "
+    , ", ? :: TEXT "
+    , ", ? :: TEXT"
+    , ")) "
+    , articleGetQuery
+    , ", F "
+    , "WHERE published "
+    , "  AND created     =  COALESCE(created, crAt) "
+    , "  AND created     >= COALESCE(created, crAtGt) " 
+    , "  AND created     <= COALESCE(created, crAtLt) " 
+    , "  AND login       =  COALESCE(login, authorF) "  
+    , "  AND (catF       IS NULL OR category_id @> ARRAY [catF]) " 
+    , "  AND (tagF       IS NULL OR tags_id @> ARRAY [tagF]) "  
+    , "  AND (tagsIn     IS NULL OR tags_id && tagsIn) "  
+    , "  AND (tagsAll    IS NULL OR tags_id @> tagsAll) "   
+    , "  AND title       LIKE CONCAT('%',COALESCE(title, titleF),'%') "  
+    , "  AND content     LIKE CONCAT('%',COALESCE(content, contentF),'%') "      
+    , "  AND (substring  IS NULL "    
+    , "      OR content  LIKE CONCAT('%',substring,'%') "   
+    , "      OR login    LIKE CONCAT('%',substring,'%') "    
+    , "      OR EXISTS ( SELECT 1 "    
+    , "                  FROM UNNEST(category) "   
+    , "                  WHERE unnest LIKE CONCAT('%',substring,'%') "   
+    , "                ) "   
+    , "      OR EXISTS ( SELECT 1 "    
+    , "                  FROM UNNEST(tags_names) "  
+    , "                  WHERE unnest LIKE CONCAT('%',substring,'%') "    
+    , "      )         ) " 
+    , ordering   
+    , " LIMIT ? "
+    , "OFFSET ? "
+    ] 
+
+
 -- | Put
-deriving instance Generic        (Article (Front Update))
-deriving instance Data           (Article (Front Update))
 deriving instance FromJSON       (Article (Front Update))
 deriving instance Postgres.ToRow (Article (Front Update))
 
-    -- type Filters (Entity Draft) (Front Display) = ArticleFilters
-    -- getFilters = error "getFilters"
-    
-
--- instance ToJSON               (Draft  (Front Display)) where
---     toJSON (Draft d) = toJSON d
--- deriving instance Data    (Article (Front Display))
--- deriving instance Show    (Article (Front Display))
--- deriving instance Generic (Article (Front Display))
--- deriving instance ToJSON  (Article (Front Display))
--- instance Postgres.FromRow (Article (Front Display)) where
---     fromRow = do
---         
-
--- instance Database.GettableFrom Postgres Article (Front Display) where
---     getQuery = mconcat
---         [ "SELECT title, created, content, "
---         , fieldsQuery @(User (Front Display)), ", "
---         , "description, "
---         , "category[1], category[2:], "
---         , "tags_names "
---         , "FROM articles_view "
---         ]
-
--- deriving instance Generic        (Article (Front Create))
--- deriving instance FromJSON       (Article (Front Create))
--- deriving instance Generic        (Article Create)
--- deriving instance Data           (Article Create)
--- deriving instance Postgres.ToRow (Article Create) 
--- instance Database.PostableTo Postgres Article where
---     postQuery = mconcat
---         [ "WITH isertArticle AS "
---         , "( INSERT INTO Articles (title, created, content, author, category, published) "
---         , "VALUES (?,?,?,?,?, false) "
---         , "RETURNING id AS article_id), "
---         , "insertTags AS (INSERT INTO article_tag (article_id, tag_id) "
---         , "SELECT article_id, tag_id "
---         , "FROM isertArticle CROSS JOIN UNNEST(?) as tag_id "
---         , "RETURNING article_id "
---         , ") SELECT * FROM insertTags LIMIT 1"
---         ]
-
--- instance Postgres.ToRow (Entity Article Publish) where
---     toRow (Entity eID Article{..}) = 
---         [ Postgres.toField created
---         , Postgres.toField eID
---         , Postgres.toField author
---         ]
-
--- publishQuery :: (IsString s, Monoid s) => s 
--- publishQuery = mconcat
---     [ "UPDATE articles "
---     , "SET published = true, "
---     , "created = ? "
---     , "WHERE id = ? AND published = false "
---     , "AND author = ? "
---     , "RETURNING id"
---     ]
-
--- deriving instance Generic  (Article (Front Update))
--- deriving instance FromJSON (Article (Front Update))
--- deriving instance Data     (Article Update)
-
--- instance Database.ToOneRow (Article (Front Update)) IDs where
-
---     type instance MkOneRow (Article (Front Update)) IDs 
---         = ( Maybe Text
---           , Maybe NotUpdated
---           , Maybe Text
---           , Maybe NotUpdated
---           , Maybe (ID (Category (Front Update)))
---           , Maybe [ID (Tag (Front Update))]
---           , ID (Path Current)) 
-
---     toOneRow Article{..} [aID] = pure 
---         (title, Nothing, content, Nothing, category, tags, aID)
---     toOneRow _ _ = entityIDArityMissmatch "update article"
-
+-- | Other
+deriving instance EmptyData (Article Publish) 

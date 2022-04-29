@@ -69,7 +69,7 @@ CREATE OR REPLACE VIEW articles_view AS (
 
     FROM articles AR
     	INNER JOIN authors_view          ON authors_view.id = AR.author
-        LEFT JOIN cat_branches           ON AR.category = cat_branches.id
+        LEFT  JOIN cat_branches           ON AR.category = cat_branches.id
         LEFT  JOIN article_tag           ON article_tag.article_id = AR.id 
         LEFT  JOIN tags                  ON article_tag.tag_id  = tags.id 
         LEFT  JOIN post_pic_main_view PM ON PM.post_id = AR.id

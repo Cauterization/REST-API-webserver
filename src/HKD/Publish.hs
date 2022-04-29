@@ -5,12 +5,9 @@ import Data.Data
 
 import HKD.Field
 import HKD.Utils
+import HKD.Update
 
 data Publish deriving Data
 
-data NoPublish deriving Data
-
 type instance Field req Publish modifiers a = 
-    If (Contains NoPublish modifiers)
-    (Maybe NoPublish)
-    (ApplyRequired req Maybe a)
+    Maybe (ApplyRequired req Maybe NotUpdated)

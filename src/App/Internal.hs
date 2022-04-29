@@ -12,6 +12,7 @@ import Data.Kind (Type)
 import Extended.Text (Text)
 import Extended.Text qualified as T
 import App.QueryParams
+import App.Config
 
 import App.Types
 import System.Random
@@ -30,14 +31,15 @@ import Database.Database qualified as Database
 import Postgres.Internal
 import qualified Data.Time as Time
 
--- | This things are needed to ToJSON picture isntances 
--- therefore they are here and not in config file
-
-serverPort :: Int
-serverPort = 3000
-
-serverAddress :: Text
-serverAddress = "http://localhost:" <> T.show serverPort
+type Application (m :: Type -> Type) = 
+    ( MonadThrow m
+    , MonadCatch m
+    , HasEnv m
+    , Impure m
+    , Logger.HasLogger m
+    , Database.HasDatabase m
+    , Database.QConstraints (Database.Database m)
+    )
 
 newtype AppT m a = App {unApp :: ReaderT (Env m) m a}
     deriving newtype 
@@ -73,8 +75,6 @@ instance Database.HasDatabase (AppT IO) where
 
     getDatabaseConnection = asks envConn
 
-    getPaginationSize = asks envPagination
-
 class Impure m where
     getCurrentDate :: m Date 
     genToken       :: m Token
@@ -87,13 +87,14 @@ instance Impure (AppT IO) where
             return $ chars !! idx
 
 data Env (m :: Type -> Type) = Env
-    { envLogger     :: Logger.Logger m
-    , envConn       :: Database.ConnectionOf (Database.Database (AppT m))
-    , envPath       :: Path Current
-    , envBody       :: Body
-    , envQParams    :: QueryParams
-    , envToken      :: Maybe Token
-    , envPagination :: PaginationSize
+    { envLogger      :: Logger.Logger m
+    , envConn        :: Database.ConnectionOf (Database.Database (AppT m))
+    , envPath        :: Path Current
+    , envBody        :: Body
+    , envContentType :: Maybe ContentType 
+    , envQParams     :: QueryParams
+    , envToken       :: Maybe Token
+    , envConfig      :: Config
     }
    
 type family EnvOf a where
@@ -101,14 +102,11 @@ type family EnvOf a where
 
 type HasEnv m = MonadReader (Env (EnvOf m)) m
 
-getPath :: HasEnv m => m (Path Current)
-getPath = asks envPath
-
 decodedBody :: (FromJSON a, Monad m, MonadThrow m, HasEnv m, Logger.HasLogger m
     ) => m a
 decodedBody = do
     body <- asks envBody
-    Logger.debug $ "JSON body:\n" .< body
+    Logger.debug $ T.take 500 $ "JSON body:\n" .< body
     decode body
 
 decode :: (Monad m, FromJSON a, MonadThrow m) => Body -> m a
@@ -125,7 +123,7 @@ getNumParam :: (Monad m, MonadThrow m, Logger.HasLogger m, HasEnv m
 getNumParam p = fmap T.read <$> getParam p >>= \case
     Just (Right n) -> pure $ Just n
     Nothing        -> pure Nothing
-    Just (Left _) -> parsingError $ "Unparsable num param " <> (T.unpack p)
+    Just (Left _)  -> parsingError $ "Unparsable num param " <> (T.unpack p)
 
 getDateParam :: (Monad m, MonadThrow m, Logger.HasLogger m, HasEnv m
     ) => Text -> m (Maybe Date)
@@ -138,6 +136,11 @@ getDateParam p = fmap (parseTime . T.unpack) <$> getParam p >>= \case
 
 getToken :: (Monad m, HasEnv m, MonadThrow m) =>  m Token
 getToken = asks envToken >>= maybe (unathorized "No token.") pure
+
+getServerAddress :: HasEnv m => m Text
+getServerAddress = do
+    Config{..} <- asks (envConfig)
+    pure $ cAddress <> T.show cPort 
 
 toPath ::  Wai.Request -> Path a
 toPath req = 
@@ -155,6 +158,7 @@ data AppError
     | ParsingErr Text
     | UnknwonHTTPMethod HTTP.Method
     | QParamsErr Text
+    | RequestHeadersErr Text
     | RouterAmbiguousPatterns [Path Pattern]
     | Unathorized Text
     | AccessViolation Text
@@ -183,7 +187,7 @@ parsingError :: (MonadThrow m) => String -> m a
 parsingError = throwM . ParsingErr . T.pack 
 
 throw404 :: (MonadThrow m, HasEnv m) =>  m a
-throw404 = getPath >>= throwM . Err404 
+throw404 = asks envPath >>= throwM . Err404 
 
 ambiguousPatterns :: (MonadThrow m) => [Path Pattern] -> m a
 ambiguousPatterns = throwM . RouterAmbiguousPatterns

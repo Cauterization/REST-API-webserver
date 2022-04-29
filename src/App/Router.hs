@@ -18,6 +18,7 @@ import Extended.Text(Text)
 import Extended.Text qualified as T
 
 import App.Result
+import App.Config
 
 import App.Types
 
@@ -73,13 +74,14 @@ runRouterWith :: forall e m a.
     -> Database.ConnectionOf (DB m)
     -> Path Current 
     -> Body 
+    -> Maybe ContentType
     -> QueryParams
     -> Maybe Token
-    -> PaginationSize
+    -> Config
     -> AppT m a
     -> m (Either AppError AppResult)
-runRouterWith logger connDB path body qparams token pagSize with 
-    = appHandler $ runApp (Env logger connDB path body qparams token pagSize) $ with >> do
+runRouterWith logger connDB path body conentType qparams token config with 
+    = appHandler $ runApp (Env logger connDB path body conentType qparams token config) $ with >> do
         execWriterT (runReaderT (unRouter (router @e @(AppT m))) path) 
             >>= \case
                 Route _ success      -> success
@@ -103,16 +105,6 @@ withPathCmp f pp pc
     cmpSegment "{ID}" (T.read @(ID (Path Current)) -> Right n) = Just [n]
     cmpSegment r      ((== r) -> True)               = Just []
     cmpSegment _      _                              = Nothing
-
-type Application (m :: Type -> Type) = 
-    ( MonadThrow m
-    , MonadCatch m
-    , HasEnv m
-    , Impure m
-    , Logger.HasLogger m
-    , Database.HasDatabase m
-    , Database.QConstraints (Database.Database m)
-    )
 
 addMiddleware ::Monad m => Middleware m -> Router e m ()
 addMiddleware = tell . Middleware

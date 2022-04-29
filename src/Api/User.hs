@@ -2,6 +2,7 @@ module Api.User where
 
 import Control.Monad.Catch
 import Control.Monad.Writer
+import Control.Lens
 import Crypto.Hash qualified as Crypto
 
 
@@ -14,6 +15,7 @@ import App.Router
 import App.Internal
 import App.Types
 import App.Result
+import App.ResultJSON
 
 import Api.Post
 import Api.Put
@@ -79,9 +81,8 @@ authUser _ = do
     let passwordDB = password entity
     when (mkHash passwordU /= passwordDB) $ throwM WrongPassword
     newToken <- genToken
-    let User{..} = emptyData @(User Update)
     Database.putEntity @User @m @Update $ Entity 
-        (coerce entityID) User{token = Just newToken, ..}
+        (coerce entityID) $ #token .~ Just newToken $ emptyData
     text newToken
 
 mkHash :: Text -> Text

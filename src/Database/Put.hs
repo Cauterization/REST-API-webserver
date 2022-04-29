@@ -13,7 +13,6 @@ import Entity.Internal (Entity(..))
 import HKD.HKD
 
 import Database.Internal
-import Database.Query
 import Data.String
 import Database.HasDatabase
 import qualified Logger

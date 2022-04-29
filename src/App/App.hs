@@ -13,22 +13,26 @@ import App.Result
 import App.Router 
 import App.Internal
 import App.QueryParams
-
--- import Api.ProtectedResources (protectedResources)
+import App.Types
+import Api.ProtectedResources (protectedResources)
 import Api.Article qualified as Article
 import Api.Author qualified as Author
 import Api.Category qualified as Category
 import Api.Draft qualified as Draft
 import Api.User qualified as User
+import Api.Picture qualified as Picture
 import Api.Post
 import Api.Get
 import Api.Delete
+import Api.Publish
+
 
 import Control.Exception ( IOException ) 
 import Control.Monad.Catch
 
 import Data.Aeson (eitherDecode)
 import Data.Kind
+import Data.Char
 import Data.ByteString.Lazy qualified as BL
 
 import Extended.Text qualified as T
@@ -49,11 +53,12 @@ import Entity.Draft (Draft)
 import Entity.Category (Category)
 import Entity.Tag (Tag)
 import Entity.User (User)
+import Entity.Picture
 import Postgres.Internal
 
 import Control.Monad.Extra (whenM)
 import qualified Network.HTTP.Types as HTTP
-import App.Types
+
 import Data.String (fromString)
 
 runServer :: IO ()
@@ -61,19 +66,20 @@ runServer = handle handler $ do
     Config{..} <- BL.readFile "config.json" >>= parseOrFail
     connectionDB <- Database.mkConnectionIO @(DB IO) cDatabase
     let logger = Logger.runLogger @IO cLogger
-    whenM (("run_migrations" `elem`) <$> getArgs) $
+    whenM (("migrations" `elem`) <$> getArgs) $
         Database.runMigrations @(DB IO) cDatabase logger
-    Wai.run serverPort $ \req respond -> do
+    Wai.run cPort $ \req respond -> do
         body <- Wai.strictRequestBody req
         ToResponse{..} <- toResponse <$> runRouterWith @Main
             logger 
             connectionDB
             (toPath req) 
             body
+            (T.decodeUtf8 <$> lookup "Content-Type" (Wai.requestHeaders req))
             (toQueryParams $ Wai.queryString req)
             (T.decodeUtf8 <$> lookup "Authorization" (Wai.requestHeaders req))           
-            (Database.cPagSize cDatabase)
-            (Logger.debug $ T.take 500 $ "Recieved request:\n" .< req)
+            Config{..}
+            (Logger.debug $ T.take 1000 $ "Recieved request:\n" .< req)
         respond $ Wai.responseLBS respStatus respHeaders respBody
   where
     handler (e :: IOException) = Sys.die $ show e <> ". Terminating..."
@@ -89,18 +95,20 @@ data ToResponse = ToResponse
 
 responseFromResult :: AppResult -> ToResponse
 responseFromResult = \case
-    ResText t  -> r200text $ BL.fromStrict $ T.encodeUtf8 t
-    ResJSON bl -> r200json bl
-    ResPicture -> error "runRouter picture result"
+    ResText t  -> r200 textHeaders $ BL.fromStrict $ T.encodeUtf8 t
+    ResJSON bl -> r200 jsonHeaders bl
+    ResPicture (Picture contentType pic) -> r200 (pictureHeaders contentType) pic
   where
-    r200text = ToResponse HTTP.status200 
-        [("ContentType","text/plain; charset=utf-8")]
-    r200json = ToResponse HTTP.status200 [("ContentType","application/json")]
-   
+    r200 = ToResponse HTTP.status200 
+    toHeaders x = [("ContentType", x)]
+    textHeaders = toHeaders "text/plain; charset=utf-8"
+    jsonHeaders = toHeaders "application/json"
+    pictureHeaders contentType = toHeaders $ "image/" 
+        <> (fromString $ map toLower $ show contentType)
+
 responseFromError :: AppError -> ToResponse
 responseFromError = \case
-    Err404 path      -> r404 $ T.concat 
-        [serverAddress, "/", T.intercalate "/" (getURL path), " doesn't exists!"]
+    Err404 path      -> r404 $ T.concat (getURL path) <> " doesn't exists!"
     EntityNotFound     t -> r404 t
     AlreadyExists      t -> r409 t
     AccessViolation    t -> r403 t
@@ -119,20 +127,21 @@ data Main :: Type -> Type
 
 instance Routed Main (AppT IO) where
     router = do
-        -- addMiddleware protectedResources
+        addMiddleware protectedResources
         newRouter @User 
         newRouter @Author 
         newRouter @Tag 
         newRouter @Category
         newRouter @Article
         newRouter @Draft
+        newRouter @Picture
         
 instance Routed User (AppT IO) where
     router = do
-        post    "users"                   User.postUser
-        get     "users/me"                User.getMe
+        post    "users"                     User.postUser
+        get     "users/me"                  User.getMe
         delete_ "admin/users/{ID}" 
-        post    "auth"                    User.authUser
+        post    "auth"                      User.authUser
 
 instance Routed Author (AppT IO) where
     router = do
@@ -154,21 +163,26 @@ instance Routed Category (AppT IO) where
     router = do
         post_   "admin/categories"
         get_    "categories"
-        put     "admin/categories/{ID}"   Category.putCategory     
+        put     "admin/categories/{ID}"      Category.putCategory     
         delete_ "admin/categories/{ID}"       
 
 instance Routed Article (AppT IO) where
     router = do
-        get_     "articles"      
+        get      "articles"                  Article.getArticles
         get_     "articles/{ID}"    
-
-        -- publish "drafts/{ID}"             Article.publishDraft
-        -- get     "article/{ID}/pic"        Article.getPic
 
 instance Routed Draft (AppT IO) where
     router = do
-        post    "drafts"                    Draft.postDraft
-        get     "drafts"                    Draft.getDrafts
-        get     "drafts/{ID}"               Draft.getDraft
-        put     "drafts/{ID}"               Draft.putDraft
-        
+        addMiddleware                        Draft.draftAccess
+        post     "drafts"                    Draft.postDraft
+        get      "drafts"                    Draft.getDrafts
+        get_     "drafts/{ID}"              
+        put_     "drafts/{ID}"              
+        delete_  "drafts/{ID}"
+        publish_ "drafts/{ID}"
+
+instance Routed Picture (AppT IO) where
+    router = do
+        post     "pictures"                  Picture.postPicture
+        get      "pictures/{ID}"             Picture.getPicture
+        delete_  "pictures/{ID}"

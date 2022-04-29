@@ -43,15 +43,16 @@ instance
   where
   field = GL.field' @name
 
--- data TU
-
--- data TokenUpdate
---     deriving Data
-
--- type instance Field req TokenUpdate modifiers a =
---     If (Contains TU modifiers)
---        (Maybe a)
---        (Maybe NotUpdated)
+deriving instance 
+    ( Data a
+    , Data (Field 'Required a '[Immutable]                       Text)
+    , Data (Field 'Required a '[Immutable]                       Text)
+    , Data (Field 'Required a '[Immutable, Authfield]            Text)
+    , Data (Field 'Required a '[NotAllowedFromFront, Hidden]     Text)
+    , Data (Field 'Required a '[Immutable, Hidden, Authfield]    Text)
+    , Data (Field 'Required a '[Immutable, NotAllowedFromFront]  Date)
+    , Data (Field 'Required a '[Immutable]                       Bool)
+    ) => Data (User a)
 
 data Authfield
 
@@ -70,13 +71,11 @@ aesonOpts = defaultOptions
 instance FromJSON                             (User (Front Create)) where
     parseJSON = genericParseJSON aesonOpts
 deriving instance Show                        (User Create)
-deriving instance Data                        (User Create)
 deriving instance Postgres.ToRow              (User Create)
 
 -- | Get / Front Display
 deriving instance Eq               (User (Front Display))
 deriving instance Show             (User (Front Display))
-deriving instance Data             (User (Front Display))
 instance ToJSON                    (User (Front Display)) where
     toJSON = genericToJSON aesonOpts
 deriving instance Postgres.FromRow (User (Front Display))
@@ -85,14 +84,11 @@ deriving instance Postgres.FromRow (User (Front Display))
 deriving instance FromJSON         (User Auth)
 deriving instance Eq               (User Display)
 deriving instance Show             (User Display)
-deriving instance Data             (User Display)
 deriving instance Postgres.FromRow (User Display)
 deriving instance EmptyData        (User Update)
-deriving instance Data             (User Update)
 deriving instance Postgres.ToRow   (User Update)
 
--- | Delete
-deriving instance Data             (User Delete)
+
 
 
 

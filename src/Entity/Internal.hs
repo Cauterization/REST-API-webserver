@@ -43,13 +43,13 @@ instance
   where
   field = GL.field' @name
 
-instance (FromJSON (e a), Typeable e) => FromJSON (Entity e a) where
+instance  {-# OVERLAPPABLE #-} (FromJSON (e a), Typeable e) => FromJSON (Entity e a) where
     parseJSON = withObject ("Entity " <> nameOf @e) $ \o -> do
         entityID <- o .: "id"
         entity   <- o .: (nameOf @e)
         pure Entity{..}
 
-instance (ToJSON (e a), Typeable e) => ToJSON (Entity e a) where
+instance {-# OVERLAPPABLE #-} (ToJSON (e a), Typeable e) => ToJSON (Entity e a) where
     toJSON Entity{..} = case toJSON entity of
         Object o -> Object $ HMAP.insert "id" (toJSON entityID) o 
         x -> object ["id" .= entityID, nameOf @e .= x]

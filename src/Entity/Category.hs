@@ -48,16 +48,20 @@ type family CatParent a where
     CatParent Delete          = ()
     CatParent a               = Maybe (ID (Category Display)) -- for tests
 
+deriving instance
+    ( Data a
+    , Data (Field 'Required a '[] (CategoryName a))
+    , Data (Field 'Required a '[] (CatParent a))
+    ) => Data (Category a)
+
 -- | Post / Create
 deriving instance Show                        (Category Create)
-deriving instance Data                        (Category Create)
 deriving instance FromJSON                    (Category (Front Create))
 deriving instance Postgres.ToRow              (Category Create)
 
 
 -- | Get / Front Display
 deriving instance Eq      (Category (Front Display))
-deriving instance Data    (Category (Front Display))
 deriving instance Show    (Category (Front Display))
 instance ToJSON           (Category (Front Display)) where
     toJSON Category{..} = toJSON $ map unCatName $ coerce name : parent
@@ -70,7 +74,6 @@ instance Database.Gettable (Entity Category) (Front Display) where
     getQuery = "SELECT id, last, branch[2:] FROM cat_branches"
 
 -- | Put
-deriving instance Data (Category (Front Update))
 deriving instance FromJSON (Category (Front Update))
 deriving instance Postgres.ToRow (Category (Front Update))
 
@@ -83,11 +86,6 @@ instance Database.Gettable ID (Category (Front Update)) where
         , "WHERE id = ? "
         ]
 
--- | Delete
-deriving instance Data             (Category  Delete)
-
--- | Other
-deriving instance Data (Category Display)
 
 
 -- 

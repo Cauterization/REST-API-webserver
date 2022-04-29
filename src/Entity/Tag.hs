@@ -23,35 +23,28 @@ newtype Tag a = Tag
   { tag :: Field 'Required a '[] Text
   } deriving stock Generic
 
+deriving instance 
+    ( Data a
+    , Data (Field 'Required a '[] Text)
+    ) => Data (Tag a)
+
 -- | Post / Create
 
 deriving anyclass instance FromJSON         (Tag (Front Create))
 deriving instance Show                      (Tag Create)
-deriving instance Data                      (Tag Create)
 deriving anyclass instance Postgres.ToRow   (Tag Create)
 
 -- | Get / Front Display
 
 deriving instance Eq                        (Tag (Front Display))
 deriving instance Show                      (Tag (Front Display))
-deriving instance Data                      (Tag (Front Display))
 deriving anyclass instance ToJSON           (Tag (Front Display))
 deriving anyclass instance Postgres.FromRow (Tag (Front Display))
 
 -- | Update
 
-deriving instance Data                      (Tag (Front Update))
 deriving anyclass instance FromJSON         (Tag (Front Update))
 deriving anyclass instance Postgres.ToRow   (Tag (Front Update))
-
--- | Delete
-
-deriving instance Data                      (Tag  Delete)
-
--- | Other
-
-deriving instance Data (Tag Update)
-
 
 -- deriving instance Show           (Tag Create)
 -- deriving instance Data           (Tag Create)

@@ -1,6 +1,3 @@
--- {-# LANGUAGE NoMonomorphismRestriction #-}
--- {-# LANGUAGE QuantifiedConstraints #-}
-
 module Api.Post where
 
 import Data.Aeson (FromJSON)

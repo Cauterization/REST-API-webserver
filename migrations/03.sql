@@ -27,8 +27,8 @@ CREATE OR REPLACE VIEW drafts_view AS (
         INNER JOIN draft_token  ON draft_token.draft_id = D.id
         INNER JOIN authors_view ON authors_view.author_id = D.author_id
         INNER JOIN cat_branches ON cat_branches.id = D.category_id 
-        LEFT JOIN draft_tag     ON draft_tag.draft_id = D.id
-        LEFT JOIN tags          ON tags.id = draft_tag.tag_id
+        LEFT  JOIN draft_tag    ON draft_tag.draft_id = D.id
+        LEFT  JOIN tags         ON tags.id = draft_tag.tag_id
 
     GROUP BY 
         D.id, D.title, D.created, D.last_update, D.content,

@@ -1,6 +1,7 @@
 module Database.Internal where
 
 import Data.Kind (Type, Constraint)
+import Data.String
 
 import Database.Config
 
@@ -18,7 +19,9 @@ import HKD.HKD
 import Deriving.Aeson (Generic)
 import qualified Database.PostgreSQL.Simple as Postgres
 
-class IsDatabase db where
+type QConstraints db = (IsString (QueryOf db), Monoid (QueryOf db), Show (QueryOf db))
+
+class QConstraints db => IsDatabase db where
 
     type QueryOf db       :: Type
     type ToRowOf db q     :: Constraint
@@ -65,3 +68,12 @@ getSingle = \case
 withPluralEnding :: String -> String
 withPluralEnding s | "y" `isInfixOf` s = init s <> "ies"
                    | otherwise = s <> "s"
+
+qmarks :: IsString s => Int -> s
+qmarks n = fromString $ ("(" <>) $ (<> ")") $ intercalate ", " $ replicate n "?"
+
+addWhere :: QConstraints db => QueryOf db -> QueryOf db -> QueryOf db
+addWhere addition q = if "WHERE" `elem` words (show q)
+                      then q <> " AND " <> addition 
+                      else q <> " WHERE " <> addition
+

@@ -22,7 +22,7 @@ type Page = Int
 type Date = Time.Day
 type PaginationSize = Int
 type Token = Text
-
+type ContentType = Text
 
 newtype ID e = ID { idVal :: Int }
   deriving stock (Generic, Data)

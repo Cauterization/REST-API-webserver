@@ -31,8 +31,10 @@ library
       Api.Delete
       Api.Draft
       Api.Get
+      Api.Picture
       Api.Post
       Api.ProtectedResources
+      Api.Publish
       Api.Put
       Api.User
       App.App
@@ -40,6 +42,7 @@ library
       App.Internal
       App.QueryParams
       App.Result
+      App.ResultJSON
       App.Router
       App.Types
       Database.Config
@@ -50,7 +53,6 @@ library
       Database.Internal
       Database.Post
       Database.Put
-      Database.Query
       Entity.Article
       Entity.Author
       Entity.Category
@@ -84,6 +86,7 @@ library
       DataKinds
       DefaultSignatures
       DeriveAnyClass
+      DeriveDataTypeable
       DeriveFunctor
       DeriveGeneric
       DerivingStrategies
@@ -132,6 +135,7 @@ library
     , text
     , time
     , unordered-containers
+    , vector
     , wai
     , wai-extra
     , warp
@@ -149,6 +153,7 @@ executable server-exe
       DataKinds
       DefaultSignatures
       DeriveAnyClass
+      DeriveDataTypeable
       DeriveFunctor
       DeriveGeneric
       DerivingStrategies
@@ -198,6 +203,7 @@ executable server-exe
     , text
     , time
     , unordered-containers
+    , vector
     , wai
     , wai-extra
     , warp
@@ -237,6 +243,7 @@ test-suite server-test
       DataKinds
       DefaultSignatures
       DeriveAnyClass
+      DeriveDataTypeable
       DeriveFunctor
       DeriveGeneric
       DerivingStrategies
@@ -287,6 +294,7 @@ test-suite server-test
     , text
     , time
     , unordered-containers
+    , vector
     , wai
     , wai-extra
     , warp

@@ -1,112 +1,71 @@
+{-# LANGUAGE ViewPatterns #-}
+
 module Api.Article where
 
--- import Control.Monad.Catch
--- import Control.Monad.Writer
--- import Crypto.Hash qualified as Crypto
+import Api.User qualified as User
 
+import Control.Monad.Reader
+import Crypto.Hash qualified as Crypto
 
--- import HKD.HKD
+import Control.Lens
 
--- import Extended.Text (Text)
--- import Extended.Text qualified as T
--- import Entity.Author
--- import Entity.Internal
--- import App.Router
--- import App.Internal
--- import App.Types
--- import App.Result
--- import Entity.Article
+import Data.Maybe
+import Data.List
+import Data.Char
 
--- import Database.Database qualified as Database
--- import Database.Database (Database)
--- import Logger qualified
--- import Logger ((.<))
--- import Data.Coerce
--- import Data.String (IsString(fromString))
+import HKD.HKD
 
--- getArticles :: forall m. 
---     ( Application m
---     , Gettable m Article (Front Display)
---     , Database.ToRowOf (Database m) [Page]
---     ) => Endpoint m
--- getArticles _ = do
---     Logger.info "Attempt to get articles"
---     page <- getPage
---     json =<< Database.getManyEntitiesWith @Article @(Front Display) 
---         (<> " WHERE published = true")
---         page
+import Extended.Text (Text)
+import Extended.Text qualified as T
+import Entity.Author
+import Entity.User
+import Entity.Internal
+import Entity.Tag
+import Entity.Picture
+import App.Router
+import App.Internal
+import App.Types
+import App.Result
+import App.ResultJSON
+import Api.Get
+import Api.Post
+import Api.Put
+import Api.User
+import Entity.Article
+import Entity.Draft
 
--- getArticle :: forall m. 
---     ( Application m
---     , Gettable m Article (Front Display)
---     , Database.ToRowOf (Database m) (ID (Article (Front Display)))
---     ) => Endpoint m
--- getArticle [aID] = do
---     Logger.info "Attempt to get articles"
---     json =<< (Database.getEntitiesWith @Article @(Front Display) 
---         (coerce @_ @(ID (Article (Front Display))) aID) 
---         (<> " WHERE published = true AND id = ?") 
---         >>= Database.getSingle )
--- getArticle _ = entityIDArityMissmatch "get article api"
+import Database.Database qualified as Database
+import Database.Database (Database)
+import Logger qualified
+import Logger ((.<))
+import Data.Coerce
+import Data.Aeson qualified as A
+import Data.String (IsString(fromString))
+import Control.Monad.Catch
 
+getArticles :: forall m.
+    ( Application m
+    , Gettable m (Entity Article) (Front Display)
+    ) => Endpoint m
+getArticles _ = do
+    Logger.info "Attempt to get articles"
+    filters  <- getFilters @(Entity Article) @(Front Display)
+    ordering <- getParam "sort"
+    json =<< Database.getEntitiesWith @(Entity Article) @(Front Display)
+        filters
+        (const $ articlesGetQuery $ maybe "" applyOrder ordering)
 
-
--- postDraft :: forall m.
---     ( Application m
---     , Database.GettableFrom (Database m) (Entity Author) Display
---     , Database.PostableTo   (Database m) Article
---     , Database.ToRowOf (Database m) [Token]
---     , Database.ToRowOf (Database m) (Article Create)
---     , Database.FromRowOf (Database m) (ID (Article Create))
---     ) => Endpoint m
--- postDraft _ = do
---     Logger.info "Attempt to post draft"
---     token      <- getToken
---     now        <- getCurrentDate 
---     Entity{..} <- Database.getEntitiesWith @(Entity Author) @Display @m [token]
---         (<> " WHERE token = ? ") >>= Database.getSingle
---     Article{..} <- decodedBody @(Article (Front Create))
---     let article = Article
---             { created = now
---             , author = coerce entityID
---             , category = coerce category 
---             , tags = coerce tags
---             , ..}
---     articleID <- Database.postEntityWith id article
---     text articleID
-
--- putDraft :: forall m.
---     ( Application m
---     , Puttable m (Entity Article) (Front Update)
---     ) => Endpoint m
--- putDraft [dID] = do
---     a@Article{..} <- decodedBody @(Article (Front Update))
---     Database.putEntity $ Entity (coerce dID) a
---     text "Successfuly updated."
--- putDraft _ = entityIDArityMissmatch "put draft"
-
--- publishDraft :: forall m.
---     ( Application m
---     , Database.GettableFrom (Database m) (Entity Author) Display
---     , Database.ToRowOf   (Database m) [Token]
---     , Database.ToRowOf   (Database m) (Entity Article Publish)
---     , Database.FromRowOf (Database m) (ID (Entity Article Publish))
---     ) => Endpoint m
--- publishDraft [draftID]= do
---     token <- getToken
---     now <- getCurrentDate
---     Entity{..} <- Database.getEntitiesWith @(Entity Author) @Display @m [token]
---         (<> " WHERE token = ? ") >>= Database.getSingle
---     let q = fromString publishQuery
---     text <=< Database.publish @(Entity Article) @m @Publish q $
---         Entity (coerce draftID) Article
---             { author   = coerce entityID
---             , created  = now 
---             , title    = Nothing 
---             , content  = Nothing 
---             , category = Nothing 
---             , tags     = Nothing 
---             }
--- publishDraft _ = entityIDArityMissmatch "publish draft"
-
+applyOrder :: IsString s => Text -> s
+applyOrder (T.break (== ',') -> (field, direction)) 
+    = fromString $  "ORDER BY " <> fieldOrder <> " " <> directionOrder
+  where
+    fieldOrder = case T.map toLower field of
+        "date"     -> "created"
+        "author"   -> "login"
+        "category" -> "category[1]" 
+        "photos"   -> "array_length(pics,1)"
+        _          -> "id"
+    directionOrder = case T.map toLower direction of
+        ",desc"     -> "DESC"
+        _          -> ""
 

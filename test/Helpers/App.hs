@@ -178,6 +178,4 @@ instance HasDatabase (AppT TestMonad) where
 
     getDatabaseConnection = pure ()
 
-    getPaginationSize = asks envPagination
-
 

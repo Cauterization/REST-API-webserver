@@ -17,6 +17,7 @@ import Logger qualified
 import App.Result
 import App.Router
 import App.Types
+import App.Internal
 
 import HKD.HKD
 
@@ -30,8 +31,7 @@ type Deletable m e =
 delete_ ::  forall (e :: Type -> Type) (m :: Type -> Type). 
     ( Application m
     , Deletable m e 
-    ) =>
-    Text -> Router e m ()
+    ) => Text -> Router e m ()
 delete_ p = delete p (deleteEntity @e)
 
 deleteEntity :: forall (e :: Type -> Type) (m :: Type -> Type). 

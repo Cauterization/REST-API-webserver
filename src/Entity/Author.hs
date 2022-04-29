@@ -38,20 +38,24 @@ instance
   where
   field = GL.field' @name
 
--- | Post / Create
+deriving instance 
+    ( Data a
+    , Data (Field 'Required a '[Immutable] (EntityOrID User a))
+    , Data (Field 'Required a '[]          Text)
+    ) => Data (Author a)
+
+-- | Post 
 
 deriving instance FromJSON       (Author (Front Create))
 deriving instance Show           (Author Create)
-deriving instance Data           (Author Create)
 deriving instance Postgres.ToRow (Author Create)
 instance Database.Postable        Author Create where
-    postQuery = " INSERT INTO authors (user_id, description) VALUES (?,?)"
+    postQuery = "INSERT INTO authors (user_id, description) VALUES (?,?)"
 
--- | Get / Front Display
+-- | Get 
 
 deriving instance Eq      (Author (Front Display))
 deriving instance Show    (Author (Front Display))
-deriving instance Data    (Author (Front Display))
 deriving instance ToJSON  (Author (Front Display))
 instance Postgres.FromRow (Author (Front Display)) where
     fromRow =  do
@@ -72,7 +76,6 @@ instance Database.Gettable (Entity Author) (Front Display) where
 -- | Put
 
 deriving instance FromJSON (Author (Front Update))
-deriving instance Data (Author (Front Update))
 deriving instance Postgres.ToRow (Author (Front Update))
 instance Database.Puttable (Entity Author (Front Update)) where
 
@@ -85,7 +88,7 @@ instance Database.Puttable (Entity Author (Front Update)) where
 
 -- | Delete
 
-deriving instance Data             (Author  Delete)
+-- deriving instance Data             (Author  Delete)
 
 -- deriving instance FromJSON  (Author (Front Create))
 -- deriving instance Postgres.ToRow (Author Create)

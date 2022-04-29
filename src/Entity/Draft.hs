@@ -36,32 +36,29 @@ import Data.String (IsString(..))
 
 newtype Draft a = Draft {unDraft :: Article a}
 
+deriving instance (Data a, Data (Article a)) => Data (Draft a)
+
+
 -- | Post
 
-deriving instance Generic                             (Draft (Front Create))
 deriving newtype instance FromJSON                    (Draft (Front Create))
 deriving instance Show                                (Draft Create)
-deriving instance Data                                (Draft Create)
 deriving via (Article Create) instance Postgres.ToRow (Draft Create) 
 instance Database.Postable                             Draft Create where
-    postQuery = "SELECT post_draft " <> Database.qmarkFields @Article @Create
+    postQuery = "SELECT post_draft " <> Database.qmarkFields @(Article Create)
 
 -- | Get
+
 deriving instance Eq                                  (Draft (Front Display))
-deriving instance Data                                (Draft (Front Display))
 deriving instance Show                                (Draft (Front Display))
-deriving instance Generic                             (Draft (Front Display))
-instance {-# OVERLAPPING #-} ToJSON            (Entity Draft (Front Display)) where
-    toJSON Entity{entity = Draft a, ..} 
-        = toJSON Entity{entity = a, entityID = coerce entityID}
+
 instance Postgres.FromRow                             (Draft (Front Display)) where
     fromRow = Draft <$> Postgres.fromRow
 instance Database.Gettable                    (Entity Draft) (Front Display) where
     getQuery = articleGetQuery <> " WHERE NOT published "
 
 -- | Put
-deriving instance Generic  (Draft (Front Update))
-deriving instance Data     (Draft (Front Update))
+
 deriving newtype instance FromJSON (Draft (Front Update))
 
 instance Postgres.ToRow (Entity Draft (Front Update)) where
@@ -69,21 +66,37 @@ instance Postgres.ToRow (Entity Draft (Front Update)) where
         = Postgres.toRow (title, content, category, tags, pics, draftID, draftID) 
 
 -- | Last query here preventing entity not found error due to procedure execution
+-- (execute with procedure dosn't returns number of affected rows)
 instance Database.Puttable (Entity Draft (Front Update)) where
     putQuery = mconcat
         [ "CALL put_draft"
-        , "("
-        , "? :: TEXT,"
-        , "? :: TEXT,"
-        , "? :: INTEGER,"
-        , "? :: INTEGER [],"
-        , "? :: INTEGER [],"
-        , "? :: INTEGER"
-        , "); "
+        , "(?,?,?,?::INTEGER [], ?::INTEGER [], ?); "
         , "UPDATE articles SET title = title WHERE id = ?"
         ]
 
+-- | Delete
+instance Database.Deletable Draft Delete where
+    deleteQuery = Database.deleteQuery @Article @Delete
 
+-- | Publish
+deriving newtype instance EmptyData (Draft Publish) 
+
+instance Postgres.ToRow (Entity Draft Publish) where
+    toRow Entity{..} = Postgres.toRow entityID
+
+instance Database.Puttable (Entity Draft Publish) where
+    putQuery = "UPDATE articles SET published = true WHERE id = ?"
+
+
+-- deriving via (Entity Article) Delete instance Database.Deletable (Entity Draft) Delete
+
+-- instance Database.Deletable Draft Delete where
+--     deleteQuery = "ASD"
+
+
+{-
+>>> Database.deleteQuery @Draft @Delete
+-}
 
 {-
 >>> Database.putQuery @(Entity Article (Front Update))
@@ -160,3 +173,5 @@ instance Database.Puttable (Entity Draft (Front Update)) where
 
 -- fieldToCoalesce :: (Semigroup a, IsString a) => a -> a
 -- fieldToCoalesce str =  str <> " = COALESCE (?, " <> str <> ")"
+
+
