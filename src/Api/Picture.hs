@@ -9,6 +9,7 @@ import Control.Lens
 
 import Data.Maybe
 import Data.List
+import Data.Char
 
 import HKD.HKD
 
@@ -47,7 +48,6 @@ postPicture _ = do
     Logger.info "Attempt to post picture."
     body       <- asks envBody
     conentType <- asks envContentType >>= maybe err parseFormat
-    Logger.error $ T.show conentType
     text =<< Database.postEntity (Picture conentType body)
   where
     err = throwM $ RequestHeadersErr "No content-type header."
@@ -62,8 +62,8 @@ getPicture [pictureID] = do
 getPicture _ = entityIDArityMissmatch $ "getPicture"
 
 parseFormat :: Application m => Text -> m PictureFormat
-parseFormat t = case T.stripPrefix "image/" t of
-    Nothing     -> throwM $ RequestHeadersErr "Wrong content-type."
+parseFormat t = case T.stripPrefix "image/" $ T.map toLower t of
+    Nothing     -> throwM $ RequestHeadersErr $ "Wrong content-type(" <> t <> ")" 
     Just "jpeg" -> pure JPEG
     Just "png"  -> pure PNG
     Just "gif"  -> pure GIF

@@ -38,7 +38,7 @@ data Category a = Category
   } deriving stock Generic
 
 newtype CategoryName a = CategoryName {unCatName :: Text}
-    deriving newtype (Show, IsString, FromJSON, ToJSON, Eq, Postgres.ToField, Postgres.FromField)
+    deriving newtype (Show, IsString, FromJSON, ToJSON, Eq, Ord, Postgres.ToField, Postgres.FromField)
     deriving stock Data
 
 type family CatParent a where
@@ -54,15 +54,22 @@ deriving instance
     , Data (Field 'Required a '[] (CatParent a))
     ) => Data (Category a)
 
+deriving instance
+    ( Show (Field 'Required a '[] (CategoryName a))
+    , Show (Field 'Required a '[] (CatParent a))
+    ) => Show (Category a)
+
+deriving instance
+    ( Eq (Field 'Required a '[] (CategoryName a))
+    , Eq (Field 'Required a '[] (CatParent a))
+    ) => Eq (Category a)
+
 -- | Post / Create
-deriving instance Show                        (Category Create)
 deriving instance FromJSON                    (Category (Front Create))
 deriving instance Postgres.ToRow              (Category Create)
 
 
 -- | Get / Front Display
-deriving instance Eq      (Category (Front Display))
-deriving instance Show    (Category (Front Display))
 instance ToJSON           (Category (Front Display)) where
     toJSON Category{..} = toJSON $ map unCatName $ coerce name : parent
 instance Postgres.FromRow (Category (Front Display)) where

@@ -57,7 +57,6 @@ instance Arbitrary       (Author (Front Update)) where
 
 -- deriving instance ToJSON (Author (Front Create))
 
-deriving instance Eq        (Author (Front Display))
 deriving instance Ord       (Author (Front Display))
 -- deriving instance FromJSON  (Author (Front Display))
 

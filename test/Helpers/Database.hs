@@ -19,8 +19,11 @@ import Data.Time qualified as Time
 import Database.Database
 
 import Entity.Author
+import Entity.Article
 import Entity.Category
+import Entity.Draft
 import Entity.Tag
+import Entity.Picture
 import Entity.User
 import Entity.Internal
 import Extended.Text (Text)
@@ -137,6 +140,9 @@ type family ToDisplay q where
     ToDisplay (Author   a)        = Author   Display
     ToDisplay (Tag      a)        = Tag      Display
     ToDisplay (Category a)        = Category Display
+    ToDisplay (Article  a)        = Article  Display
+    ToDisplay (Draft    a)        = Draft    Display
+    ToDisplay (Picture  a)        = Picture  Display
     ToDisplay (Entity e a)        = e        Display
     ToDisplay [EntityFilterParam] = [EntityFilterParam]
     ToDisplay [Token]             = [Token]
@@ -206,6 +212,12 @@ instance TestEntity [ID (Category Delete)] where
         keys <- IM.keys <$> gets _tsCatDB
         modify $ tsCatDB %~ IM.delete uID
         pure $ if uID `elem` keys then 1 else 0
+
+instance TestEntity [ID (Picture Delete)] where
+    deleteEntityWithThisIDs [ID pID] = do
+        keys <- IM.keys <$> gets _tsPictureDB
+        modify $ tsPictureDB %~ IM.delete pID
+        pure $ if pID `elem` keys then 1 else 0
 -- instance 
 --     postToDatabase :: forall e. 
 --         ( ToRowOf TestDB e

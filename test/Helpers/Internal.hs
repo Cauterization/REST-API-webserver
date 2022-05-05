@@ -2,9 +2,12 @@ module Helpers.Internal where
 
 import App.Types
 import App.Internal
+import App.Config
 import Data.Aeson
 import Data.Time qualified as Time
 import Data.Char
+import Data.ByteString.Lazy qualified as LB
+import Database.Database qualified as Database
 
 import Entity.Internal
 import Extended.Text (Text)
@@ -14,6 +17,11 @@ import HKD.HKD
 
 import Test.QuickCheck
 import Control.Monad (replicateM)
+
+testConfig :: Config
+testConfig = 
+    let dbConfig = Database.Config{cPagSize = testPaginationConstant}
+    in Config{cDatabase = dbConfig}
 
 testPaginationConstant :: PaginationSize
 testPaginationConstant = 20
@@ -44,7 +52,11 @@ isWrongPasswordError :: AppError -> Bool
 isWrongPasswordError WrongPassword{} = True
 isWrongPasswordError _               = False
 
-deriving instance Eq (e a) => Eq  (Entity e a)
+isRequestHeadersError :: AppError -> Bool
+isRequestHeadersError RequestHeadersErr{} = True
+isRequestHeadersError _                   = False
+
+
 deriving instance Ord (e a) => Ord (Entity e a)
 
 instance Arbitrary (ID e) where
@@ -52,6 +64,9 @@ instance Arbitrary (ID e) where
 
 instance Arbitrary Text where
     arbitrary = T.pack <$> arbitrary
+
+instance Arbitrary LB.ByteString where
+    arbitrary = LB.pack <$> arbitrary
 
 instance Arbitrary Date where
     arbitrary = toEnum <$> arbitrary
@@ -72,7 +87,6 @@ instance Arbitrary (e Display) => Arbitrary (Entity e Display) where
         entity   <- arbitrary
         pure Entity{..}
 
-deriving instance Eq       NotDisplayed
 deriving instance Ord      NotDisplayed
 instance {-# OVERLAPPING #-} FromJSON (Maybe NotDisplayed) where
     parseJSON _ = pure Nothing

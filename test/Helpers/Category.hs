@@ -15,15 +15,17 @@ import Helpers.Internal
 
 import Test.QuickCheck
 
-deriving instance Ord  (CategoryName a)
+deriving instance
+    ( Ord (Field 'Required a '[] (CategoryName a))
+    , Ord (Field 'Required a '[] (CatParent a))
+    ) => Ord (Category a)
+
 instance Arbitrary     (CategoryName a) where
     arbitrary = CategoryName <$> arbitrary
 
 -- | Post
 
 -- deriving instance Show (Category Create)
-deriving instance Eq     (Category Create)
-deriving instance Ord    (Category Create)
 deriving instance ToJSON (Category Create)
 
 instance Arbitrary (Category Create) where
@@ -31,9 +33,6 @@ instance Arbitrary (Category Create) where
 
 deriving instance ToJSON   (Category (Front Create))
 
-deriving instance Show (Category Display)
-deriving instance Eq   (Category Display)
-deriving instance Ord  (Category Display)
 
 instance Arbitrary (Category Display) where
     arbitrary = Category <$> arbitrary <*> arbitrary

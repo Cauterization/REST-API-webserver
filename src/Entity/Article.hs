@@ -55,14 +55,31 @@ deriving instance
     , Data (Field 'Required a '[] [ID (Picture a)])
     ) => Data (Article a)
 
+deriving instance 
+    ( Show (Field 'Required a '[]                               Text)
+    , Show (Field 'Required a '[NotAllowedFromFront, Immutable] Date)
+    , Show (Field 'Required a '[]                               Text)
+    , Show (Field 'Required a '[NotAllowedFromFront, Immutable] (EntityOrID Author a))
+    , Show (Field 'Required a '[]                               (EntityOrID Category a))
+    , Show (Field 'Required a '[]                               [EntityOrID Tag a])
+    , Show (Field 'Required a '[] [ID (Picture a)])
+    ) => Show (Article a)
+
+deriving instance 
+    ( Eq (Field 'Required a '[]                               Text)
+    , Eq (Field 'Required a '[NotAllowedFromFront, Immutable] Date)
+    , Eq (Field 'Required a '[]                               Text)
+    , Eq (Field 'Required a '[NotAllowedFromFront, Immutable] (EntityOrID Author a))
+    , Eq (Field 'Required a '[]                               (EntityOrID Category a))
+    , Eq (Field 'Required a '[]                               [EntityOrID Tag a])
+    , Eq (Field 'Required a '[] [ID (Picture a)])
+    ) => Eq (Article a)
+
 -- | Post
 deriving instance FromJSON       (Article (Front Create))
-deriving instance Show           (Article Create)
 deriving instance Postgres.ToRow (Article Create)
 
 -- | Get / Front Display
-deriving instance Eq      (Article (Front Display))
-deriving instance Show    (Article (Front Display))
 
 instance Postgres.FromRow (Article (Front Display)) where
     fromRow = do

@@ -68,7 +68,6 @@ instance Arbitrary       (User (Front Create)) where
 
 -- deriving instance ToJSON (User (Front Create))
 
-deriving instance Eq       (User Display)
 deriving instance Ord      (User Display)
 -- deriving instance ToJSON   (User Display)
 -- instance FromJSON (User Display) where
@@ -89,7 +88,6 @@ instance Arbitrary         (User Display) where
 
 -- instance FromJSON (Entity (User ))
 
-deriving instance Eq       (User (Front Display))
 deriving instance Ord      (User (Front Display))
 
 -- instance FromJSON (User (Front Display)) where

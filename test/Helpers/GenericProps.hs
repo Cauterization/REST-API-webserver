@@ -13,6 +13,7 @@ import Extended.Text qualified as T
 
 import App.Types
 import App.Result
+import App.ResultJSON
 import App.Internal hiding (decode)
 
 import HKD.HKD
@@ -160,6 +161,22 @@ propGetEntity path db (ID eID) = property $ eID `elem` IM.keys db ==> do
         Right (ResJSON j) -> j `shouldBe` 
             encode ((\(Just e) -> Entity (ID eID) (fromDisplay @(e (Front Display)) e)) 
                 $ IM.lookup eID db)
+  where
+    withPath = withGetPath $ path <> "/" <> T.show eID
+
+propGetEntity' :: forall (e :: Type -> Type).
+    ( GPropsConstr e (Front Display)
+    , ToJSONResult (Entity e (Front Display))
+    ) => Text -> TDB e -> ID (e Display) -> Property
+propGetEntity' path db (ID eID) = property $ eID `elem` IM.keys db ==> do
+    res <- evalTest withPath (withDatabase @e db)
+    case res of
+        Left err -> error $ show err
+        Right (ResJSON j) -> do
+            let Right x = runTestMonadNoMods $ toJSONResult @(Entity e (Front Display)) ((\(Just e) -> Entity (ID eID) (fromDisplay @(e (Front Display)) e)) 
+                    $ IM.lookup eID db)
+            j `shouldBe` encode x
+            
   where
     withPath = withGetPath $ path <> "/" <> T.show eID
 

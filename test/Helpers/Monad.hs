@@ -17,7 +17,10 @@ import Control.Lens
 import Data.IntMap qualified as IM
 import Database.Database
 import Entity.Author
+import Entity.Article
+import Entity.Draft
 import Entity.Category
+import Entity.Picture
 import Entity.Tag
 import Entity.User
 import Entity.Internal
@@ -79,15 +82,13 @@ data TestState = TestState
     , _tsAuthorDB         :: TDB Author
     , _tsTagDB            :: TDB Tag
     , _tsCatDB            :: TDB Category
-    -- , tagDB            :: EMap (Tag      Display)
-    -- , catDB            :: EMap (Category Display)
+    , _tsArticleDB        :: TDB Article
+    , _tsDraftDB          :: TDB Draft
+    , _tsPictureDB        :: TDB Picture
     , _tsIDs              :: [Int]
     , _tsGetFilters       :: [EntityFilterParam]
-    -- , tsPage           :: Int
-    -- , tsPaginationSize :: Int
     , _tsToken            :: Maybe Token
     , _tsUserLogin        :: Text
-    -- , tsUserPass       :: Maybe Text
     } deriving Show
 makeLenses ''TestState
 
@@ -97,34 +98,13 @@ initialState = TestState
     , _tsAuthorDB         = IM.empty
     , _tsTagDB            = IM.empty
     , _tsCatDB            = IM.empty
+    , _tsArticleDB        = IM.empty
+    , _tsDraftDB          = IM.empty
+    , _tsPictureDB        = IM.empty
     , _tsIDs              = []
     , _tsGetFilters       = []
-    -- , authorDB         = M.empty
-    -- , tagDB            = M.empty
-    -- , catDB            = M.empty
-    -- , ids              = []
-    -- , tsPage           = 1
-    -- , tsPaginationSize = testPaginationConstant
     , _tsToken            = Nothing
-    -- , tsUserLogin      = Nothing
-    -- , tsUserPass       = Nothing
     }
-
--- deleteAllEntitiesWithID :: ID (Path Current) -> TestMonad Integer
--- deleteAllEntitiesWithID eID = do
---     TestState{..} <- State.get
---     let u = maybe 0 (const 1) $ M.lookup (coerce eID) userDB
---         a = maybe 0 (const 1) $ M.lookup (coerce eID) authorDB
---         t = maybe 0 (const 1) $ M.lookup (coerce eID) tagDB
---         c = maybe 0 (const 1) $ M.lookup (coerce eID) catDB
---     put $ TestState
---         { userDB   = M.delete (coerce eID) userDB
---         , authorDB = M.delete (coerce eID) authorDB
---         , tagDB    = M.delete (coerce eID) tagDB
---         , catDB    = M.delete (coerce eID) catDB
---         , ..
---         }
---     pure $ u + a + t + c
 
 instance MonadFail TestMonad where
     fail = error

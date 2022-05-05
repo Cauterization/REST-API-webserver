@@ -37,12 +37,12 @@ import Data.String (IsString(..))
 newtype Draft a = Draft {unDraft :: Article a}
 
 deriving instance (Data a, Data (Article a)) => Data (Draft a)
+deriving instance         (Show (Article a)) => Show (Draft a)
 
 
 -- | Post
 
 deriving newtype instance FromJSON                    (Draft (Front Create))
-deriving instance Show                                (Draft Create)
 deriving via (Article Create) instance Postgres.ToRow (Draft Create) 
 instance Database.Postable                             Draft Create where
     postQuery = "SELECT post_draft " <> Database.qmarkFields @(Article Create)
@@ -50,7 +50,6 @@ instance Database.Postable                             Draft Create where
 -- | Get
 
 deriving instance Eq                                  (Draft (Front Display))
-deriving instance Show                                (Draft (Front Display))
 
 instance Postgres.FromRow                             (Draft (Front Display)) where
     fromRow = Draft <$> Postgres.fromRow

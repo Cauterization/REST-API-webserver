@@ -213,13 +213,17 @@ test-suite server-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Api.ArticleSpec
       Api.AuthorSpec
       Api.CategorySpec
+      Api.PictureSpec
       Api.TagSpec
       Api.UserSpec
       App.TypesSpec
       Entity.InternalSpec
       Helpers.App
+      Helpers.Article
+      Helpers.ArticleDB
       Helpers.Author
       Helpers.AuthorDB
       Helpers.Category
@@ -229,6 +233,8 @@ test-suite server-test
       Helpers.GenericProps
       Helpers.Internal
       Helpers.Monad
+      Helpers.Picture
+      Helpers.PictureDB
       Helpers.Tag
       Helpers.TagDB
       Helpers.User

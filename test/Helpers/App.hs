@@ -3,6 +3,7 @@ module Helpers.App where
 import Api.Author   qualified as Author
 import Api.Category qualified as Category
 import Api.User     qualified as User
+import Api.Picture  qualified as Picture
 import Api.Post
 import Api.Put
 import Api.Delete
@@ -11,9 +12,6 @@ import App.Internal
 import App.Result
 import App.Router
 import App.Types
-
-
-
 
 import Control.Monad.Catch
 import Control.Monad.Except
@@ -29,9 +27,11 @@ import Database.Database
 
 import Entity.Internal
 import Entity.Author
+import Entity.Article
 import Entity.Category
 import Entity.Tag
 import Entity.User
+import Entity.Picture
 
 import Extended.Text (Text)
 import Extended.Text qualified as T
@@ -42,10 +42,13 @@ import Helpers.Database
 import Helpers.Monad
 import Helpers.Author
 import Helpers.AuthorDB
+import Helpers.Article
+import Helpers.ArticleDB
 import Helpers.CategoryDB
 import Helpers.TagDB
 import Helpers.User
 import Helpers.UserDB
+import Helpers.PictureDB
 import Helpers.Internal
 
 import Test.Hspec
@@ -75,37 +78,49 @@ runTestMonad ::
 runTestMonad eMod sMod f = flip f (sMod initialState)
     $ runWriterT $ runExceptT $ unTestM $ runRouterTest eMod
 
+runTestMonadNoMods :: AppT TestMonad x -> Either AppError x
+runTestMonadNoMods = fst 
+                   . flip evalState initialState 
+                   . runWriterT 
+                   . runExceptT 
+                   . unTestM 
+                   . flip runReaderT defaultEnv 
+                   . unApp
+
 runRouterTest :: EnvMod -> TestMonad AppResult
 runRouterTest f = let Env{..} = f defaultEnv in either throwError pure =<< 
     runRouterWith @Main
         envLogger 
         envConn 
         envPath 
-        envBody 
+        envBody
+        envContentType 
         envQParams 
         envToken 
-        envPagination 
+        envConfig
         (pure ())
 
-instance Routed Main TestDB where
+instance Routed Main (AppT TestMonad) where
     router = do
         -- addMiddleware protectedResources
         newRouter @User 
         newRouter @Author 
         newRouter @Tag 
         newRouter @Category
+        newRouter @Article
+        newRouter @Picture
 
 -- | Note that urls listed here doesn't have an "admin" prefix
 --   coz we have separated tests for protected content
 
-instance Routed User TestDB where
+instance Routed User (AppT TestMonad) where
     router = do
         post    "users"              User.postUser
-        get     "users/me"           User.getCurrentUser
+        get     "users/me"           User.getMe
         delete_ "users/{ID}" 
         post    "auth"               User.authUser
 
-instance Routed Author TestDB where
+instance Routed Author (AppT TestMonad) where
     router = do
         post_   "authors"            
         get_    "authors"          
@@ -113,7 +128,7 @@ instance Routed Author TestDB where
         put_    "authors/{ID}"     
         delete_ "authors/{ID}"  
 
-instance Routed Tag TestDB where
+instance Routed Tag (AppT TestMonad) where
     router = do
         post_   "tags"       
         get_    "tags"    
@@ -121,7 +136,7 @@ instance Routed Tag TestDB where
         put_    "tags/{ID}"
         delete_ "tags/{ID}"
 
-instance Routed Category TestDB where
+instance Routed Category (AppT TestMonad) where
     router = do
         post_   "categories"
         -- get_    "categories"
@@ -129,15 +144,36 @@ instance Routed Category TestDB where
         -- put     "categories/{ID}" Category.putCategory     
         delete_ "categories/{ID}"       
 
+instance Routed Article (AppT TestMonad) where
+    router = do
+        -- get      "articles"                  Article.getArticles
+        get_     "articles/{ID}"    
+
+-- instance Routed Draft (AppT IO) where
+--     router = do
+--         addMiddleware                        Draft.draftAccess
+--         post     "drafts"                    Draft.postDraft
+--         get      "drafts"                    Draft.getDrafts
+--         get_     "drafts/{ID}"              
+--         put_     "drafts/{ID}"              
+--         delete_  "drafts/{ID}"
+--         publish_ "drafts/{ID}"
+
+instance Routed Picture (AppT TestMonad) where
+    router = do
+        post     "pictures"                  Picture.postPicture
+        get      "pictures/{ID}"             Picture.getPicture
+        delete_  "pictures/{ID}"
+
 defaultEnv :: Env TestMonad
 defaultEnv  = Env 
-    { envLogger     = \v t -> when (v >= Logger.Warning) $ tell [(v, t)]
-    , envConn       = ()
-    , envPagination = testPaginationConstant
-    , envPath       = error "envPath"
-    , envBody       = ""
-    , envQParams    = M.empty
-    , envToken      = Nothing
+    { envLogger  = \v t -> when (v >= Logger.Warning) $ tell [(v, t)]
+    , envConn    = ()
+    , envConfig  = testConfig
+    , envPath    = error "envPath"
+    , envBody    = ""
+    , envQParams = M.empty
+    , envToken   = Nothing
     } 
 
 type EnvMod = Env TestMonad -> Env TestMonad
@@ -169,6 +205,9 @@ withToken t Env{..} = Env{envToken = Just t, ..}
 
 woLogger :: EnvMod
 woLogger Env{..} = Env{envLogger = const . const $ pure (), ..}
+
+withContentType :: ContentType -> EnvMod
+withContentType ct Env{..} = Env{envContentType = Just ct, ..}
 
 instance HasDatabase (AppT TestMonad) where
 

@@ -33,11 +33,11 @@ instance {-# OVERLAPPABLE #-} ToJSON a => ToJSONResult a where
 instance {-# OVERLAPPABLE #-} ToJSONResult a => ToJSONResult [a] where
     toJSONResult = fmap (Array . Vector.fromList) . mapM toJSONResult
 
-instance ToJSONResult (Entity Draft (Front Display)) where
+instance {-# OVERLAPPING #-} ToJSONResult (Entity Draft (Front Display)) where
     toJSONResult Entity{entity = Draft a, ..} 
         = toJSONResult Entity{entity = a, entityID = coerce entityID}
 
-instance ToJSONResult (Entity Article (Front Display)) where
+instance {-# OVERLAPPING #-} ToJSONResult (Entity Article (Front Display)) where
     toJSONResult Entity{entityID = entityID, entity = Article{..}} = do
         serverAddress <- getServerAddress
         pure $ object

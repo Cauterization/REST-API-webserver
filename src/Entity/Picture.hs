@@ -21,7 +21,7 @@ data PictureFormat
     = JPEG
     | PNG
     | GIF
-    deriving (Data, Generic, Show, Read, Eq)
+    deriving (Data, Generic, Show, Read, Eq, Ord)
 
 instance Postgres.ToField PictureFormat where
     toField = Postgres.toField . T.show
@@ -35,10 +35,11 @@ instance Postgres.FromField PictureFormat where
     fromField f Nothing = Postgres.returnError Postgres.UnexpectedNull f 
         "Unexpected null in picture format."
 
-
-
-data Picture a = Picture PictureFormat ByteString
-    deriving (Data, Show, Generic, Eq, Postgres.FromRow)
+data Picture a = Picture 
+    { format  :: PictureFormat 
+    , picture :: ByteString
+    }
+    deriving (Data, Show, Generic, Eq, Ord, Postgres.FromRow)
 
 instance Postgres.ToRow (Picture a) where
     toRow (Picture f p) = Postgres.toRow (f, Postgres.Binary p)
