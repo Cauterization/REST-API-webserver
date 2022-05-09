@@ -223,7 +223,6 @@ test-suite server-test
       Api.TagSpec
       Api.UserSpec
       App.TypesSpec
-      Entity.InternalSpec
       Helpers.App
       Helpers.Article
       Helpers.ArticleDB
@@ -244,7 +243,6 @@ test-suite server-test
       Helpers.TagDB
       Helpers.User
       Helpers.UserDB
-      Router.RouterSpec
       Paths_server
   hs-source-dirs:
       test

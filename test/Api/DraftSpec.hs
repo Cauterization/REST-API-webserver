@@ -43,10 +43,10 @@ import Data.Data (Typeable)
 spec :: Spec
 spec = do
     pure ()
-    -- postSpec
-    -- getSpec
-    -- putSpec
-    -- deleteSpec
+    postSpec
+    getSpec
+    putSpec
+    deleteSpec
     publishSpec
 
 postSpec :: Spec
@@ -231,6 +231,108 @@ propGetDraftWrongToken dbD (ID draftID) u wrongT = property $ conditions ==> do
     Just (ID userID) = entityID . user . entity . author . unDraft <$> IM.lookup draftID dbD 
     dbU = IM.singleton userID $ (#token .~ t) u
 
+putSpec :: Spec
+putSpec = describe "PUT" $ do
+
+    it "Actually changes draft"
+        $ property propPutDraft
+
+    it "Throws error when draft with this ID doesn't exists"
+        $ property propPutDraftDoesntExists
+
+    it "Throws error when it fails to parse request body"
+        $ property propPutDraftParsingFail
+
+    it "Throws error when no token is provided"
+        $ property propPutDraftNoToken
+
+    it "Throws error when wrong token is provided"
+        $ property propPutDraftWrongToken
+
+propPutDraft :: TDB Draft -> Draft (Front Update) -> ID (Draft Display) -> User Display 
+    -> Property 
+propPutDraft dbD draftU (ID draftID) u = property $ conditions ==> do
+    st <- execTest
+        ( withBody draftU
+        . withPutPath ("drafts/" <> T.show draftID)
+        . withToken t)
+        ( withDatabase @Draft dbD
+        . withDatabase @User dbU)
+    IM.lookup draftID (_tsDraftDB st) `shouldBe` Just (draftU >/ oldDraft)
+  where
+    conditions = draftID `elem` IM.keys dbD
+    Just oldDraft = IM.lookup draftID dbD
+    dbU = IM.singleton userID $ (#token .~ t) u
+    Just t = token . entity . user . entity . author . unDraft <$> IM.lookup draftID dbD
+    Just (ID userID) = entityID . user . entity . author . unDraft <$> IM.lookup draftID dbD 
+
+propPutDraftDoesntExists :: 
+    TDB Draft 
+    -> Draft (Front Update) 
+    -> ID (Draft Display) 
+    -> Entity User Display 
+    -> Property 
+propPutDraftDoesntExists dbD draftU (ID draftID) e = property $ conditions ==> do
+    Left err <- evalTest
+        ( withBody draftU
+        . withPutPath ("drafts/" <> T.show draftID)
+        . withToken (token u))
+        ( withDatabase @Draft dbD
+        . withDatabase @User dbU)
+    err `shouldSatisfy` isEntityNotFoundError
+  where
+    conditions = draftID `notElem` IM.keys dbD
+    dbU = IM.singleton userID u
+    Entity (ID userID) u = e
+
+propPutDraftParsingFail :: 
+    TDB Draft 
+    -> Value
+    -> ID (Draft Display) 
+    -> User Display 
+    -> Property 
+propPutDraftParsingFail dbD (fromString . show -> obj) (ID draftID) u = property $ conditions ==> do
+    Left err <- evalTest
+        ( withBLBody obj
+        . withPutPath ("drafts/" <> T.show draftID)
+        . withToken (token u))
+        ( withDatabase @Draft dbD
+        . withDatabase @User dbU)
+    err `shouldSatisfy` isParsingError
+  where
+    conditions = draftID `elem` IM.keys dbD && isNothing (decode @(Draft (Front Update)) obj) 
+    dbU = IM.singleton userID u
+    Just t = token . entity . user . entity . author . unDraft <$> IM.lookup draftID dbD
+    Just (ID userID) = entityID . user . entity . author . unDraft <$> IM.lookup draftID dbD 
+
+propPutDraftNoToken :: ID (Draft Display) -> Property
+propPutDraftNoToken (ID draftID) = property $ do
+    Left res <- evalTest
+        (withPutPath ("drafts/" <> T.show draftID))
+        id
+    res `shouldSatisfy` isUnathorizedError
+
+propPutDraftWrongToken :: TDB Draft 
+    -> Draft (Front Update) 
+    -> ID (Draft Display) 
+    -> User Display 
+    -> Token
+    -> Property 
+propPutDraftWrongToken dbD draftU (ID draftID) u wrongToken = property $ conditions ==> do
+    Left err <- evalTest
+        ( withBody draftU
+        . withPutPath ("drafts/" <> T.show draftID)
+        . withToken wrongToken)
+        ( withDatabase @Draft dbD
+        . withDatabase @User dbU)
+    err `shouldSatisfy` isEntityNotFoundError
+  where
+    conditions = draftID `elem` IM.keys dbD && wrongToken /= t
+    Just oldDraft = IM.lookup draftID dbD
+    dbU = IM.singleton userID $ (#token .~ t) u
+    Just t = token . entity . user . entity . author . unDraft <$> IM.lookup draftID dbD
+    Just (ID userID) = entityID . user . entity . author . unDraft <$> IM.lookup draftID dbD 
+
 deleteSpec :: Spec
 deleteSpec = describe "DELETE" $ do
 
@@ -303,6 +405,9 @@ publishSpec = describe "PUBLISH" $ do
     it "Throws error when no token is provided"
         $ property propPublishDraftNoToken
 
+    it "Throws error when wrong token is provided"
+        $ property propPublishDraftWrongToken
+
 propPublishDraft :: TDB Draft -> ID (Draft Display) -> User Display -> Property 
 propPublishDraft dbD (ID draftID) u = property $ conditions ==> do
     st <- execTest
@@ -338,3 +443,18 @@ propPublishDraftNoToken (ID draftID) = property $ do
         ( withPublishPath ("drafts/" <> T.show draftID)) 
         id
     err `shouldSatisfy` isUnathorizedError
+
+propPublishDraftWrongToken :: TDB Draft -> ID (Draft Display) -> User Display -> Token -> Property 
+propPublishDraftWrongToken dbD (ID draftID) u wrongToken = property $ conditions ==> do
+    Left err <- evalTest
+        ( withPublishPath ("drafts/" <> T.show draftID)
+        . withToken wrongToken)
+        ( withDatabase @Draft dbD
+        . withDatabase @User dbU)
+    err `shouldSatisfy` isEntityNotFoundError
+  where
+    conditions = draftID `elem` IM.keys dbD && wrongToken /= t
+    Just (ID userID) = entityID . user . entity . author . unDraft <$> IM.lookup draftID dbD 
+    Just t = token . entity . user . entity . author . unDraft <$> IM.lookup draftID dbD
+    dbU = IM.singleton userID $ (#token .~ t) u
+    Just ref = unDraft <$> IM.lookup draftID dbD

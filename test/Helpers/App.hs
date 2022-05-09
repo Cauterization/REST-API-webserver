@@ -162,7 +162,7 @@ instance Routed Draft (AppT TestMonad) where
         post     "drafts"                    Draft.postDraft
         get      "drafts"                    Draft.getDrafts
         get_     "drafts/{ID}"              
-        -- put_     "drafts/{ID}"              
+        put_     "drafts/{ID}"              
         delete_  "drafts/{ID}"
         publish_ "drafts/{ID}"
 

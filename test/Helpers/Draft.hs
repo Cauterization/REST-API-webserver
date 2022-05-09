@@ -34,3 +34,6 @@ deriving instance (Ord (Article a), Eq (Draft a)) => Ord (Draft a)
 
 deriving instance ToJSON (Article (Front Create))
 deriving newtype instance ToJSON (Draft   (Front Create))
+
+deriving instance ToJSON (Article (Front Update))
+deriving newtype instance ToJSON (Draft (Front Update))

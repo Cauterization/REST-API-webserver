@@ -118,6 +118,23 @@ instance TestEntity (Token, EntityFilterParam, EntityFilterParam) where
         modify $ tsToken ?~ t
         modify $ tsGetFilters .~ [fl, fo]
 
+-- | put Draft
+
+instance TestEntity (Entity Draft (Front Update)) where
+
+    putIntoTestDatabase = putEntityIntoTestDatabase
+
+instance TestUpdate (Draft (Front Update)) where
+    testUpdate (Draft du) (Draft dd) = Draft $ Article
+        { title    = fromMaybe (title dd)   (title du)
+        , content  = fromMaybe (content dd) (content du)
+        , pics     = pics dd
+        , created  = created dd
+        , author   = author dd
+        , category = category dd
+        , tags     = tags dd
+        }
+
 -- | Publish draft
 
 instance TestEntity (Entity Draft Publish) where
