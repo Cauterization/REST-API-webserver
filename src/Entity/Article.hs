@@ -33,46 +33,44 @@ import Data.Kind (Type)
 import Data.String (IsString)
 
 data Article a = Article
-  { title    :: Field 'Required a '[]                               Text
-  , created  :: Field 'Required a '[NotAllowedFromFront, Immutable] Date 
-  , content  :: Field 'Required a '[]                               Text
-  , author   :: Field 'Required a '[NotAllowedFromFront, Immutable] (EntityOrID Author a)
-  , category :: Field 'Required a '[]                               (EntityOrID Category a)
-  , tags     :: Field 'Required a '[]                               [EntityOrID Tag a]
-  , pics     :: Field 'Required a '[]                               [ID (Picture a)]
-  }
-
-deriving instance Generic (Article a)
+  { title    :: Field  a '[]                               Text
+  , created  :: Field  a '[NotAllowedFromFront, Immutable] Date 
+  , content  :: Field  a '[]                               Text
+  , author   :: Field  a '[NotAllowedFromFront, Immutable] (EntityOrID Author a)
+  , category :: Field  a '[]                               (EntityOrID Category a)
+  , tags     :: Field  a '[]                               [EntityOrID Tag a]
+  , pics     :: Field  a '[]                               [ID (Picture a)]
+  } deriving stock (Generic)
 
 deriving instance 
     ( Data a
-    , Data (Field 'Required a '[]                               Text)
-    , Data (Field 'Required a '[NotAllowedFromFront, Immutable] Date)
-    , Data (Field 'Required a '[]                               Text)
-    , Data (Field 'Required a '[NotAllowedFromFront, Immutable] (EntityOrID Author a))
-    , Data (Field 'Required a '[]                               (EntityOrID Category a))
-    , Data (Field 'Required a '[]                               [EntityOrID Tag a])
-    , Data (Field 'Required a '[] [ID (Picture a)])
+    , Data (Field  a '[]                               Text)
+    , Data (Field  a '[NotAllowedFromFront, Immutable] Date)
+    , Data (Field  a '[]                               Text)
+    , Data (Field  a '[NotAllowedFromFront, Immutable] (EntityOrID Author a))
+    , Data (Field  a '[]                               (EntityOrID Category a))
+    , Data (Field  a '[]                               [EntityOrID Tag a])
+    , Data (Field  a '[] [ID (Picture a)])
     ) => Data (Article a)
 
 deriving instance 
-    ( Show (Field 'Required a '[]                               Text)
-    , Show (Field 'Required a '[NotAllowedFromFront, Immutable] Date)
-    , Show (Field 'Required a '[]                               Text)
-    , Show (Field 'Required a '[NotAllowedFromFront, Immutable] (EntityOrID Author a))
-    , Show (Field 'Required a '[]                               (EntityOrID Category a))
-    , Show (Field 'Required a '[]                               [EntityOrID Tag a])
-    , Show (Field 'Required a '[] [ID (Picture a)])
+    ( Show (Field  a '[]                               Text)
+    , Show (Field  a '[NotAllowedFromFront, Immutable] Date)
+    , Show (Field  a '[]                               Text)
+    , Show (Field  a '[NotAllowedFromFront, Immutable] (EntityOrID Author a))
+    , Show (Field  a '[]                               (EntityOrID Category a))
+    , Show (Field  a '[]                               [EntityOrID Tag a])
+    , Show (Field  a '[] [ID (Picture a)])
     ) => Show (Article a)
 
 deriving instance 
-    ( Eq (Field 'Required a '[]                               Text)
-    , Eq (Field 'Required a '[NotAllowedFromFront, Immutable] Date)
-    , Eq (Field 'Required a '[]                               Text)
-    , Eq (Field 'Required a '[NotAllowedFromFront, Immutable] (EntityOrID Author a))
-    , Eq (Field 'Required a '[]                               (EntityOrID Category a))
-    , Eq (Field 'Required a '[]                               [EntityOrID Tag a])
-    , Eq (Field 'Required a '[] [ID (Picture a)])
+    ( Eq (Field  a '[]                               Text)
+    , Eq (Field  a '[NotAllowedFromFront, Immutable] Date)
+    , Eq (Field  a '[]                               Text)
+    , Eq (Field  a '[NotAllowedFromFront, Immutable] (EntityOrID Author a))
+    , Eq (Field  a '[]                               (EntityOrID Category a))
+    , Eq (Field  a '[]                               [EntityOrID Tag a])
+    , Eq (Field  a '[] [ID (Picture a)])
     ) => Eq (Article a)
 
 -- | Post

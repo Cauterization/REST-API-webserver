@@ -34,22 +34,30 @@ import Extended.Postgres qualified as Postgres
 import Data.Kind (Type)
 import Data.String (IsString(..))
 
-newtype Draft a = Draft {unDraft :: Article a}
+newtype Draft a = Draft {unDraft :: Article a}  deriving stock (Generic)
 
 deriving instance (Data a, Data (Article a)) => Data (Draft a)
 deriving instance         (Show (Article a)) => Show (Draft a)
-
-
+deriving instance          Eq   (Article a)  => Eq   (Draft a)   
 -- | Post
 
 deriving newtype instance FromJSON                    (Draft (Front Create))
 deriving via (Article Create) instance Postgres.ToRow (Draft Create) 
 instance Database.Postable                             Draft Create where
-    postQuery = "SELECT post_draft " <> Database.qmarkFields @(Article Create)
+    postQuery = mconcat 
+        [ "SELECT post_draft"
+        , "( ? :: TEXT       " 
+        , ", ? :: DATE       " 
+        , ", ? :: TEXT       " 
+        , ", ? :: INTEGER    "    
+        , ", ? :: INTEGER    "    
+        , ", ? :: INTEGER [] "  
+        , ", ? :: INTEGER [] "  
+        , ")"
+        ]
 
 -- | Get
 
-deriving instance Eq                                  (Draft (Front Display))
 
 instance Postgres.FromRow                             (Draft (Front Display)) where
     fromRow = Draft <$> Postgres.fromRow
@@ -85,92 +93,3 @@ instance Postgres.ToRow (Entity Draft Publish) where
 
 instance Database.Puttable (Entity Draft Publish) where
     putQuery = "UPDATE articles SET published = true WHERE id = ?"
-
-
--- deriving via (Entity Article) Delete instance Database.Deletable (Entity Draft) Delete
-
--- instance Database.Deletable Draft Delete where
---     deleteQuery = "ASD"
-
-
-{-
->>> Database.deleteQuery @Draft @Delete
--}
-
-{-
->>> Database.putQuery @(Entity Article (Front Update))
--}
--- UPDATE articles 
--- SET title = COALESCE (null, title)
--- , content = COALESCE (null, content)
--- , category = COALESCE (null, category) 
--- WHERE id = 45; 
-
--- WITH new_tags AS (VALUES (null :: INT []))
-
--- WITH 
---     new_tags (tags) AS (VALUES (null :: INT [])),
---     tags_update AS 
---         ( DELETE FROM article_tag 
---           WHERE id = 45 AND tag_id NOT IN (SELECT * FROM new_tags)
---         ) 
--- INSERT INTO article_tag 
--- VALUES (IF (SELECT tags FROM new_tags) IS NULL
---        THEN SELECT * FROM tags_update END IF);
-
--- UPDATE articles 
--- SET title = COALESCE (null, title)
---   , content = COALESCE (null, content)
---   , category = COALESCE (null, category)
--- WHERE id = 45;
-
--- WITH new_tags AS (VALUES (? :: INT []))
--- , tags_update AS 
---     (DELETE FROM article_tag WHERE id = 45 AND tag_id NOT IN (SELECT * FROM new_tags); 
---      SELECT * FROM new_tags) 
--- INSERT INTO article_tag VALUES IF new_tags IS NULL THEN () ELSE (SELECT * FROM tags_update);
-
---     data Article a = Article
---   { title    :: Field 'Required a '[NoPublish]                      Text
---   , created  :: Field 'Required a '[NotAllowedFromFront, Immutable] Date 
---   , content  :: Field 'Required a '[NoPublish]                      Text
---   , author   :: Field 'Required a '[NotAllowedFromFront, Immutable] (EntityOrID Author a)
---   , category :: Field 'Required a '[NoPublish]                      (EntityOrID Category a)
---   , tags     :: Field 'Required a '[NoPublish]                      [EntityOrID Tag a]
---   , pics     :: Field 'Required a '[]                               [ID Pic]
---   }
-
-    -- putQuery = mconcat
-    --     [ "UPDATE " , fromString $ withPluralEnding $ nameOf @e
-    --     , " SET "
-    --     , fromString $ intercalate ", " $ map fieldToCoalesce  
-    --         $ fieldsOf @(e a)
-    --     , " WHERE id = ? "
-    --     ]
-
--- instance {-# OVERLAPPING #-} Postgres.ToRow DraftPutArgs where
---     toRow (Draft Article{..}, token, draftID) = toRow 
---         ( title, created, content, author, category, token, draftID
-        
-        -- )
--- instance Database.Puttable DraftPutArgs where
---     putQuery = mconcat
---         [ "UPDATE articles SET"
---         , 
---         ]
-
-
-
-
---       putQuery = mconcat
---         [ "UPDATE " , fromString $ withPluralEnding $ nameOf @e
---         , " SET "
---         , fromString $ intercalate ", " $ map fieldToCoalesce  
---             $ fieldsOf @(e a)
---         , " WHERE id = ? "
---         ]
-
--- fieldToCoalesce :: (Semigroup a, IsString a) => a -> a
--- fieldToCoalesce str =  str <> " = COALESCE (?, " <> str <> ")"
-
-

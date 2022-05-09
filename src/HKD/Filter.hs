@@ -34,17 +34,17 @@ data NotFiltered a = NotFiltered
     deriving stock (Generic, Show)
 
 instance J.FromJSON (NotFiltered a) where
-    parseJSON _ = fail "Can't filter on this field"
+    parseJSON _ = fail "Can't filter on this Field"
 
-type family ApplyFilter req qs a where
-  ApplyFilter req (CustomFilter q ': qs) a = Maybe (ApplyRequired req Exists (q a))
-  ApplyFilter req (nq ': qs)             a = ApplyFilter req qs a
-  ApplyFilter req '[]                    a = Maybe (ApplyRequired req Exists [a])  
+type family ApplyFilter qs a where
+  ApplyFilter (CustomFilter q ': qs) a = Maybe (Exists (q a))
+  ApplyFilter (nq ': qs)             a = ApplyFilter qs a
+  ApplyFilter '[]                    a = Maybe (Exists [a])  
 
-type instance Field req Filter modifiers a = 
+type instance Field Filter modifiers a = 
   If (Contains (CustomFilter ItSelf) modifiers) 
-     (Maybe (ApplyRequired req Exists a)) 
-     (ApplyFilter req modifiers a)
+     (Maybe (Exists a)) 
+     (ApplyFilter modifiers a)
   
 query :: EmptyData (e Filter) => (e Filter -> e Filter) -> e Filter
 query = ($ emptyData)

@@ -109,11 +109,12 @@ responseFromResult = \case
 responseFromError :: AppError -> ToResponse
 responseFromError = \case
     Err404 path      -> r404 $ T.concat (getURL path) <> " doesn't exists!"
-    EntityNotFound     t -> r404 t
-    AlreadyExists      t -> r409 t
-    AccessViolation    t -> r403 t
-    ParsingErr         t -> r400 $ toBL t
-    DatabaseOtherError t -> r400 $ toBL t
+    EntityNotFound       t -> r404 t
+    AlreadyExists        t -> r409 t
+    AccessViolation      t -> r403 t
+    AdminAccessViolation t -> r404 ""
+    ParsingErr           t -> r400 $ toBL t
+    DatabaseOtherError   t -> r400 $ toBL t
     err -> r500 $ toBL $ "Internal error:" <> T.show err <> " (not handled yet)"
   where
     r400  = ToResponse HTTP.status400 []
@@ -173,7 +174,7 @@ instance Routed Article (AppT IO) where
 
 instance Routed Draft (AppT IO) where
     router = do
-        addMiddleware                        Draft.draftAccess
+        addMiddleware Draft.draftAccess
         post     "drafts"                    Draft.postDraft
         get      "drafts"                    Draft.getDrafts
         get_     "drafts/{ID}"              

@@ -7,4 +7,4 @@ import HKD.Field
 
 data Delete deriving Data
 
-type instance Field req Delete modifiers a = ApplyRequired req Maybe a
+type instance Field Delete modifiers a = Maybe a

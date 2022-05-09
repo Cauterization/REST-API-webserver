@@ -4,9 +4,13 @@ import Api.Author   qualified as Author
 import Api.Category qualified as Category
 import Api.User     qualified as User
 import Api.Picture  qualified as Picture
+import Api.Draft    qualified as Draft
 import Api.Post
 import Api.Put
 import Api.Delete
+import Api.Get
+import Api.Publish
+import Api.ProtectedResources
 import App.App
 import App.Internal
 import App.Result
@@ -27,6 +31,7 @@ import Database.Database
 
 import Entity.Internal
 import Entity.Author
+import Entity.Draft
 import Entity.Article
 import Entity.Category
 import Entity.Tag
@@ -44,6 +49,8 @@ import Helpers.Author
 import Helpers.AuthorDB
 import Helpers.Article
 import Helpers.ArticleDB
+import Helpers.Draft
+import Helpers.DraftDB
 import Helpers.CategoryDB
 import Helpers.TagDB
 import Helpers.User
@@ -53,8 +60,7 @@ import Helpers.Internal
 
 import Test.Hspec
 import Test.QuickCheck
-import Api.Get
-import Api.ProtectedResources
+
 
 runTest :: EnvMod -> StateMod -> IO (Either AppError AppResult, TestState)
 runTest eMod sMod = do
@@ -109,6 +115,7 @@ instance Routed Main (AppT TestMonad) where
         newRouter @Category
         newRouter @Article
         newRouter @Picture
+        newRouter @Draft
 
 -- | Note that urls listed here doesn't have an "admin" prefix
 --   coz we have separated tests for protected content
@@ -149,15 +156,15 @@ instance Routed Article (AppT TestMonad) where
         -- get      "articles"                  Article.getArticles
         get_     "articles/{ID}"    
 
--- instance Routed Draft (AppT IO) where
---     router = do
---         addMiddleware                        Draft.draftAccess
---         post     "drafts"                    Draft.postDraft
---         get      "drafts"                    Draft.getDrafts
---         get_     "drafts/{ID}"              
---         put_     "drafts/{ID}"              
---         delete_  "drafts/{ID}"
---         publish_ "drafts/{ID}"
+instance Routed Draft (AppT TestMonad) where
+    router = do
+        addMiddleware                        Draft.draftAccess
+        post     "drafts"                    Draft.postDraft
+        get      "drafts"                    Draft.getDrafts
+        get_     "drafts/{ID}"              
+        -- put_     "drafts/{ID}"              
+        delete_  "drafts/{ID}"
+        publish_ "drafts/{ID}"
 
 instance Routed Picture (AppT TestMonad) where
     router = do
@@ -167,13 +174,14 @@ instance Routed Picture (AppT TestMonad) where
 
 defaultEnv :: Env TestMonad
 defaultEnv  = Env 
-    { envLogger  = \v t -> when (v >= Logger.Warning) $ tell [(v, t)]
-    , envConn    = ()
-    , envConfig  = testConfig
-    , envPath    = error "envPath"
-    , envBody    = ""
-    , envQParams = M.empty
-    , envToken   = Nothing
+    { envLogger      = \v t -> when (v >= Logger.Warning) $ tell [(v, t)]
+    , envConn        = ()
+    , envConfig      = testConfig
+    , envPath        = error "envPath"
+    , envBody        = ""
+    , envQParams     = M.empty
+    , envContentType = error "envContentType"
+    , envToken       = Nothing
     } 
 
 type EnvMod = Env TestMonad -> Env TestMonad

@@ -49,14 +49,3 @@ instance Database.Postable Picture Create where
 
 instance Database.Gettable Picture (Front Display) where
     getQuery = "SELECT format, picture FROM pictures"
--- class Postable (e :: Type -> Type) a where 
-
---     postQuery :: (IsString s, Monoid s) => s
-
--- instance {-# OVERLAPPABLE #-} (Data (e Create), Typeable e) => Postable e a where
---     postQuery = mconcat
---         [ "INSERT INTO " , fromString $ withPluralEnding $ nameOf @e
---         , " (",  fieldsQuery @(e Create), ") "
---         , "VALUES "
---         , qmarkFields @(e Create)
---         ]

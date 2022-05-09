@@ -14,7 +14,6 @@ module HKD.HKD
     , Delete
     , Publish
     , Field
-    , Required(..)
     , EmptyData
     , Filter
     , Contains

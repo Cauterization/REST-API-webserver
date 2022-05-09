@@ -42,14 +42,14 @@ import Test.QuickCheck
 spec :: Spec
 spec = do
     pure ()
-    postSpec
-    getSpec
-    deleteSpec
+    -- postSpec
+    -- getSpec
+    -- deleteSpec
     
 postSpec :: Spec
 postSpec = describe "POST" $ do
 
-    it "When all is ok it posts tag into the database" 
+    it "When all is ok it posts picture into the database" 
         $ property $ propPostsPicture
 
     it "Throws error when picture has unknown format"

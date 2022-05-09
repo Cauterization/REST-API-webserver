@@ -7,7 +7,7 @@ module Database.Database
     , Postable(..)
     , postEntityWith
     , postEntity
-    , qmarkFields
+    , qmarkfields
     , qmarks
 
     , Gettable(..)

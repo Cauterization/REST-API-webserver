@@ -9,5 +9,5 @@ import HKD.Update
 
 data Publish deriving Data
 
-type instance Field req Publish modifiers a = 
-    Maybe (ApplyRequired req Maybe NotUpdated)
+type instance Field Publish modifiers a = 
+    Maybe (Maybe NotUpdated)

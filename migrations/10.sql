@@ -1,5 +1,5 @@
 CREATE OR REPLACE FUNCTION post_draft 
-    ( title_var    Text
+    ( title_var    TEXT
     , created_var  DATE
     , content_var  TEXT
     , author_var   INTEGER

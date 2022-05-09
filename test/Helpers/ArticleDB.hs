@@ -16,6 +16,7 @@ import Data.IntMap qualified as IM
 
 import Entity.Article
 import Entity.User
+import Entity.Category
 import Entity.Internal
 
 import Extended.Text (Text)
@@ -31,6 +32,8 @@ import Helpers.UserDB
 import HKD.HKD
 import Data.Maybe
 
+import Unsafe.Coerce
+
 instance TestEntity (Article Display) where
 
     withTestDatabase db = tsArticleDB .~ db
@@ -39,40 +42,14 @@ instance TestEntity (Article Display) where
 
 instance TestEntity (Article (Front Display)) where
 
-    -- fromDisplay Article{..} = Article
-    --     { author = fromDisplay $ entity author
-    --     , category = fromDisplay $ entity category
-    --     , tags = map (fromDisplay . entity) tags
-    --     , ..
-    --     }
+    fromDisplay Article{..} = Article
+        { author = Entity (coerce $ entityID author) $ fromDisplay $ entity author
+        , category = Entity (coerce $ entityID category) $ fromDisplay $ entity category
+        , tags = map (\(Entity i e) -> Entity (coerce i) (fromDisplay e)) tags
+        , pics = map coerce pics
+        , .. 
+        }
 
 instance TestEntity (Entity Article (Front Display)) where
 
     getFromTestDatabase = getManyOrSingle
-
-
--- instance (TestEntity (Entity Author (Front Display))) where
-
---     getFromTestDatabase = getManyOrSingle 
-
--- instance TestEntity (Author (Front Display)) where
-
---     fromDisplay Author{user = Entity{..}, ..} 
---         = Author{user = Entity{ entityID = coerce entityID
---                               , entity = fromDisplay entity}
---                               , ..}
-
--- instance TestEntity (Author Display) where
-
---     extractTestDatabaseFromTestState = _tsAuthorDB
-
---     alreadyExists a db = let f = entityID . user 
---         in not $ IM.null $ IM.filter ((== f a) . f) db
-
---     getTestDatabase = gets _tsAuthorDB
-
---     putDatabase db = modify (tsAuthorDB .~ db)
-
---     withTestDatabase db = tsAuthorDB .~ db
-
---     toFrontCreate Author{..} = Author{user = coerce $ entityID user, ..}

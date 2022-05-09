@@ -57,7 +57,6 @@ type GPropsConstr e a =
 
 propPostsEntity :: forall e. 
     ( GPropsConstr e Create 
-    , ToJSON      (e Create) 
     , FromJSON    (e (Front Create))
     , ToJSON      (e (Front Create))
     ) => Text -> TDB e -> e Create -> Property
@@ -164,21 +163,7 @@ propGetEntity path db (ID eID) = property $ eID `elem` IM.keys db ==> do
   where
     withPath = withGetPath $ path <> "/" <> T.show eID
 
-propGetEntity' :: forall (e :: Type -> Type).
-    ( GPropsConstr e (Front Display)
-    , ToJSONResult (Entity e (Front Display))
-    ) => Text -> TDB e -> ID (e Display) -> Property
-propGetEntity' path db (ID eID) = property $ eID `elem` IM.keys db ==> do
-    res <- evalTest withPath (withDatabase @e db)
-    case res of
-        Left err -> error $ show err
-        Right (ResJSON j) -> do
-            let Right x = runTestMonadNoMods $ toJSONResult @(Entity e (Front Display)) ((\(Just e) -> Entity (ID eID) (fromDisplay @(e (Front Display)) e)) 
-                    $ IM.lookup eID db)
-            j `shouldBe` encode x
-            
-  where
-    withPath = withGetPath $ path <> "/" <> T.show eID
+
 
 propGetEntityDoesntExists :: forall (e :: Type -> Type).
     ( GPropsConstr e (Front Display)

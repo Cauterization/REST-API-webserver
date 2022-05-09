@@ -22,7 +22,14 @@ import Helpers.Author
 
 import Test.QuickCheck
 
-instance Arbitrary (Article Display) where
+instance 
+    ( Arbitrary (Field a '[NotAllowedFromFront, Immutable] (EntityOrID Author a))
+    , Arbitrary (Field a '[] (EntityOrID Category a))
+    , Arbitrary (Field a '[] [EntityOrID Tag a])
+    , Arbitrary (Field a '[] [ID (Picture a)])
+    , Arbitrary (Field a '[NotAllowedFromFront, Immutable] Date)
+    , Arbitrary (Field a '[] Text)
+    ) => Arbitrary (Article a) where
     arbitrary = do
         title     <- arbitrary
         created   <- arbitrary
@@ -34,11 +41,11 @@ instance Arbitrary (Article Display) where
         pure Article{..}
 
 deriving instance 
-    ( Ord (Field 'Required a '[]                               Text)
-    , Ord (Field 'Required a '[NotAllowedFromFront, Immutable] Date)
-    , Ord (Field 'Required a '[]                               Text)
-    , Ord (Field 'Required a '[NotAllowedFromFront, Immutable] (EntityOrID Author a))
-    , Ord (Field 'Required a '[]                               (EntityOrID Category a))
-    , Ord (Field 'Required a '[]                               [EntityOrID Tag a])
-    , Ord (Field 'Required a '[] [ID (Picture a)])
+    ( Ord (Field  a '[]                               Text)
+    , Ord (Field  a '[NotAllowedFromFront, Immutable] Date)
+    , Ord (Field  a '[]                               Text)
+    , Ord (Field  a '[NotAllowedFromFront, Immutable] (EntityOrID Author a))
+    , Ord (Field  a '[]                               (EntityOrID Category a))
+    , Ord (Field  a '[]                               [EntityOrID Tag a])
+    , Ord (Field  a '[] [ID (Picture a)])
     ) => Ord (Article a)

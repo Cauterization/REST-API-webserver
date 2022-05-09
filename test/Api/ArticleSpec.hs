@@ -5,8 +5,12 @@ module Api.ArticleSpec where
 import Api.Article
 import App.Types
 import App.Result
+import App.ResultJSON
+
+import Control.Lens
 
 import Data.Aeson
+import Data.Aeson.Lens
 import Data.Either
 import Data.IntMap qualified as IM
 import Data.Coerce
@@ -40,13 +44,11 @@ import Data.Data (Typeable)
 spec :: Spec
 spec = do
     pure ()
-    -- getSpec
-    -- putSpec
-    -- deleteSpec
-    
+    getSpec
 
--- getSpec :: Spec
--- getSpec = describe "GET" $ do
+
+getSpec :: Spec
+getSpec = describe "GET" $ do
 
 --     context "many" $ do
 
@@ -59,56 +61,23 @@ spec = do
 --         it "Allows to get various pages of this list"
 --             $ property $ propGetEntitiesWithLimitOffset @Author "authors"
 
-    -- context "single" $ do
+    context "single" $ do
 
-    --     it "When all is ok it allows to get an article by its own ID"
-    --         $ property $ propGetEntity' @Article "articles"
+        it "When all is ok it allows to get an article by its own ID"
+            $ property $ propGetArticle 
 
-    --     it "Throws error when article with this ID doesn't exists"
-    --         $ property $ propGetEntityDoesntExists @Article "articles"
+        it "Throws error when article with this ID doesn't exists"
+            $ property $ propGetEntityDoesntExists @Article "articles"
 
--- putSpec :: Spec
--- putSpec = describe "PUT" $ do
-
---     it "Actually change author "
---         $ property $ propPutEntity @Author "authors"
-
---     it "Throws error when author with this ID doesn't exists"
---         $ property $ propPutEntityDoesntExists @Author "authors"
-
---     it "Throws error when it fails to parse request body"
---         $ property $ propPutEntityParsingFail @Author "authors"
-
--- deleteSpec :: Spec
--- deleteSpec = describe "DELETE" $ do
-
---     it "Actually deletes author from database"
---         $ property $ propDeleteEntity @Author "authors"
-
---     it "Throws error when author with this ID doesn't exists"
---         $ property $ propDeleteEntityDoesntExists @Author "authors"
-
--- -- propPostsAuthor :: EMap (Author Display) -> User Display -> Author Create -> Property
--- -- propPostsAuthor db u a = property $ not (alreadyExists a db) ==> do
--- --     (Right (ResText aIDtext), st) <- runTest 
--- --         ( withBody (eCreateToFrontCreate a)
--- --         . withPostPath "authors")
--- --         ( withDatabase @User (M.fromList [(coerce $ user a, u)]) 
--- --         . withDatabase @Author db)
--- --     let Right aID = T.read aIDtext
--- --     let res = M.lookup aID $ authorDB st
--- --     fmap fromDisplay res `shouldBe` Just a
-
--- -- propPostsAuthorAlreadyExists :: 
--- --     BigTDB Author -> User Display -> Author Create -> Property
--- -- propPostsAuthorAlreadyExists (unBigTDB -> db) u a = property $ alreadyExists a db ==> do
--- --     res <- evalTest 
--- --         ( withBody (eCreateToFrontCreate a)
--- --         . withPostPath "authors")
--- --         ( withDatabase @User (M.fromList [(coerce $ user a, u)]) 
--- --         . withDatabase @Author db)
--- --     isLeft res `shouldBe` True
-
-
-
+propGetArticle :: TDB Article -> ID (Article Display) -> Property
+propGetArticle dbA (ID articleID) = property $ articleID `elem` IM.keys dbA ==> do
+    res <- evalTest
+        (withGetPath $ "articles/" <> T.show articleID)
+        (withDatabase @Article dbA)
+    case res of
+        Left err -> error $ show err
+        Right (ResJSON j) -> do
+            j ^? key "title" . _String 
+                `shouldBe` title <$> IM.lookup articleID dbA
+  
 

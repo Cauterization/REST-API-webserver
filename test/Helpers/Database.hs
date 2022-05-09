@@ -98,7 +98,7 @@ getManyOrSingle = do
     gets _tsIDs >>= \case
         [] -> pure $ map (\(eID, e) -> Entity (ID eID) $ fromDisplay e) $ IM.toList db
         [eID] -> pure <$> lookupT eID db
-        x     -> error $ "getManyOrSingle" <> show x
+        x     -> error $ "getManyOrSingle " <> show x
 
 lookupT :: forall e a. (Typeable e, TestEntity (e a), ToDisplay (e a) ~ e Display
     ) => Int -> IM.IntMap (e Display) -> TestMonad (Entity e a)
@@ -130,7 +130,7 @@ putEntityIntoTestDatabase Entity{entityID = ID eID, entity = e} = do
         
 
 instance {-# OVERLAPPABLE #-} TestEntity [ID a] where
-    putToTestState eIDs = modify $ tsIDs %~ (<> map idVal eIDs)
+    putToTestState eIDs = modify $ tsIDs .~ (map idVal eIDs)
 
 type family DBOf e where
     DBOf e            = EMap (ToDisplay e)
@@ -144,10 +144,8 @@ type family ToDisplay q where
     ToDisplay (Draft    a)        = Draft    Display
     ToDisplay (Picture  a)        = Picture  Display
     ToDisplay (Entity e a)        = e        Display
-    ToDisplay [EntityFilterParam] = [EntityFilterParam]
-    ToDisplay [Token]             = [Token]
-    ToDisplay [ID a]              = [ID a]
-    ToDisplay (ID a)              = ID a
+    ToDisplay a                   = a
+
 
 type family ToFrontCreate q where
     ToFrontCreate (e a) = e (Front Create)
@@ -187,7 +185,7 @@ instance TestEntity [Text] where
         modify $ tsToken ?~ t
 
 instance TestEntity (ID a) where
-    putToTestState (ID i) = modify $ tsIDs %~ (i:)
+    putToTestState (ID i) = modify $ tsIDs .~ [i]
 
 instance TestEntity [ID (User Delete)] where
     deleteEntityWithThisIDs [ID uID] = do
@@ -218,82 +216,12 @@ instance TestEntity [ID (Picture Delete)] where
         keys <- IM.keys <$> gets _tsPictureDB
         modify $ tsPictureDB %~ IM.delete pID
         pure $ if pID `elem` keys then 1 else 0
--- instance 
---     postToDatabase :: forall e. 
---         ( ToRowOf TestDB e
---         , FromRowOf TestDB (ID e
---         )
---         ) => () -> TestQuery -> e -> DatabaseMonad TestDB (ID e)
---     postToDatabase _ _ e = do
---         db <- getsDatabase @e
---         when (alreadyExists e db) $ throwM $ AlreadyExists ""
---         let eID = ID $ length (M.toList db) + 1
---         eDisplay <- toDisplay e
---         modify $ insertIntoTestDB @e (coerce eID) eDisplay 
---         pure eID
 
---     putIntoDatabase :: forall q. ToRowOf TestDB q 
---         => () -> TestQuery -> q -> TestMonad ()
---     putIntoDatabase _ _ q = putEntityToTestDatabase @q q
-
---     getFromDatabase ::  forall q r. (ToRowOf TestDB q, FromRowOf TestDB r)
---         => () -> TestQuery -> q -> TestMonad [r]
---     getFromDatabase _ _ q = do
---         putToState q
---         getEntityFromTestDatabase @r q
-
---     deleteFromDatabase :: forall q. ToRowOf TestDB q 
---         => () -> TestQuery -> q -> TestMonad Integer
---     deleteFromDatabase _ _ q = do
---         putToState q
---         deleteEntityFromTestDatabase @q q
-
--- class ToRowOfT q where
---     alreadyExists    :: q -> DBOf q -> Bool
---     toDisplay        :: q -> TestMonad (ToDisplay q)
---     fromDisplay      :: ToDisplay q -> q
---     getsDatabase     :: TestMonad (DBOf q)
---     insertIntoTestDB :: ID (ToDisplay q) -> ToDisplay q -> StateMod
---     putToState       :: q -> TestMonad ()
---     deleteEntityFromTestDatabase :: q -> TestMonad Integer
---     putEntityToTestDatabase :: q -> TestMonad ()
-    
--- class FromRowOfT r where
---     getEntityFromTestDatabase :: q -> TestMonad [r] 
-
--- type family DBOf e where
---     DBOf e = EMap (ToDisplay e)
-
--- type family ToDisplay q where
---     ToDisplay (User     a) = User   Display
---     ToDisplay (Author   a) = Author Display
---     ToDisplay (Tag      a) = Tag    Display
---     ToDisplay (Category a) = Category Display
-
--- instance ToRowOfT [ID (Path Current)] where
---     putToState ids' = modify (\TestState{..} 
---         -> TestState{ids = ids ++ map idVal ids', ..})
---     deleteEntityFromTestDatabase [eID] = deleteAllEntitiesWithID eID
-
--- instance ToRowOfT [Text] where
---     putToState [t] =  do
---         modify (\TestState{..} -> TestState{tsToken = Just t, ..})
---         modify (\TestState{..} -> TestState{tsUserLogin = Just t, ..})
-
---     -- | User auth token update
---     putEntityToTestDatabase [newToken] = do
---         db <- gets userDB
---         mbLogin <- gets tsUserLogin
---         case mbLogin of
---             Nothing -> throwM $ EntityNotFound ""
---             Just userLogin -> case filter ((== userLogin) . login . snd) $ M.toList db of
---                 [(uID, User{..})] -> let db' = M.insert uID User{token = newToken, ..} db
---                     in modify (\TestState{..} -> TestState{userDB= db', ..})
---             _ -> throwM $ EntityNotFound ""
-
-
--- instance ToRowOfT [Page] where
---     putToState [p] = modify (\TestState{..} -> TestState{tsPage = p, ..})
+instance TestEntity [ID (Draft Delete)] where
+    deleteEntityWithThisIDs [ID dID] = do
+        keys <- IM.keys <$> gets _tsDraftDB
+        modify $ tsDraftDB %~ IM.delete dID
+        pure $ if dID `elem` keys then 1 else 0
 
 newtype TestQuery = TestQuery () deriving Show
 
@@ -306,10 +234,4 @@ instance Semigroup TestQuery where
 instance Monoid TestQuery where
     mempty = TestQuery ()
 
-
--- instance (Show (e Create), Data (e Create), Typeable e, ToRowOfT (e Create)) 
---     => PostableTo TestDB e where
--- instance (Show (e a), Typeable e, Data (e a), FromRowOfT (e a)) 
---     => GettableFrom TestDB e a where
--- instance PuttableTo TestDB e where
 

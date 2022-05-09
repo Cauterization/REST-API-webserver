@@ -27,8 +27,8 @@ import Data.Data
 import App.Types
 
 data Author a = Author
-  { user        :: Field 'Required a '[Immutable] (EntityOrID User a)
-  , description :: Field 'Required a '[]          Text
+  { user        :: Field  a '[Immutable] (EntityOrID User a)
+  , description :: Field  a '[]          Text
   } deriving stock (Generic)
 
 instance
@@ -40,22 +40,29 @@ instance
 
 deriving instance 
     ( Data a
-    , Data (Field 'Required a '[Immutable] (EntityOrID User a))
-    , Data (Field 'Required a '[]          Text)
+    , Data (Field  a '[Immutable] (EntityOrID User a))
+    , Data (Field  a '[]          Text)
     ) => Data (Author a)
+
+deriving instance 
+    ( Show (Field  a '[Immutable] (EntityOrID User a))
+    , Show (Field  a '[]          Text)
+    ) => Show (Author a)
+
+deriving instance 
+    ( Eq (Field  a '[Immutable] (EntityOrID User a))
+    , Eq (Field  a '[]          Text)
+    ) => Eq (Author a)
 
 -- | Post 
 
 deriving instance FromJSON       (Author (Front Create))
-deriving instance Show           (Author Create)
 deriving instance Postgres.ToRow (Author Create)
 instance Database.Postable        Author Create where
     postQuery = "INSERT INTO authors (user_id, description) VALUES (?,?)"
 
 -- | Get 
 
-deriving instance Eq      (Author (Front Display))
-deriving instance Show    (Author (Front Display))
 deriving instance ToJSON  (Author (Front Display))
 instance Postgres.FromRow (Author (Front Display)) where
     fromRow =  do
@@ -85,75 +92,3 @@ instance Database.Puttable (Entity Author (Front Update)) where
         , "description = COALESCE (?, description) "
         , "WHERE id = ? "
         ]
-
--- | Delete
-
--- deriving instance Data             (Author  Delete)
-
--- deriving instance FromJSON  (Author (Front Create))
--- deriving instance Postgres.ToRow (Author Create)
--- deriving instance Data (Author Create)
--- deriving instance Show (Author Create)
--- deriving instance Show (Author (Front Create))
--- instance Database.PostableTo Postgres Author where
-
---    
-
--- deriving instance Show      (Author (Front Display))
--- deriving instance ToJSON    (Author (Front Display))
--- deriving instance Data      (Author (Front Display))
--- instance Postgres.FromRow   (Author (Front Display)) where
---     fromRow =  do
---         user        <- Postgres.fromRow
---         description <- Postgres.field
---         pure Author{..}
--- instance Database.GettableFrom Postgres Author (Front Display) where
-
---     getQuery = mconcat
---         [ "SELECT ", fieldsQuery @(User (Front Display))
---         , ", description"
---         , " FROM authors_view"
---         ]
-
-
--- deriving instance Data           (Author Update)
--- deriving instance EmptyData      (Author Update)
--- deriving instance Postgres.ToRow (Author Update)
-
--- deriving instance Data     (Author (Front Update))
--- deriving instance FromJSON (Author (Front Update))
--- instance Database.ToOneRow (Author (Front Update)) IDs where
-
---     type instance MkOneRow (Author (Front Update)) IDs 
---         = (Maybe NotUpdated, Maybe Text, ID (Path Current)) 
-
---     toOneRow Author{..} [aID] = pure (user, description, aID)
---     toOneRow _ _ = entityIDArityMissmatch "update author"
-
--- instance Database.PuttableTo Postgres Author Update where
-
---     putQuery = mconcat
---         [ "UPDATE Authors "
---         , "SET "
---         , "user_id     = COALESCE (?, user_id), "
---         , "description = COALESCE (?, description) "
---         , "WHERE id = ?"
---         ]
-
--- deriving instance Data (Author Delete)
-
--- deriving instance Data (Author Display)
--- instance Postgres.FromRow (Author Display) where
---     fromRow = do
---         user        <- Postgres.fromRow
---         description <- Postgres.field
---         pure Author{..}
-
--- instance Database.GettableFrom Postgres (Entity Author) Display where
-
---     getQuery = mconcat
---         [ "SELECT id, user_id, firstname, lastname, login, token, "
---         , "password, registered, admin, "
---         , "description "
---         , "FROM authors_view"
---         ]

@@ -21,22 +21,22 @@ deriving instance Data a => Data (Front a)
 data NotAllowedFromFront deriving (Generic, Data, Show)
 
 instance FromJSON NotAllowedFromFront where
-  parseJSON _ = fail "Can't specify this field"
+  parseJSON _ = fail "Can't specify this Field"
 
 instance Postgres.ToField NotAllowedFromFront where
   toField _ = Postgres.renderNull
 
-type instance Field req (Front Create) modifiers a =
+type instance Field (Front Create) modifiers a =
   If (Contains NotAllowedFromFront modifiers) 
      (Maybe NotAllowedFromFront)
-     (Field req Create modifiers a)
+     (Field Create modifiers a)
 
-type instance Field req (Front Update) modifiers a =
+type instance Field (Front Update) modifiers a =
   If (Contains NotAllowedFromFront modifiers) 
      (Maybe NotAllowedFromFront)
-     (Field req Update modifiers a)
+     (Field Update modifiers a)
 
-type instance Field req (Front Display) modifiers a =
+type instance Field (Front Display) modifiers a =
   If (Contains Hidden modifiers) 
      (Maybe NotDisplayed)
-     (Field req Display modifiers a)
+     (Field Display modifiers a)

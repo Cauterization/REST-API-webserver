@@ -26,11 +26,11 @@ instance {-# OVERLAPPABLE #-} (Data (e Create), Typeable e) => Postable e a wher
         [ "INSERT INTO " , fromString $ withPluralEnding $ nameOf @e
         , " (",  fieldsQuery @(e Create), ") "
         , "VALUES "
-        , qmarkFields @(e Create)
+        , qmarkfields @(e Create)
         ]
 
-qmarkFields :: forall e s. (Data e, IsString s) => s
-qmarkFields = fromString $ mconcat [ "(", intercalate "," $ fieldsOf @e $> "?", ")"]
+qmarkfields :: forall e s. (Data e, IsString s) => s
+qmarkfields = fromString $ mconcat [ "(", intercalate "," $ fieldsOf @e $> "?", ")"]
 
 postEntity :: forall e (m :: Type -> Type).
     ( HasDatabase m

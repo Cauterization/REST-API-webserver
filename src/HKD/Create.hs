@@ -7,4 +7,4 @@ import Data.Data
 
 data Create deriving Data
 
-type instance Field req Create modifiers a = ApplyRequired req Maybe a
+type instance Field Create modifiers a = a

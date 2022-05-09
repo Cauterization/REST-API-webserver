@@ -19,12 +19,22 @@ import Test.QuickCheck
 import Control.Monad (replicateM)
 
 testConfig :: Config
-testConfig = 
-    let dbConfig = Database.Config{cPagSize = testPaginationConstant}
-    in Config{cDatabase = dbConfig}
+testConfig = Config
+    { cDatabase = Database.Config
+        { cPagSize = testPaginationConstant
+        }
+    , cAddress = testAddressConstant 
+    , cPort    = testPortConstant
+    }
 
 testPaginationConstant :: PaginationSize
 testPaginationConstant = 20
+
+testAddressConstant :: Text
+testAddressConstant = "TESTURAPI.COM"
+
+testPortConstant :: Int
+testPortConstant = 3000
 
 testDate :: Date
 testDate = Time.fromGregorian 1 2 3
@@ -94,3 +104,6 @@ instance {-# OVERLAPPING #-} FromJSON (Maybe NotDisplayed) where
 deriving instance Show       NotUpdated
 instance {-# OVERLAPPING #-} ToJSON   (Maybe NotUpdated) where
     toJSON _ = Null
+
+instance {-# OVERLAPPING #-} Arbitrary (Maybe NotAllowedFromFront) where
+    arbitrary = pure Nothing

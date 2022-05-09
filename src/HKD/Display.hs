@@ -21,7 +21,7 @@ data NotDisplayed deriving (Generic, ToJSON, Data, Show, Eq)
 instance {-# OVERLAPPING #-} Postgres.FromField (Maybe NotDisplayed) where
     fromField _ _ = pure Nothing
 
-type instance Field req Display modifiers a = ApplyRequired req Maybe a
+type instance Field Display modifiers a = a
 
 display :: EmptyData (e Display) => (e Display -> e Display) -> e Display
 display = ($ emptyData) 

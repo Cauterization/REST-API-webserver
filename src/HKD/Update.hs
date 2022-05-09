@@ -16,15 +16,15 @@ data Immutable
 data NotUpdated deriving (Data, Eq, Ord)
 
 instance J.FromJSON NotUpdated where
-  parseJSON _ = fail "Can't update this field"
+  parseJSON _ = fail "Can't update this Field"
 
 instance Postgres.ToField NotUpdated where
   toField _ = Postgres.renderNull
 
-type instance Field req Update modifiers a = 
+type instance Field Update modifiers a = 
   If (Contains Immutable modifiers) 
-     (Maybe (ApplyRequired req Maybe NotUpdated)) 
-     (Maybe (ApplyRequired req Maybe a))
+     (Maybe NotUpdated)
+     (Maybe a)
 
 update :: EmptyData (e Update) => (e Update -> e Update) -> e Update
 update = ($ emptyData) 

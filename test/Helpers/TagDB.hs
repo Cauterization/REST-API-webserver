@@ -71,6 +71,7 @@ instance TestEntity (Entity Tag (Front Display)) where
 
     getFromTestDatabase = getManyOrSingle 
 
+
 -- | Put
 
 instance TestEntity (Tag (Front Update)) where

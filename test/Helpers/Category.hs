@@ -16,8 +16,8 @@ import Helpers.Internal
 import Test.QuickCheck
 
 deriving instance
-    ( Ord (Field 'Required a '[] (CategoryName a))
-    , Ord (Field 'Required a '[] (CatParent a))
+    ( Ord (Field  a '[] (CategoryName a))
+    , Ord (Field  a '[] (CatParent a))
     ) => Ord (Category a)
 
 instance Arbitrary     (CategoryName a) where

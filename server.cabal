@@ -125,6 +125,7 @@ library
     , hspec
     , http-types
     , lens
+    , lens-aeson
     , memory
     , monad-control
     , mtl
@@ -192,6 +193,7 @@ executable server-exe
     , hspec
     , http-types
     , lens
+    , lens-aeson
     , memory
     , monad-control
     , mtl
@@ -216,6 +218,7 @@ test-suite server-test
       Api.ArticleSpec
       Api.AuthorSpec
       Api.CategorySpec
+      Api.DraftSpec
       Api.PictureSpec
       Api.TagSpec
       Api.UserSpec
@@ -229,6 +232,8 @@ test-suite server-test
       Helpers.Category
       Helpers.CategoryDB
       Helpers.Database
+      Helpers.Draft
+      Helpers.DraftDB
       Helpers.Entity
       Helpers.GenericProps
       Helpers.Internal
@@ -288,6 +293,7 @@ test-suite server-test
     , hspec
     , http-types
     , lens
+    , lens-aeson
     , memory
     , monad-control
     , mtl

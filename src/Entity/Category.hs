@@ -33,8 +33,8 @@ import HKD.HKD
 import Postgres.Internal
 
 data Category a = Category
-  { name ::   Field 'Required a '[] (CategoryName a)
-  , parent :: Field 'Required a '[] (CatParent a)
+  { name ::   Field  a '[] (CategoryName a)
+  , parent :: Field  a '[] (CatParent a)
   } deriving stock Generic
 
 newtype CategoryName a = CategoryName {unCatName :: Text}
@@ -50,18 +50,18 @@ type family CatParent a where
 
 deriving instance
     ( Data a
-    , Data (Field 'Required a '[] (CategoryName a))
-    , Data (Field 'Required a '[] (CatParent a))
+    , Data (Field  a '[] (CategoryName a))
+    , Data (Field  a '[] (CatParent a))
     ) => Data (Category a)
 
 deriving instance
-    ( Show (Field 'Required a '[] (CategoryName a))
-    , Show (Field 'Required a '[] (CatParent a))
+    ( Show (Field  a '[] (CategoryName a))
+    , Show (Field  a '[] (CatParent a))
     ) => Show (Category a)
 
 deriving instance
-    ( Eq (Field 'Required a '[] (CategoryName a))
-    , Eq (Field 'Required a '[] (CatParent a))
+    ( Eq (Field  a '[] (CategoryName a))
+    , Eq (Field  a '[] (CatParent a))
     ) => Eq (Category a)
 
 -- | Post / Create
@@ -122,7 +122,7 @@ instance Database.Gettable ID (Category (Front Update)) where
 --         , "WHERE id = ? "
 --         ]
 
--- type CatPutFields = 
+-- type CatPutfields = 
 --     ( Maybe (CategoryName (Front Update))
 --     , Maybe (ID (Category (Front Update)))
 --     , ID (Path Current)) 
@@ -131,7 +131,7 @@ instance Database.Gettable ID (Category (Front Update)) where
 -- instance Database.ToOneRow  (Category (Front Update)) IDs where
 
 --     type instance MkOneRow (Category (Front Update)) IDs 
---         = CatPutFields
+--         = CatPutfields
 --     toOneRow Category{..} [cID] = pure (name, parent, cID)
 --     toOneRow _ _ = entityIDArityMissmatch "update tag"
 

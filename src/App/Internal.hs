@@ -144,7 +144,7 @@ getServerAddress = do
 
 toPath ::  Wai.Request -> Path a
 toPath req = 
-    let path = Wai.pathInfo req 
+    let path = Wai.pathInfo req
     in case Wai.requestMethod req of
         "POST"    -> POST    path
         "GET"     -> GET     path
