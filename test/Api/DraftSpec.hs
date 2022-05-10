@@ -42,7 +42,6 @@ import Data.Data (Typeable)
 
 spec :: Spec
 spec = do
-    pure ()
     postSpec
     getSpec
     putSpec

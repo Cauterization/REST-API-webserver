@@ -99,33 +99,11 @@ pgHandler = flip catches
 
 handleSqlErrror :: SqlError -> IO a
 handleSqlErrror SqlError{..} = throwM $ case sqlState of
-        "23503" -> Database.EntityNotFound $ T.decodeUtf8 sqlErrorDetail
-        "23502" -> Database.IsNull $ T.decodeUtf8 sqlErrorDetail
-        "23505" -> Database.AlreadyExists $ T.decodeUtf8 sqlErrorDetail
-        "23514" -> Database.OtherError $  T.decodeUtf8 sqlErrorMsg
-        _       -> Database.UnknwonError $ T.show SqlError{..}
+    "23503" -> Database.EntityNotFound $ T.decodeUtf8 sqlErrorDetail
+    "23502" -> Database.IsNull $ T.decodeUtf8 sqlErrorDetail
+    "23505" -> Database.AlreadyExists $ T.decodeUtf8 sqlErrorDetail
+    "23514" -> Database.OtherError $  T.decodeUtf8 sqlErrorMsg
+    _       -> Database.UnknwonError $ T.show SqlError{..}
 
 handleFormatError :: FormatError -> IO a
 handleFormatError f = throwM $ Database.UnknwonError $ T.show f
-
--- catchSQLE :: IO (Either DBError b) -> IO (Either DBError b)
--- catchSQLE = handle (\PG.SqlError{..} -> return $ Left $ toDbE $ parseSqlE PG.SqlError{..})
---   where 
---     toDbE = \case
---         CustomErrorP0001 t        -> AccessViolation t
---         ForeignKeyViolation t     -> EntityNotFound t
---         MultiUniqueKeys t         -> AlreadyExists t
---         NullConstraintViolation t -> IsNull t
---         UnknownSqlE t             -> UnknownDbE t
---     parseSqlE PG.SqlError{..} = case sqlState of
---         "23503" -> ForeignKeyViolation $ T.decodeUtf8 sqlErrorDetail
---         "23502" -> NullConstraintViolation $ T.decodeUtf8 sqlErrorDetail
---         "23505" -> MultiUniqueKeys  $ T.decodeUtf8 sqlErrorDetail
---         "P0001" -> CustomErrorP0001 $ T.decodeUtf8 sqlErrorMsg
---         _       -> UnknownSqlE $ T.showT PG.SqlError{..}
-
--- data SqlE = CustomErrorP0001 T.Text
---           | MultiUniqueKeys T.Text
---           | ForeignKeyViolation T.Text
---           | NullConstraintViolation T.Text
---           | UnknownSqlE T.Text

@@ -41,10 +41,9 @@ import Test.QuickCheck
 
 spec :: Spec
 spec = do
-    pure ()
-    -- postSpec
-    -- getSpec
-    -- deleteSpec
+    postSpec
+    getSpec
+    deleteSpec
     
 postSpec :: Spec
 postSpec = describe "POST" $ do

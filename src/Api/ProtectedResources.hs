@@ -46,5 +46,5 @@ adminCheck = do
     err = AdminAccessViolation "Admin check."
     handler = \case
         Database.EntityNotFound{} -> throwM err
-        e -> throwM e
+        e                         -> throwM e
     

@@ -125,12 +125,19 @@ getNumParam p = fmap T.read <$> getParam p >>= \case
     Nothing        -> pure Nothing
     Just (Left _)  -> parsingError $ "Unparsable num param " <> (T.unpack p)
 
+getNumListParam :: (Monad m, MonadThrow m, Logger.HasLogger m, HasEnv m
+    ) => Text -> m (Maybe [Int])
+getNumListParam p = fmap T.read <$> getParam p >>= \case
+    Just (Right n) -> pure $ Just n
+    Nothing        -> pure Nothing
+    Just (Left _)  -> parsingError $ "Unparsable num list param " <> (T.unpack p)
+
 getDateParam :: (Monad m, MonadThrow m, Logger.HasLogger m, HasEnv m
     ) => Text -> m (Maybe Date)
 getDateParam p = fmap (parseTime . T.unpack) <$> getParam p >>= \case
     Just (Just d) -> pure $ Just d
-    Nothing -> pure Nothing
-    Just Nothing ->  parsingError $ "Unparsable date param " <> (T.unpack p)
+    Nothing       -> pure Nothing
+    Just Nothing  -> parsingError $ "Unparsable date param " <> (T.unpack p)
   where
     parseTime = Time.parseTimeM True Time.defaultTimeLocale "%Y-%m-%d"
 

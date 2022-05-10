@@ -34,11 +34,10 @@ import Data.String (fromString)
 
 spec :: Spec
 spec = do
-    pure ()
-    -- postSpec
-    -- getSpec
-    -- deleteSpec
-    -- authSpec
+    postSpec
+    getSpec
+    deleteSpec
+    authSpec
     
 postSpec :: Spec
 postSpec = describe "POST" $ do

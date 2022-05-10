@@ -1,6 +1,9 @@
+{-# LANGUAGE ViewPatterns #-}
+
 module Helpers.App where
 
 import Api.Author   qualified as Author
+import Api.Article  qualified as Article
 import Api.Category qualified as Category
 import Api.User     qualified as User
 import Api.Picture  qualified as Picture
@@ -26,6 +29,7 @@ import Control.Monad.Writer
 
 import Data.Aeson
 import Data.ByteString.Lazy qualified as BL
+import Data.Char
 import Data.Map qualified as M
 import Database.Database
 
@@ -42,6 +46,8 @@ import Extended.Text (Text)
 import Extended.Text qualified as T
 
 import Logger qualified
+
+import Type.Reflection qualified as Refl
 
 import Helpers.Database
 import Helpers.Monad
@@ -153,7 +159,7 @@ instance Routed Category (AppT TestMonad) where
 
 instance Routed Article (AppT TestMonad) where
     router = do
-        -- get      "articles"                  Article.getArticles
+        get      "articles"                  Article.getArticles
         get_     "articles/{ID}"    
 
 instance Routed Draft (AppT TestMonad) where
@@ -192,12 +198,6 @@ withBody e Env{..} = Env{envBody = encode e, ..}
 withBLBody :: BL.ByteString -> EnvMod
 withBLBody bl Env{..} = Env{envBody = bl, ..}
 
-withLimit :: Int -> EnvMod
-withLimit l Env{..} = Env{envQParams = M.insert "limit" [T.show l] envQParams, ..}
-
-withOffset :: Int -> EnvMod
-withOffset o Env{..} = Env{envQParams = M.insert "offset" [T.show o] envQParams, ..}
-
 withPath :: Method -> Text -> EnvMod
 withPath m p Env{..} = Env{envPath = m (T.splitOn "/" p), ..}
 
@@ -216,6 +216,28 @@ woLogger Env{..} = Env{envLogger = const . const $ pure (), ..}
 
 withContentType :: ContentType -> EnvMod
 withContentType ct Env{..} = Env{envContentType = Just ct, ..}
+
+withLimit :: Int -> EnvMod
+withLimit l Env{..} = Env{envQParams = M.insert "limit" [T.show l] envQParams, ..}
+
+withOffset :: Int -> EnvMod
+withOffset o Env{..} = Env{envQParams = M.insert "offset" [T.show o] envQParams, ..}
+
+withParam :: forall p. (Show p, Refl.Typeable p) => Text -> p -> EnvMod
+withParam (T.map toLower -> pp) pv Env{..}
+    | Just Refl.HRefl <- Refl.typeRep @p `Refl.eqTypeRep` Refl.typeRep @Text 
+        = Env{envQParams = M.insert pp [pv] envQParams, .. }
+    | otherwise 
+        = Env{envQParams = M.insert pp [T.show pv] envQParams, .. }
+
+withParam' :: Text -> Text -> EnvMod
+withParam' (T.map toLower -> pp) pv Env{..} = Env{envQParams = M.insert pp [pv] envQParams, .. }
+
+-- withDateParam :: Text -> Date -> EnvMod
+-- withDateParam pp pv Env{..} = Env{envQParams = M.insert pp [T.show pv] envQParams, .. }
+
+-- withNumParam :: Text -> Int -> EnvMod
+-- withNumParam pp pv Env{..} = Env{envQParams = M.insert pp [T.show pv] envQParams, .. }
 
 instance HasDatabase (AppT TestMonad) where
 

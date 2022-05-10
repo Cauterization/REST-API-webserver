@@ -82,10 +82,10 @@ getFilters :: forall e a m.
     , Gettable m e a
     ) => m [Database.EntityFilterParam]
 getFilters = forM (sort $ Database.getEntityFilters @e @a) $ \case
-    Database.EFString  p -> Database.EFPTextOptional <$> getParam p
-    Database.EFNum     p -> Database.EFPIntOptional  <$> getNumParam p
-    Database.EFNumList p -> Database.EFPIntOptional  <$> getNumParam p
-    Database.EFDate    p -> Database.EFPDateOptional <$> getDateParam p
+    Database.EFString  p -> Database.EFPTextOptional    <$> getParam p
+    Database.EFNum     p -> Database.EFPIntOptional     <$> getNumParam p
+    Database.EFNumList p -> Database.EFPIntListOptional <$> getNumListParam p
+    Database.EFDate    p -> Database.EFPDateOptional    <$> getDateParam p
     Database.EFLimit     -> getLimit
     Database.EFOffset    -> getOffset
 
