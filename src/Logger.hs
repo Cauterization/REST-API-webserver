@@ -3,8 +3,6 @@ module Logger
     , info
     , warning
     , error
-    , sql
-    , Handle(..)
     , Config(..)
     , Logger
     , Verbosity(..)
@@ -16,6 +14,7 @@ module Logger
     ) where
 
 import Control.Applicative ( Alternative((<|>)) )
+import Control.Monad
 
 import Data.Aeson hiding (Error)
 
@@ -30,8 +29,7 @@ import qualified Data.Time as Time
 import Control.Monad.IO.Class
 
 data Verbosity
-    = Sql
-    | Debug
+    = Debug
     | Info
     | Warning
     | Error
@@ -50,7 +48,6 @@ data Config = Config
     { cVerbosity :: Verbosity
     , cMode      :: Mode
     , cFilePath  :: FilePath
-    , cShowSQL   :: Bool
     } deriving (Show, Generic)
     
 instance FromJSON Config where
@@ -58,25 +55,15 @@ instance FromJSON Config where
         cVerbosity <- o .: "Verbosity"
         cMode      <- o .: "Mode"
         cFilePath  <- o .: "FilePath" <|> pure "log.txt" 
-        cShowSQL   <- o .: "ShowSQL"
         pure Config{..}
-
-data Handle m = Handle
-  { hConfig     :: Config
-  , hFileHandle :: Maybe Sys.Handle
-  , hLogger     :: Verbosity -> T.Text -> m ()
-  }
 
 type Logger m = Verbosity -> T.Text -> m ()
 
-debug, info, warning, error :: ( HasLogger m) => T.Text -> m ()
+debug, info, warning, error :: (HasLogger m) => T.Text -> m ()
 debug   = mkLog Debug
 info    = mkLog Info
 warning = mkLog Warning
 error   = mkLog Error 
-
-sql :: (Show s, HasLogger m) => s -> m ()
-sql = mkLog Sql . T.show
 
 class HasLogger m where
     mkLog :: Logger m
@@ -97,10 +84,9 @@ class RunLogger m where
     runLogger c = (liftIO . ) . runLogger @IO c
 
 instance RunLogger IO where
-    runLogger Config{..} v t
-        | v == Sql && cShowSQL = formatted >>= T.putStrLn
-        | v < cVerbosity = pure ()
-        | otherwise = formatted >>= T.putStrLn
+    runLogger Config{..} v t = do
+        -- createFileIfDontExists
+        when (v >= cVerbosity) $ formatted >>= toOutput
       where
         formatted = do 
             utcTime <- Time.getCurrentTime
@@ -108,3 +94,10 @@ instance RunLogger IO where
                 asctime = Time.formatTime Time.defaultTimeLocale 
                     "%a %b %d %H:%M:%S %Y" localTime
             pure $ "\n\n" <> T.pack asctime <> " " .< v <> "\n" <> t
+        toOutput t = case cMode of
+            None    -> pure ()
+            Display -> T.putStrLn t
+            Write   -> T.appendFile cFilePath t
+            Both    -> T.putStrLn t >> T.appendFile cFilePath t
+        -- createFileIfDontExists = unlessM (doesFileExist cFilePath) 
+
