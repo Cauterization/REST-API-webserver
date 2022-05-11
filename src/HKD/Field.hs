@@ -1,5 +1,7 @@
-module HKD.Field where
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
 
-import GHC.TypeLits
+module HKD.Field where
 
 type family Field action (modifiers :: [*]) a :: *

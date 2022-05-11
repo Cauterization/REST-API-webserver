@@ -4,17 +4,12 @@ import Entity.Author
 import Entity.Category
 import Entity.Tag
 import Entity.User
-
-
+import HKD.HKD
 import Helpers.Author
 import Helpers.Category
 import Helpers.Database
-import Helpers.User 
 import Helpers.Monad
-
-
-import HKD.HKD
-
+import Helpers.User
 import Unsafe.Coerce
 
 -- | Class for generic props

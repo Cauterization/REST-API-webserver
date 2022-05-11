@@ -68,7 +68,6 @@ library
       HKD.Display
       HKD.EmptyData
       HKD.Field
-      HKD.Filter
       HKD.Front
       HKD.HKD
       HKD.Publish
@@ -108,6 +107,7 @@ library
       TypeFamilies
       TypeOperators
       UndecidableInstances
+      ViewPatterns
   ghc-options: -j6  -O0
   build-depends:
       QuickCheck
@@ -176,7 +176,8 @@ executable server-exe
       TypeFamilies
       TypeOperators
       UndecidableInstances
-  ghc-options: -j6  -O0 -threaded -rtsopts -with-rtsopts=-N -Wall -Werror -Wno-unused-do-bind -Wno-unused-imports -Wno-unused-foralls -Wno-unused-local-binds
+      ViewPatterns
+  ghc-options: -j6  -O0 -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
   build-depends:
       QuickCheck
     , aeson
@@ -274,6 +275,7 @@ test-suite server-test
       TypeFamilies
       TypeOperators
       UndecidableInstances
+      ViewPatterns
   ghc-options: -j6  -O0 -threaded -rtsopts -with-rtsopts=-N -Wno-missing-methods
   build-depends:
       QuickCheck

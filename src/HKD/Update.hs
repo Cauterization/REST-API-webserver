@@ -1,18 +1,22 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE EmptyDataDeriving #-}
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
+
 module HKD.Update where
 
+import Data.Aeson qualified as J
+import Data.Data
+import Extended.Postgres qualified as Postgres
 import HKD.EmptyData
 import HKD.Field
 import HKD.Utils
-import Data.Aeson qualified as J
 
-import qualified Extended.Postgres as Postgres
-import Data.Data
-
-data Update deriving Data
+data Update deriving (Data)
 
 data Immutable
+
 data NotUpdated deriving (Data, Eq, Ord)
 
 instance J.FromJSON NotUpdated where
@@ -21,10 +25,12 @@ instance J.FromJSON NotUpdated where
 instance Postgres.ToField NotUpdated where
   toField _ = Postgres.renderNull
 
-type instance Field Update modifiers a = 
-  If (Contains Immutable modifiers) 
-     (Maybe NotUpdated)
-     (Maybe a)
+type instance
+  Field Update modifiers a =
+    If
+      (Contains Immutable modifiers)
+      (Maybe NotUpdated)
+      (Maybe a)
 
 update :: EmptyData (e Update) => (e Update -> e Update) -> e Update
-update = ($ emptyData) 
+update = ($ emptyData)

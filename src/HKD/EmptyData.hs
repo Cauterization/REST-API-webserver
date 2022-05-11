@@ -1,3 +1,7 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
+
 module HKD.EmptyData where
 
 import GHC.Generics
@@ -14,7 +18,7 @@ instance (EmptyDataGeneric a, EmptyDataGeneric b) => EmptyDataGeneric (a :*: b) 
   edg = edg :*: edg
 
 instance EmptyDataGeneric U1 where
-  edg = U1 
+  edg = U1
 
 instance EmptyDataGeneric a => EmptyDataGeneric (M1 i c a) where
   edg = M1 edg

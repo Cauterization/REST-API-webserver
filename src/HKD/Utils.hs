@@ -1,12 +1,14 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
+
 module HKD.Utils where
 
 type family Contains a as where
   Contains a (a ': as) = 'True
   Contains b (a ': as) = Contains b as
-  Contains a '[]       = 'False
+  Contains a '[] = 'False
 
-type family If c t e where  
+type family If c t e where
   If 'True t e = t
   If 'False t e = e
-
-

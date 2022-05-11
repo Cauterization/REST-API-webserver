@@ -47,10 +47,8 @@ dependencies:
 - wai
 - wai-extra
 - warp
-
 - hspec
 - QuickCheck
-
 - unordered-containers
 
 default-extensions:
@@ -81,6 +79,7 @@ default-extensions:
 - TypeFamilies
 - TypeOperators
 - UndecidableInstances
+- ViewPatterns
 
 ghc-options: 
   - "-j6 " 
@@ -99,10 +98,6 @@ executables:
     - -with-rtsopts=-N
     - -Wall
     - -Werror
-    - -Wno-unused-do-bind
-    - -Wno-unused-imports
-    - -Wno-unused-foralls
-    - -Wno-unused-local-binds
     dependencies:
     - server
 
