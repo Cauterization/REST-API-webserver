@@ -1,40 +1,30 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Api.User where
 
-import Api.Get (Gettable)
-import Api.Post (Postable)
-import Api.Put (Puttable)
+import Api.Get ( Gettable )
+import Api.Post ( Postable )
+import Api.Put ( Puttable )
 import App.Internal
-  ( AppError (WrongPassword),
-    Application,
-    Impure (..),
-    decodedBody,
-    getToken,
-  )
-import App.Result (Endpoint, text)
-import App.ResultJSON (json)
-import App.Types (ID (ID), Token)
-import Control.Monad.Catch (MonadThrow (throwM))
-import Control.Monad.Writer (when)
+    ( decodedBody,
+      getToken,
+      AppError(WrongPassword),
+      Application,
+      Impure(..) )
+import App.Result ( text, Endpoint )
+import App.ResultJSON ( json )
+import App.Types ( ID(ID), Token )
+import Control.Lens ( (?~) )
+import Control.Monad.Catch ( MonadThrow(throwM) )
+import Control.Monad.Writer ( when )
 import Crypto.Hash qualified as Crypto
-import Data.Coerce (coerce)
-import Data.Function ((&))
+import Data.Coerce ( coerce )
 import Database.Database (Database)
 import Database.Database qualified as Database
-import Entity.Internal (Entity (..))
-import Entity.User (Auth, User (..))
+import Entity.Internal ( Entity(..) )
+import Entity.User ( Auth, User(..) )
 import Extended.Text (Text)
 import Extended.Text qualified as T
 import HKD.HKD
-  ( Create,
-    Display,
-    EmptyData (emptyData),
-    Front,
-    Update,
-  )
+    ( EmptyData(emptyData), Create, Display, Update, Front )
 import Logger ((.<))
 import Logger qualified
 
@@ -106,7 +96,7 @@ authUser _ = do
   Database.putEntity @User @m @Update $
     Entity
       (coerce entityID)
-      (emptyData @(User Update) & \User {..} -> User {token = Just newToken, ..})
+      $ #token ?~ newToken $ emptyData
   text newToken
 
 mkHash :: Text -> Text

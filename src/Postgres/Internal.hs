@@ -1,27 +1,28 @@
-{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Postgres.Internal where
 
-import Control.Monad
+import Control.Monad ( forM_ )
 import Control.Monad.Catch
+    ( MonadThrow(throwM), catches, Handler(Handler) )
 import Data.ByteString qualified as B hiding (putStrLn)
--- import Data.ByteString.Char8 qualified as B
-
-import Data.FileEmbed
+import Data.FileEmbed ( embedDir )
 import Data.Function (on)
 import Data.List qualified as L
 import Data.Pool qualified as Pool
 import Database.Config qualified as Database
 import Database.Internal (IsDatabase)
 import Database.Internal qualified as Database
-import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.Migration
+    ( runMigration,
+      MigrationCommand(MigrationScript, MigrationInitialization),
+      MigrationContext(MigrationContext, migrationContextVerbose,
+                       migrationContextConnection, migrationContextCommand),
+      MigrationResult(MigrationError, MigrationSuccess) )
+import Extended.Postgres
 import Extended.Text qualified as T
 import Logger qualified
-import System.Exit
+import System.Exit ( exitFailure )
 
 data Postgres
 

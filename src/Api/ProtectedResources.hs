@@ -1,10 +1,4 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Api.ProtectedResources where
-
--- import Extended.Text qualified as T
 
 import Api.Get (Gettable)
 import Api.User qualified as User

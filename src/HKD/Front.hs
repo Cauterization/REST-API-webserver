@@ -1,15 +1,9 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE EmptyDataDeriving #-}
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module HKD.Front where
 
-import Data.Aeson
-import Data.Data
+import Data.Aeson ( FromJSON(parseJSON) )
+import Data.Data ( Data )
 import Extended.Postgres qualified as Postgres
-import GHC.Generics
+import GHC.Generics ( Generic )
 import HKD.Create (Create)
 import HKD.Display (Display, Hidden, NotDisplayed)
 import HKD.Field (Field)

@@ -1,7 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Logger
   ( debug,
     info,
@@ -87,7 +83,6 @@ class RunLogger m where
 
 instance RunLogger IO where
   runLogger Config {..} v t = do
-    -- createFileIfDontExists
     when (v >= cVerbosity) $ formatted >>= toOutput
     where
       formatted = do
@@ -104,5 +99,3 @@ instance RunLogger IO where
         Display -> T.putStrLn out
         Write -> T.appendFile cFilePath out
         Both -> T.putStrLn out >> T.appendFile cFilePath out
-
--- createFileIfDontExists = unlessM (doesFileExist cFilePath)

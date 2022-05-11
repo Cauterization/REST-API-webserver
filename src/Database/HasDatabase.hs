@@ -1,7 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Database.HasDatabase where
 
 import Data.Kind (Type)
@@ -14,4 +10,3 @@ class (IsDatabase (Database m)) => HasDatabase m where
 
   getDatabaseConnection :: m (ConnectionOf (Database m))
 
--- getPaginationSize :: m PaginationSize

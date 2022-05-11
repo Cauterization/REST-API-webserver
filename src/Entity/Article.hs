@@ -1,27 +1,32 @@
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Entity.Article where
 
-import App.Types
-import Data.Aeson
-import Data.Data
-import Data.Maybe
+import App.Types ( fieldsQuery, Date, ID(ID) )
+import Data.Aeson ( FromJSON )
+import Data.Data ( Data )
+import Data.Maybe ( catMaybes )
 import Data.String (IsString)
 import Database.Database qualified as Database
-import Entity.Author
-import Entity.Category
-import Entity.Internal
-import Entity.Picture
-import Entity.Tag
-import Entity.User
+import Entity.Author ( Author )
+import Entity.Category ( Category )
+import Entity.Internal ( EntityOrID, Entity(Entity) )
+import Entity.Picture ( Picture )
+import Entity.Tag ( Tag(Tag) )
+import Entity.User ( User )
 import Extended.Postgres qualified as Postgres
 import Extended.Text (Text)
 import GHC.Generics (Generic)
 import HKD.HKD
+    ( EmptyData,
+      Field,
+      Create,
+      Display,
+      Immutable,
+      Update,
+      Publish,
+      Front,
+      NotAllowedFromFront )
 
 data Article a = Article
   { title :: Field a '[] Text,

@@ -1,13 +1,10 @@
 module Helpers.Author where
 
-import Data.Aeson
-import Data.Coerce
-import Entity.Author
-import Entity.Internal
-import HKD.HKD
-import Helpers.Internal
-import Helpers.User
-import Test.QuickCheck
+import Data.Aeson ( ToJSON )
+import Entity.Author ( Author(..) )
+import HKD.HKD ( Display, Front, Create, Update )
+import Helpers.User ()
+import Test.QuickCheck ( Arbitrary(arbitrary) )
 
 -- | Post
 deriving instance ToJSON (Author (Front Create))

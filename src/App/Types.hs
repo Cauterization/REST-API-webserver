@@ -1,24 +1,27 @@
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module App.Types where
 
-import Data.Aeson
+import Data.Aeson ( FromJSON, ToJSON )
 import Data.ByteString.Lazy qualified as BL
 import Data.Char (toLower)
 import Data.Data
+    ( Data(dataTypeOf),
+      Typeable,
+      Proxy(Proxy),
+      typeOf,
+      constrFields,
+      dataTypeConstrs )
 import Data.Function (on)
 import Data.Kind (Type)
-import Data.List
+import Data.List ( intercalate, stripPrefix )
 import Data.Maybe (fromMaybe)
 import Data.String (IsString (..))
 import Data.Text (Text)
 import Data.Time qualified as Time
 import Extended.Postgres
-import GHC.Generics
+    ( FromField, FromRow, ToField(..), ToRow, PGArray(PGArray) )
+import GHC.Generics ( Generic )
 
 type Body = BL.ByteString
 

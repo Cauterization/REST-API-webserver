@@ -1,17 +1,11 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE EmptyDataDeriving #-}
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module HKD.Update where
 
 import Data.Aeson qualified as J
-import Data.Data
+import Data.Data ( Data )
 import Extended.Postgres qualified as Postgres
-import HKD.EmptyData
-import HKD.Field
-import HKD.Utils
+import HKD.EmptyData ( EmptyData(..) )
+import HKD.Field ( Field )
+import HKD.Utils ( Contains, If )
 
 data Update deriving (Data)
 

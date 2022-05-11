@@ -1,25 +1,25 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Api.TagSpec where
 
-import App.App
-import App.Result
-import Data.Aeson
 import Data.Map qualified as M
-import Entity.Tag
+import Entity.Tag ( Tag )
 import Extended.Text qualified as T
-import HKD.HKD
-import Helpers.App
-import Helpers.Database
-import Helpers.Entity
 import Helpers.GenericProps
-import Helpers.Internal
-import Helpers.Monad
-import Helpers.Tag
-import Test.Hspec
-import Test.QuickCheck
+    ( propDeleteEntity,
+      propDeleteEntityDoesntExists,
+      propGetEntities,
+      propGetEntitiesIsPaginated,
+      propGetEntitiesWithLimitOffset,
+      propGetEntity,
+      propGetEntityDoesntExists,
+      propPostsAlreadyExists,
+      propPostsEntity,
+      propPostsParsingFail,
+      propPutEntity,
+      propPutEntityDoesntExists,
+      propPutEntityParsingFail )
+import Helpers.Tag ()
+import Test.Hspec ( Spec, context, describe, it )
+import Test.QuickCheck ( Testable(property) )
 
 spec :: Spec
 spec = do

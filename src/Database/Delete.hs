@@ -1,8 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE UndecidableSuperClasses #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Database.Delete where
 
 import App.Types
@@ -44,6 +39,5 @@ deleteEntity ::
 deleteEntity e = do
   connection <- getDatabaseConnection
   let q = deleteQuery @e @Delete
-  -- Logger.sql q
   res <- liftDatabase (deleteFromDatabase @(Database m) connection q e)
   when (res == 0) (throwM $ EntityNotFound $ nameOf @e <> " not found.")

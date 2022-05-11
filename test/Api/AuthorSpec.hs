@@ -1,33 +1,28 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Api.AuthorSpec where
 
-import App.Result
-import App.Types
-import Data.Aeson
-import Data.Coerce
 import Data.Data (Typeable)
-import Data.Either
 import Data.IntMap qualified as IM
 import Data.Kind (Type)
-import Data.List
-import Entity.Author
-import Entity.Internal
-import Entity.User
+import Entity.Author ( Author )
 import Extended.Text (Text)
 import Extended.Text qualified as T
-import HKD.HKD
-import Helpers.App
-import Helpers.Author
-import Helpers.Database
-import Helpers.Entity
+import Helpers.Author ()
 import Helpers.GenericProps
-import Helpers.Internal
-import Helpers.Monad
-import Test.Hspec
-import Test.QuickCheck
+    ( propDeleteEntity,
+      propDeleteEntityDoesntExists,
+      propGetEntities,
+      propGetEntitiesIsPaginated,
+      propGetEntitiesWithLimitOffset,
+      propGetEntity,
+      propGetEntityDoesntExists,
+      propPostsAlreadyExists,
+      propPostsEntity,
+      propPostsParsingFail,
+      propPutEntity,
+      propPutEntityDoesntExists,
+      propPutEntityParsingFail )
+import Test.Hspec ( Spec, context, describe, it )
+import Test.QuickCheck ( Testable(property) )
 
 spec :: Spec
 spec = do
@@ -84,24 +79,3 @@ deleteSpec = describe "DELETE" $ do
 
   it "Throws error when author with this ID doesn't exists" $
     property $ propDeleteEntityDoesntExists @Author "authors"
-
--- propPostsAuthor :: EMap (Author Display) -> User Display -> Author Create -> Property
--- propPostsAuthor db u a = property $ not (alreadyExists a db) ==> do
---     (Right (ResText aIDtext), st) <- runTest
---         ( withBody (eCreateToFrontCreate a)
---         . withPostPath "authors")
---         ( withDatabase @User (M.fromList [(coerce $ user a, u)])
---         . withDatabase @Author db)
---     let Right aID = T.read aIDtext
---     let res = M.lookup aID $ authorDB st
---     fmap fromDisplay res `shouldBe` Just a
-
--- propPostsAuthorAlreadyExists ::
---     BigTDB Author -> User Display -> Author Create -> Property
--- propPostsAuthorAlreadyExists (unBigTDB -> db) u a = property $ alreadyExists a db ==> do
---     res <- evalTest
---         ( withBody (eCreateToFrontCreate a)
---         . withPostPath "authors")
---         ( withDatabase @User (M.fromList [(coerce $ user a, u)])
---         . withDatabase @Author db)
---     isLeft res `shouldBe` True

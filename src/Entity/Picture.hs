@@ -1,18 +1,16 @@
 {-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Entity.Picture where
 
 import Data.ByteString.Char8 qualified as BC8
 import Data.ByteString.Lazy (ByteString)
-import Data.Data
+import Data.Data ( Data )
 import Database.Database qualified as Database
 import Extended.Postgres qualified as Postgres
 import Extended.Text qualified as T
-import GHC.Generics
-import HKD.HKD
-import Text.Read
+import GHC.Generics ( Generic )
+import HKD.HKD ( Create, Display, Front )
+import Text.Read ( readMaybe )
 
 data PictureFormat
   = JPEG

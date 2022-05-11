@@ -1,20 +1,18 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE UndecidableSuperClasses #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Database.Post where
 
-import App.Types
-import Control.Monad.Catch
-import Data.Data
-import Data.Functor
-import Data.Kind
+import App.Types ( fieldsOf, fieldsQuery, nameOf, ID )
+import Control.Monad.Catch ( MonadThrow )
+import Data.Data ( Data, Typeable )
+import Data.Functor ( ($>) )
+import Data.Kind ( Type )
 import Data.List (intercalate)
-import Data.String
-import Database.HasDatabase
+import Data.String ( IsString(..) )
+import Database.HasDatabase ( HasDatabase(..) )
 import Database.Internal
-import HKD.HKD
+    ( withPluralEnding,
+      IsDatabase(QueryOf, postToDatabase, ToRowOf, FromRowOf),
+      QConstraints )
+import HKD.HKD ( Create )
 import Logger qualified
 
 class Postable (e :: Type -> Type) a where
@@ -69,5 +67,4 @@ postEntityWith ::
 postEntityWith f e = do
   connection <- getDatabaseConnection
   let q = postQuery @e @Create
-  -- Logger.sql q
   liftDatabase (postToDatabase @(Database m) connection (f q) e)

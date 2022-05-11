@@ -1,19 +1,18 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE UndecidableSuperClasses #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Database.Put where
 
-import App.Types
-import Control.Monad
-import Control.Monad.Catch
-import Data.Data
-import Data.Kind
+import App.Types ( fieldsOf, nameOf )
+import Control.Monad ( when )
+import Control.Monad.Catch ( MonadThrow(..) )
+import Data.Data ( Data, Typeable )
+import Data.Kind ( Type )
 import Data.List (intercalate)
-import Data.String
-import Database.HasDatabase
+import Data.String ( IsString(..) )
+import Database.HasDatabase ( HasDatabase(..) )
 import Database.Internal
+    ( withPluralEnding,
+      DBError(EntityNotFound),
+      IsDatabase(putIntoDatabase, ToRowOf),
+      QConstraints )
 import Entity.Internal (Entity (..))
 import Entity.Internal qualified as Entity
 import Logger qualified
@@ -41,25 +40,6 @@ toCoalesce :: (IsString a) => [String] -> a
 toCoalesce =
   fromString . intercalate ", "
     . map (\s -> s <> " = COALESCE (?, " <> s <> ")")
-
--- putEntity :: forall e (m :: Type -> Type) a.
---     ( HasDatabase m
---     , IsDatabase (Database m)
---     , Monad m
---     , MonadThrow m
---     , Logger.HasLogger m
---     , PuttableTo (Database m) e
---     , QConstraints (Database m)
---     , ToRowOf (Database m) (MkOneRow (e a) IDs)
---     , ToOneRow (e a) IDs
---     ) => IDs -> e a -> m ()
--- putEntity eID e = do
---     connection <- getDatabaseConnection
---     let q = unQuery $ putQuery @(Database m) @e
---     Logger.sql q
---     row <- toOneRow e eID
---     liftDatabase $ putIntoDatabase @(Database m) @(MkOneRow (e a) IDs)
---         connection q row
 
 putEntity ::
   forall e (m :: Type -> Type) a.
@@ -97,15 +77,8 @@ putEntityWith ::
 putEntityWith x = do
   connection <- getDatabaseConnection
   let q = putQuery @x
-  -- Logger.sql q
   liftDatabase $
     putIntoDatabase @(Database m)
       connection
       q
       x
-
--- class ToOneRow a b where
-
---     type family MkOneRow a b :: Type
-
---     toOneRow :: MonadThrow m => a -> b -> m (MkOneRow a b)

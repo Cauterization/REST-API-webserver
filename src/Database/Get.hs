@@ -1,8 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE UndecidableSuperClasses #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Database.Get where
 
 import App.Types
@@ -149,55 +144,8 @@ getEntitiesWith ::
 getEntitiesWith a f = do
   connection <- getDatabaseConnection
   let q = f $ getQuery @e @a
-  -- Logger.sql q
   liftDatabase $
     getFromDatabase @(Database m)
       connection
       q
       a
-
--- getEntity :: forall e m a.
---     ( HasDatabase m
---     , Monad m
---     , MonadThrow m
---     , Logger.HasLogger m
---     , IsDatabase (Database m)
---     , GettableFrom (Database m) e  a
---     , ToRowOf (Database m) IDs
---     , FromRowOf (Database m) (e a)
---     , QConstraints (Database m)
---     , Data (e a)
---     , Typeable e
---     ) => IDs -> m (e a)
--- getEntity eIDs = getEntitiesWith eIDs (<> " WHERE id = ?") >>= getSingle
-
--- getManyEntities :: forall e a m.
---     ( HasDatabase m
---     , Monad m
---     , Logger.HasLogger m
---     , IsDatabase (Database m)
---     , ToRowOf (Database m) [Page]
---     , GettableFrom (Database m) e a
---     , QConstraints (Database m)
---     , Data (e a)
---     , Typeable e
---     ) =>
---     Page -> m [e a]
--- getManyEntities = getManyEntitiesWith id
-
--- getManyEntitiesWith :: forall e a m.
---     ( HasDatabase m
---     , Monad m
---     , Logger.HasLogger m
---     , IsDatabase (Database m)
---     , ToRowOf (Database m) [Page]
---     , GettableFrom (Database m) e  a
---     , QConstraints (Database m)
---     , Data (e a)
---     , Typeable e
---     ) =>
---     (Query (Database m) (e a) -> Query (Database m) (e a)) -> Page -> m [e a]
--- getManyEntitiesWith f page = do
---     pagination <- fromString . show <$> getPaginationSize
---     getEntitiesWith [page]
---         ((<> mconcat [" LIMIT ", pagination, " OFFSET ", pagination , " * (? - 1)"]) . f)

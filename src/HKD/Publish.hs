@@ -1,11 +1,8 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module HKD.Publish where
 
-import Data.Data
-import HKD.Field
-import HKD.Update
+import Data.Data ( Data )
+import HKD.Field ( Field )
+import HKD.Update ( NotUpdated )
 
 data Publish deriving (Data)
 

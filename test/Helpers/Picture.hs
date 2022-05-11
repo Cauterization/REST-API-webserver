@@ -1,10 +1,12 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
+
 module Helpers.Picture where
 
-import Entity.Picture
-import HKD.HKD
-import Helpers.Internal
-import Test.Hspec
-import Test.QuickCheck
+import Entity.Picture ( Picture(Picture), PictureFormat(..) )
+import Helpers.Internal ()
+import Test.QuickCheck ( chooseInt, Arbitrary(arbitrary) )
 
 instance Arbitrary (Picture a) where
   arbitrary = Picture <$> arbitrary <*> arbitrary

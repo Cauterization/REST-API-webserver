@@ -1,32 +1,19 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Api.CategorySpec where
 
-import App.Result
-import App.Types
-import Data.Aeson
-import Data.Coerce
-import Data.Either
 import Data.Kind (Type)
-import Data.List
 import Data.Map qualified as M
-import Entity.Category
-import Entity.Internal
+import Entity.Category ( Category )
 import Extended.Text (Text)
 import Extended.Text qualified as T
-import HKD.HKD
-import Helpers.App
-import Helpers.Category
-import Helpers.CategoryDB
-import Helpers.Database
-import Helpers.Entity
+import Helpers.Category ()
 import Helpers.GenericProps
-import Helpers.Internal
-import Helpers.Monad
-import Test.Hspec
-import Test.QuickCheck
+    ( propDeleteEntity,
+      propDeleteEntityDoesntExists,
+      propPostsAlreadyExists,
+      propPostsEntity,
+      propPostsParsingFail )
+import Test.Hspec ( Spec, describe, it )
+import Test.QuickCheck ( Testable(property) )
 
 spec :: Spec
 spec = do

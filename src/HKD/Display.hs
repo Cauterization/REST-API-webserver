@@ -1,21 +1,13 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE EmptyDataDeriving #-}
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module HKD.Display where
 
-import Data.Aeson
-import Data.Data
+import Data.Aeson ( ToJSON )
+import Data.Data ( Data )
 import Extended.Postgres qualified as Postgres
-import GHC.Generics
-import HKD.EmptyData
-import HKD.Field
+import GHC.Generics ( Generic )
+import HKD.EmptyData ( EmptyData(..) )
+import HKD.Field ( Field )
 
 data Display deriving (Data)
-
--- instance (Show NotDisplayed)
 
 data Hidden
 

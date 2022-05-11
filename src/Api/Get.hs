@@ -1,8 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE QuantifiedConstraints #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
-
 module Api.Get where
 
 import App.Config (Config (cDatabase))
@@ -12,7 +7,7 @@ import App.Internal
     getDateParam,
     getNumListParam,
     getNumParam,
-    getParam,
+    getParam
   )
 import App.Result (Endpoint)
 import App.ResultJSON (ToJSONResult, json)

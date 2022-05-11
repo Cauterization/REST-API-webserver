@@ -1,22 +1,15 @@
 module Helpers.Article where
 
-import App.Types
-import Data.Aeson
-import Data.Coerce
+import App.Types ( ID, Date )
 import Data.Text (Text)
-import Entity.Article
-import Entity.Author
-import Entity.Category
-import Entity.Internal
-import Entity.Picture
-import Entity.Tag
-import HKD.HKD
-import Helpers.Author
-import Helpers.Category
-import Helpers.Internal
-import Helpers.Tag
-import Helpers.User
-import Test.QuickCheck
+import Entity.Article ( Article(..) )
+import Entity.Author ( Author )
+import Entity.Category ( Category )
+import Entity.Internal ( EntityOrID )
+import Entity.Picture ( Picture )
+import Entity.Tag ( Tag )
+import HKD.HKD ( NotAllowedFromFront, Field, Immutable )
+import Test.QuickCheck ( Arbitrary(arbitrary) )
 
 instance
   ( Arbitrary (Field a '[NotAllowedFromFront, Immutable] (EntityOrID Author a)),

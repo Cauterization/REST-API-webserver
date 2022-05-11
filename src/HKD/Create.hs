@@ -1,12 +1,7 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module HKD.Create where
 
-import Data.Data
-import HKD.Field
+import Data.Data ( Data )
+import HKD.Field ( Field ) 
 
 data Create deriving (Data)
 

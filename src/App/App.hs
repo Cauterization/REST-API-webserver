@@ -1,8 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE QuantifiedConstraints #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE UndecidableSuperClasses #-}
-{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module App.App
@@ -101,7 +96,7 @@ responseFromResult = \case
     pictureHeaders contentType =
       toHeaders $
         "image/"
-          <> (fromString $ map toLower $ show contentType)
+          <> fromString (map toLower $ show contentType)
 
 responseFromError :: AppError -> ToResponse
 responseFromError = \case

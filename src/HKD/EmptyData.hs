@@ -1,10 +1,7 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module HKD.EmptyData where
 
 import GHC.Generics
+    ( Generic(to, Rep), U1(..), K1(K1), M1(M1), type (:*:)(..) )
 
 class EmptyData a where
   emptyData :: a

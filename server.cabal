@@ -90,11 +90,13 @@ library
       DeriveGeneric
       DerivingStrategies
       DerivingVia
+      EmptyDataDeriving
       ExistentialQuantification
       FlexibleContexts
       FlexibleInstances
       ImplicitParams
       ImportQualifiedPost
+      InstanceSigs
       LambdaCase
       MultiParamTypeClasses
       OverloadedLabels
@@ -159,11 +161,13 @@ executable server-exe
       DeriveGeneric
       DerivingStrategies
       DerivingVia
+      EmptyDataDeriving
       ExistentialQuantification
       FlexibleContexts
       FlexibleInstances
       ImplicitParams
       ImportQualifiedPost
+      InstanceSigs
       LambdaCase
       MultiParamTypeClasses
       OverloadedLabels
@@ -234,7 +238,6 @@ test-suite server-test
       Helpers.Database
       Helpers.Draft
       Helpers.DraftDB
-      Helpers.Entity
       Helpers.GenericProps
       Helpers.Internal
       Helpers.Monad
@@ -258,11 +261,13 @@ test-suite server-test
       DeriveGeneric
       DerivingStrategies
       DerivingVia
+      EmptyDataDeriving
       ExistentialQuantification
       FlexibleContexts
       FlexibleInstances
       ImplicitParams
       ImportQualifiedPost
+      InstanceSigs
       LambdaCase
       MultiParamTypeClasses
       OverloadedLabels
@@ -276,7 +281,7 @@ test-suite server-test
       TypeOperators
       UndecidableInstances
       ViewPatterns
-  ghc-options: -j6  -O0 -threaded -rtsopts -with-rtsopts=-N -Wno-missing-methods
+  ghc-options: -j6  -O0 -threaded -rtsopts -with-rtsopts=-N -Wno-missing-methods -Wno-missing-fields
   build-depends:
       QuickCheck
     , aeson

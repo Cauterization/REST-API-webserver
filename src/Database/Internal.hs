@@ -1,20 +1,16 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Database.Internal where
 
-import App.Types
-import Control.Exception
-import Control.Monad.Catch
-import Data.Data
+import App.Types ( nameOf, ID )
+import Control.Exception ( Exception )
+import Control.Monad.Catch ( MonadThrow(..) )
+import Data.Data ( Typeable )
 import Data.Kind (Constraint, Type)
-import Data.List
-import Data.String
-import Database.Config
+import Data.List ( intercalate, isInfixOf )
+import Data.String ( IsString(..) )
+import Database.Config ( Config )
 import Extended.Text (Text)
 import Extended.Text qualified as T
-import HKD.HKD
+import HKD.HKD ( Delete )
 import Logger qualified
 
 type QConstraints db = (IsString (QueryOf db), Monoid (QueryOf db), Show (QueryOf db))

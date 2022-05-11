@@ -1,19 +1,16 @@
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Entity.Draft where
 
-import Data.Aeson
-import Data.Data
+import Data.Aeson ( FromJSON )
+import Data.Data ( Data )
 import Database.Database qualified as Database
-import Entity.Article
-import Entity.Internal
+import Entity.Article ( articleGetQuery, Article(..) )
+import Entity.Internal ( Entity(..) )
 import Extended.Postgres qualified as Postgres
 import GHC.Generics (Generic)
 import HKD.HKD
+    ( EmptyData, Create, Delete, Display, Update, Publish, Front )
 
 newtype Draft a = Draft {unDraft :: Article a} deriving stock (Generic)
 

@@ -62,11 +62,13 @@ default-extensions:
 - DeriveGeneric
 - DerivingStrategies
 - DerivingVia
+- EmptyDataDeriving
 - ExistentialQuantification
 - FlexibleContexts
 - FlexibleInstances
 - ImplicitParams
 - ImportQualifiedPost
+- InstanceSigs 
 - LambdaCase
 - MultiParamTypeClasses
 - OverloadedLabels
@@ -110,6 +112,7 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     - -Wno-missing-methods
+    - -Wno-missing-fields
     dependencies:
     - server
     - split

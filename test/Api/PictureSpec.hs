@@ -1,37 +1,32 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Api.PictureSpec where
 
-import App.Result
-import App.Types
-import Control.Lens
-import Data.Aeson
-import Data.Char
-import Data.Coerce
--- import Helpers.Picture
-
+import App.Result ( AppResult(ResPicture, ResText) )
+import App.Types ( ID(ID) )
+import Data.Char ( toLower )
 import Data.Data (Typeable)
-import Data.Either
 import Data.IntMap qualified as IM
 import Data.Kind (Type)
-import Data.List
-import Entity.Internal
-import Entity.Picture
-import Entity.User
+import Entity.Picture ( Picture(..) )
 import Extended.Text (Text)
 import Extended.Text qualified as T
-import HKD.HKD
+import HKD.HKD ( Display, Front, Create )
 import Helpers.App
-import Helpers.Database
-import Helpers.Entity
+    ( evalTest,
+      runTest,
+      withBLBody,
+      withContentType,
+      withGetPath,
+      withPostPath )
+import Helpers.Database ( withDatabase, TestEntity(fromDisplay) )
 import Helpers.GenericProps
-import Helpers.Internal
-import Helpers.Monad
-import Helpers.Picture
-import Test.Hspec
-import Test.QuickCheck
+    ( propDeleteEntity,
+      propDeleteEntityDoesntExists,
+      propGetEntityDoesntExists )
+import Helpers.Internal ( isRequestHeadersError )
+import Helpers.Monad ( TDB, TestState(_tsPictureDB) )
+import Helpers.Picture ()
+import Test.Hspec ( Spec, describe, it, shouldBe, shouldSatisfy )
+import Test.QuickCheck ( (==>), Property, Testable(property) )
 
 spec :: Spec
 spec = do
@@ -42,25 +37,22 @@ spec = do
 postSpec :: Spec
 postSpec = describe "POST" $ do
   it "When all is ok it posts picture into the database" $
-    property $ propPostsPicture
+    property propPostsPicture
 
   it "Throws error when picture has unknown format" $
-    property $ propPostsPictureUnknownFormat
+    property propPostsPictureUnknownFormat
 
 propPostsPicture :: TDB Picture -> Picture (Front Create) -> Property
 propPostsPicture db Picture {..} = property $ do
-  res <-
+  (Right (ResText pictureIDtext), st) <-
     runTest
       ( withBLBody picture
           . withContentType ("image/" <> T.show format)
           . withPostPath "pictures"
       )
       (withDatabase @Picture db)
-  case res of
-    (Left err, _) -> error $ show err
-    (Right (ResText pictureIDtext), st) -> do
-      let Right pictureID = T.read pictureIDtext
-      IM.lookup pictureID (_tsPictureDB st) `shouldBe` Just Picture {..}
+  let Right pictureID = T.read pictureIDtext
+  IM.lookup pictureID (_tsPictureDB st) `shouldBe` Just Picture {..}
 
 propPostsPictureUnknownFormat :: TDB Picture -> Text -> Picture (Front Create) -> Property
 propPostsPictureUnknownFormat db wrongFormat Picture {..} =

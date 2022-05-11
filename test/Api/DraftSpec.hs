@@ -1,41 +1,60 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Api.DraftSpec where
 
-import App.Result
-import App.ResultJSON
-import App.Types
-import Control.Lens
-import Data.Aeson
-import Data.Aeson.Lens
-import Data.Coerce
+import App.Result ( AppResult(ResJSON, ResText) )
+import App.ResultJSON ( ToJSONResult(toJSONResult) )
+import App.Types ( ID(ID), Token )
+import Control.Lens ( (^?), (.~) )
+import Data.Aeson ( Value, decode, encode )
+import Data.Aeson.Lens ( key, AsPrimitive(_String) )
 import Data.Data (Typeable)
-import Data.Either
 import Data.IntMap qualified as IM
 import Data.Kind (Type)
-import Data.List
-import Data.Maybe
-import Data.String
-import Entity.Article
-import Entity.Author
-import Entity.Draft
-import Entity.Internal
-import Entity.User
+import Data.Maybe ( isNothing )
+import Data.String ( IsString(fromString) )
+import Entity.Article ( Article(title, author) )
+import Entity.Author ( Author(user) )
+import Entity.Draft ( Draft(unDraft) )
+import Entity.Internal ( Entity(..) )
+import Entity.User ( User(token) )
 import Extended.Text (Text)
 import Extended.Text qualified as T
-import HKD.HKD
+import HKD.HKD ( Display, Front, Update, Create )
 import Helpers.App
+    ( evalTest,
+      execTest,
+      runTest,
+      runTestMonadNoMods,
+      withBLBody,
+      withBody,
+      withDeletePath,
+      withGetPath,
+      withLimit,
+      withOffset,
+      withPostPath,
+      withPublishPath,
+      withPutPath,
+      withToken )
+import Helpers.Article ()
+import Helpers.Author ()
+import Helpers.Category ()
 import Helpers.Database
-import Helpers.Draft
-import Helpers.DraftDB
-import Helpers.Entity
+    ( (>/),
+      withDatabase,
+      TestEntity(extractTestDatabaseFromTestState, alreadyExists,
+                 toFrontCreate, fromDisplay) )
+import Helpers.Draft ()
 import Helpers.GenericProps
+    ( propPostsParsingFail, BigTDB(unBigTDB) )
 import Helpers.Internal
-import Helpers.Monad
+    ( isEntityNotFoundError,
+      isParsingError,
+      isUnathorizedError,
+      testPaginationConstant )
+import Helpers.Monad ( TDB, TestState(_tsDraftDB, _tsArticleDB) )
+import Helpers.Tag ()
 import Test.Hspec
-import Test.QuickCheck
+    ( Spec, context, describe, it, shouldBe, shouldSatisfy )
+import Test.QuickCheck ( (==>), Property, Testable(property) )
 
 spec :: Spec
 spec = do
@@ -48,16 +67,16 @@ spec = do
 postSpec :: Spec
 postSpec = describe "POST" $ do
   it "When all is ok it posts draft into the database" $
-    property $ propPostsDraft
+    property propPostsDraft
 
   it "Throws error when it fails to parse request body" $
     property $ propPostsParsingFail @Draft "drafts"
 
   it "Throws error when no user token is provided" $
-    property $ propPostsDraftNoToken
+    property propPostsDraftNoToken
 
   it "Throws error when wrong user token is provided" $
-    property $ propPostsDraftWrongToken
+    property propPostsDraftWrongToken
 
 propPostsDraft :: TDB Draft -> TDB User -> Draft Create -> Property
 propPostsDraft dbD dbU draft =
@@ -399,16 +418,16 @@ propPutDraftWrongToken dbD draftU (ID draftID) u wrongToken =
 deleteSpec :: Spec
 deleteSpec = describe "DELETE" $ do
   it "Actually deletes draft from database" $
-    property $ propDeleteDraft
+    property propDeleteDraft
 
   it "Throws error when draft with this ID doesn't exists" $
-    property $ propDeleteDraftDoesntExists
+    property propDeleteDraftDoesntExists
 
   it "Throws error when no token is provided" $
-    property $ propDeleteDraftNoToken
+    property propDeleteDraftNoToken
 
   it "Throws error when wrong token is provided" $
-    property $ propDeleteDraftWrongToken
+    property propDeleteDraftWrongToken
 
 propDeleteDraft :: TDB Draft -> ID (Draft Display) -> User Display -> Property
 propDeleteDraft dbD (ID draftID) u =

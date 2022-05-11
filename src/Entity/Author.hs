@@ -1,22 +1,17 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Entity.Author where
 
-import App.Types
+import App.Types ( fieldsQuery )
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Data
+import Data.Data ( Data )
 import Data.Generics.Product.Fields qualified as GL
 import Data.Text (Text)
 import Database.Database qualified as Database
 import Database.PostgreSQL.Simple qualified as Postgres
 import Database.PostgreSQL.Simple.FromRow qualified as Postgres
 import Entity.Internal (Entity, EntityOrID)
-import Entity.User
+import Entity.User ( User )
 import GHC.Generics (Generic)
-import HKD.HKD
+import HKD.HKD ( Field, Create, Display, Immutable, Update, Front )
 
 data Author a = Author
   { user :: Field a '[Immutable] (EntityOrID User a),

@@ -1,7 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Api.Post where
 
 import App.Internal (Application, decodedBody)
@@ -66,12 +62,3 @@ instance CreateFromFront Category where
 
 instance CreateFromFront Author where
   fromFront Author {..} = pure $ Author {user = coerce user, ..}
-
--- postAuthor :: forall m.
---     ( Application m
---     , Postable m Author
---     ) => Endpoint m
--- postAuthor _ = do
---     Author{..} <- decodedBody @(Author (Front Create))
---     Logger.info "Attempt to post author"
---     Database.postEntity () >>= text

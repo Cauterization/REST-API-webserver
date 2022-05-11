@@ -1,44 +1,42 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Api.ArticleSpec where
 
-import Api.Article
-import App.Result
-import App.ResultJSON
-import App.Types
-import Control.Lens
-import Data.Aeson
-import Data.Aeson.Lens
-import Data.Coerce
+import App.Result ( AppResult(ResJSON) )
+import App.ResultJSON ( ToJSONResult(toJSONResult) )
+import App.Types ( ID(ID), Date )
+import Control.Lens ( (^?) )
+import Data.Aeson ( encode )
+import Data.Aeson.Lens ( key, AsPrimitive(_String) )
 import Data.Data (Typeable)
-import Data.Either
-import Data.Function
 import Data.IntMap qualified as IM
 import Data.Kind (Type)
-import Data.List
 import Data.Time qualified as Time
-import Entity.Article
-import Entity.Author
+import Entity.Article ( Article(..) )
+import Entity.Author ( Author(user) )
 import Entity.Category
-import Entity.Internal
-import Entity.Tag
-import Entity.User
+    ( Category(name, parent), CategoryName(unCatName) )
+import Entity.Internal ( Entity(Entity, entityID, entity) )
+import Entity.Tag ( Tag(tag) )
+import Entity.User ( User(login) )
 import Extended.Text (Text)
 import Extended.Text qualified as T
-import HKD.HKD
+import HKD.HKD ( Display, Front )
 import Helpers.App
-import Helpers.Article
-import Helpers.ArticleDB
-import Helpers.Author
-import Helpers.Database
-import Helpers.Entity
-import Helpers.GenericProps
-import Helpers.Internal
-import Helpers.Monad
-import Test.Hspec
-import Test.QuickCheck
+    ( evalTest,
+      runTestMonadNoMods,
+      withGetPath,
+      withLimit,
+      withOffset,
+      withParam )
+import Helpers.Article ()
+import Helpers.Author ()
+import Helpers.Category ()
+import Helpers.Database ( withDatabase, TestEntity(fromDisplay) )
+import Helpers.GenericProps ( propGetEntityDoesntExists )
+import Helpers.Internal ( testPaginationConstant )
+import Helpers.Monad ( TDB )
+import Helpers.Tag ()
+import Test.Hspec ( Spec, context, describe, it, shouldBe )
+import Test.QuickCheck ( (==>), Property, Testable(property) )
 
 spec :: Spec
 spec = do
@@ -102,11 +100,12 @@ propGetArticles dbA =
         evalTest
           (withGetPath "articles")
           (withDatabase @Article dbA)
-      let Right ref' = runTestMonadNoMods $ toJSONResult $ ref
+      let Right ref' = runTestMonadNoMods $ toJSONResult ref
       j `shouldBe` encode ref'
   where
     conditions = IM.size dbA < testPaginationConstant
-    ref = map (\(a, b) -> Entity (ID a) (fromDisplay @(Article (Front Display)) b)) $ IM.toList dbA
+    ref = map (\(a, b) -> Entity (ID a) (fromDisplay @(Article (Front Display)) b)) $ 
+      IM.toList dbA
 
 propGetArtcilesLimitOffset :: TDB Article -> Int -> Int -> Property
 propGetArtcilesLimitOffset dbA limit offset = property $ do
@@ -117,10 +116,12 @@ propGetArtcilesLimitOffset dbA limit offset = property $ do
           . withOffset offset
       )
       (withDatabase @Article dbA)
-  let Right ref' = runTestMonadNoMods $ toJSONResult $ ref
+  let Right ref' = runTestMonadNoMods $ toJSONResult ref
   j `shouldBe` encode ref'
   where
-    ref = paginate $ map (\(a, b) -> Entity (ID a) (fromDisplay @(Article (Front Display)) b)) $ IM.toList dbA
+    ref = paginate $ map (\(a, b) -> Entity 
+      (ID a) 
+      (fromDisplay @(Article (Front Display)) b)) $ IM.toList dbA
     paginate = take (min limit testPaginationConstant) . drop offset
 
 takeMax :: [a] -> [a]
@@ -134,7 +135,7 @@ propGetArticlesCrAt dbA date = property $ do
           . withParam "crAt" date
       )
       (withDatabase @Article dbA)
-  let Right ref' = runTestMonadNoMods $ toJSONResult $ ref
+  let Right ref' = runTestMonadNoMods $ toJSONResult ref
   j `shouldBe` encode ref'
   where
     ref = doFiltering $ map (\(a, b) -> Entity (ID a) (fromDisplay @(Article (Front Display)) b)) $ IM.toList dbA
@@ -148,7 +149,7 @@ propGetArticlesCrAtLt dbA date = property $ do
           . withParam "crAtLt" date
       )
       (withDatabase @Article dbA)
-  let Right ref' = runTestMonadNoMods $ toJSONResult $ ref
+  let Right ref' = runTestMonadNoMods $ toJSONResult ref
   j `shouldBe` encode ref'
   where
     ref = doFiltering $ map (\(a, b) -> Entity (ID a) (fromDisplay @(Article (Front Display)) b)) $ IM.toList dbA
@@ -162,7 +163,7 @@ propGetArticlesCrAtGt dbA date = property $ do
           . withParam "crAtGt" date
       )
       (withDatabase @Article dbA)
-  let Right ref' = runTestMonadNoMods $ toJSONResult $ ref
+  let Right ref' = runTestMonadNoMods $ toJSONResult ref
   j `shouldBe` encode ref'
   where
     ref = doFiltering $ map (\(a, b) -> Entity (ID a) (fromDisplay @(Article (Front Display)) b)) $ IM.toList dbA
@@ -176,7 +177,7 @@ propGetArticlesTitle dbA aTitle = property $ do
           . withParam "title" aTitle
       )
       (withDatabase @Article dbA)
-  let Right ref' = runTestMonadNoMods $ toJSONResult $ ref
+  let Right ref' = runTestMonadNoMods $ toJSONResult ref
   j `shouldBe` encode ref'
   where
     ref = doFiltering $ map (\(a, b) -> Entity (ID a) (fromDisplay @(Article (Front Display)) b)) $ IM.toList dbA
@@ -190,7 +191,7 @@ propGetArticlesContent dbA aContent = property $ do
           . withParam "content" aContent
       )
       (withDatabase @Article dbA)
-  let Right ref' = runTestMonadNoMods $ toJSONResult $ ref
+  let Right ref' = runTestMonadNoMods $ toJSONResult ref
   j `shouldBe` encode ref'
   where
     ref = doFiltering $ map (\(a, b) -> Entity (ID a) (fromDisplay @(Article (Front Display)) b)) $ IM.toList dbA
@@ -204,7 +205,7 @@ propGetArticlesLogin dbA alogin = property $ do
           . withParam "author_login" alogin
       )
       (withDatabase @Article dbA)
-  let Right ref' = runTestMonadNoMods $ toJSONResult $ ref
+  let Right ref' = runTestMonadNoMods $ toJSONResult ref
   j `shouldBe` encode ref'
   where
     ref = doFiltering $ map (\(a, b) -> Entity (ID a) (fromDisplay @(Article (Front Display)) b)) $ IM.toList dbA
@@ -218,14 +219,14 @@ propGetArticlesSubstr dbA substr = property $ do
           . withParam "substring" substr
       )
       (withDatabase @Article dbA)
-  let Right ref' = runTestMonadNoMods $ toJSONResult $ ref
+  let Right ref' = runTestMonadNoMods $ toJSONResult ref
   j `shouldBe` encode ref'
   where
     ref = doFiltering $ map (\(a, b) -> Entity (ID a) (fromDisplay @(Article (Front Display)) b)) $ IM.toList dbA
     doFiltering = takeMax . filter (isSubstr . entity)
     isSubstr Article {..} =
-      let l = login $ entity $ user $ entity $ author
-          c = unCatName $ name $ entity $ category
+      let l = login $ entity $ user $ entity author
+          c = unCatName $ name $ entity category
           cs = map unCatName $ parent $ entity category
           ts = map (tag . entity) tags
        in any (substr `T.isInfixOf`) ([content, l, c] <> cs <> ts)
@@ -238,7 +239,7 @@ propGetArticlesCategory dbA catID = property $ do
           . withParam "category_id" catID
       )
       (withDatabase @Article dbA)
-  let Right ref' = runTestMonadNoMods $ toJSONResult $ ref
+  let Right ref' = runTestMonadNoMods $ toJSONResult ref
   j `shouldBe` encode ref'
   where
     ref = doFiltering $ map (\(a, b) -> Entity (ID a) (fromDisplay @(Article (Front Display)) b)) $ IM.toList dbA
@@ -252,7 +253,7 @@ propGetArticlesTag dbA tagID = property $ do
           . withParam "tag_id" tagID
       )
       (withDatabase @Article dbA)
-  let Right ref' = runTestMonadNoMods $ toJSONResult $ ref
+  let Right ref' = runTestMonadNoMods $ toJSONResult ref
   j `shouldBe` encode ref'
   where
     ref = doFiltering $ map (\(a, b) -> Entity (ID a) (fromDisplay @(Article (Front Display)) b)) $ IM.toList dbA
@@ -269,11 +270,11 @@ propGetArticlesTagIn dbA tagIn = property $ do
   case res of
     Left err -> error $ show err
     Right (ResJSON j) -> do
-      let Right ref' = runTestMonadNoMods $ toJSONResult $ ref
+      let Right ref' = runTestMonadNoMods $ toJSONResult ref
       j `shouldBe` encode ref'
   where
     ref = doFiltering $ map (\(a, b) -> Entity (ID a) (fromDisplay @(Article (Front Display)) b)) $ IM.toList dbA
-    doFiltering = takeMax . filter ((any (`elem` (map ID tagIn))) . map entityID . tags . entity)
+    doFiltering = takeMax . filter (any ((`elem` map ID tagIn) . entityID) . tags . entity)
 
 propGetArticlesTagAll :: TDB Article -> [Int] -> Property
 propGetArticlesTagAll dbA tagAll = property $ do
@@ -283,11 +284,11 @@ propGetArticlesTagAll dbA tagAll = property $ do
           . withParam "tag_all" tagAll
       )
       (withDatabase @Article dbA)
-  let Right ref' = runTestMonadNoMods $ toJSONResult $ ref
+  let Right ref' = runTestMonadNoMods $ toJSONResult ref
   j `shouldBe` encode ref'
   where
     ref = doFiltering $ map (\(a, b) -> Entity (ID a) (fromDisplay @(Article (Front Display)) b)) $ IM.toList dbA
-    doFiltering = takeMax . filter ((all (`elem` (map ID tagAll))) . map entityID . tags . entity)
+    doFiltering = takeMax . filter (all ((`elem` map ID tagAll) . entityID) . tags . entity)
 
 propGetArticle :: TDB Article -> ID (Article Display) -> Property
 propGetArticle dbA (ID articleID) =

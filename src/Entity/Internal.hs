@@ -1,19 +1,24 @@
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Entity.Internal where
 
-import App.Types
+import App.Types ( nameOf, ID )
 import Data.Aeson
-import Data.Data
+    ( Value(Object),
+      FromJSON(parseJSON),
+      ToJSON(toJSON),
+      (.:),
+      withObject,
+      object,
+      KeyValue((.=)) )
+import Data.Data ( Data, Typeable )
+import Data.Generics.Labels ()
 import Data.Generics.Product.Fields qualified as GL
 import Data.HashMap.Strict qualified as HMAP
 import Data.Kind (Type)
 import Extended.Postgres qualified as Postgres
 import GHC.Generics (Generic)
-import HKD.HKD
+import HKD.HKD ( Display, Front )
 
 data Entity e a = Entity
   { entityID :: ID (e a),

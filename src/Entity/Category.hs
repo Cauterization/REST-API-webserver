@@ -1,26 +1,22 @@
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Entity.Category where
 
-import App.Types
-import Data.Aeson
-import Data.Coerce
-import Data.Data
-import Data.String
+import App.Types ( ID )
+import Data.Aeson ( FromJSON, ToJSON(toJSON) )
+import Data.Coerce ( coerce )
+import Data.Data ( Data )
+import Data.String ( IsString )
 import Database.Database qualified as Database
 import Database.PostgreSQL.Simple qualified as Postgres
 import Database.PostgreSQL.Simple.FromField qualified as Postgres
 import Database.PostgreSQL.Simple.FromRow qualified as Postgres
 import Database.PostgreSQL.Simple.ToField qualified as Postgres
 import Database.PostgreSQL.Simple.Types qualified as Postgres
-import Entity.Internal
+import Entity.Internal ( Entity )
 import Extended.Text (Text)
-import GHC.Generics
-import HKD.HKD
+import GHC.Generics ( Generic )
+import HKD.HKD ( Field, Create, Delete, Display, Update, Front )
 
 data Category a = Category
   { name :: Field a '[] (CategoryName a),
@@ -89,75 +85,3 @@ instance Database.Gettable ID (Category (Front Update)) where
         "FROM cat_parents ",
         "WHERE id = ? "
       ]
-
---
---
-
--- instance Database.PostableTo Postgres Category where
---     tableNamePost = "categories"
-
--- deriving instance Data    (Category (Front Display))
--- deriving instance Show    (Category (Front Display))
-
--- instance Postgres.FromRow (Category (Front Display)) where
---     fromRow = do
---
--- instance Database.GettableFrom Postgres Category (Front Display) where
---     getQuery = "SELECT last, branch[2:] FROM cat_branches"
-
--- deriving instance Data (Category (Front Update))
--- deriving instance FromJSON (Category (Front Update))
--- instance Database.PuttableTo Postgres Category (Front Update) where
-
---     putQuery = mconcat
---         [ "UPDATE categories "
---         , "SET name = COALESCE (?, name), "
---         , " parent = COALESCE (?, parent) "
---         , "WHERE id = ? "
---         ]
-
--- type CatPutfields =
---     ( Maybe (CategoryName (Front Update))
---     , Maybe (ID (Category (Front Update)))
---     , ID (Path Current))
-
--- instance Database.ToOneRow  (Category (Front Update)) IDs where
-
---     type instance MkOneRow (Category (Front Update)) IDs
---         = CatPutfields
---     toOneRow Category{..} [cID] = pure (name, parent, cID)
---     toOneRow _ _ = entityIDArityMissmatch "update tag"
-
--- deriving instance Data (Category Delete)
-
--- instance Database.DeletableFrom Postgres Category where
-
---     deleteQuery = mconcat
---         [ "WITH ARG (cat_id) AS (VALUES (?)), "
---         , "UPD AS "
---         ,   "(UPDATE categories "
---         ,   "SET parent = (SELECT parent FROM categories WHERE id = "
---         ,       "(SELECT cat_id FROM ARG)) "
---         ,   "WHERE parent = (SELECT cat_id FROM ARG) "
---         ,   "RETURNING (SELECT cat_id FROM ARG)"
---         , ") "
---         , "DELETE FROM categories "
---         , "WHERE id =  "
---         , "(SELECT cat_id FROM UPD UNION ALL SELECT cat_id FROM ARG "
---         , "LIMIT 1 )"
---         ]
--- deleteQuery = mconcat
---     [ "WITH ARG (cat_id) AS (VALUES (?)), "
---     , "UPD AS "
---     ,   "(UPDATE categories "
---     ,   "SET parent = (SELECT parent FROM categories WHERE id = "
---     ,       "(SELECT cat_id FROM ARG)) "
---     ,   "WHERE parent = (SELECT cat_id FROM ARG) "
---     ,   "RETURNING null"
---     , ")"
---     , "DELETE FROM categories "
---     , "WHERE id = (SELECT cat_id FROM UPD CROSS JOIN ARG)"
---     ]
-
--- deriving instance Data (Category Display)
--- deriving instance Data (Category Update)

@@ -2,25 +2,13 @@
 
 module Helpers.Draft where
 
-import App.Types
-import Data.Aeson
-import Data.Coerce
+import Data.Aeson ( ToJSON )
 import Data.Text (Text)
-import Entity.Article
-import Entity.Author
-import Entity.Category
-import Entity.Draft
-import Entity.Internal
-import Entity.Picture
-import Entity.Tag
-import HKD.HKD
-import Helpers.Article
-import Helpers.Author
-import Helpers.Category
-import Helpers.Internal
-import Helpers.Tag
-import Helpers.User
-import Test.QuickCheck
+import Entity.Article ( Article )
+import Entity.Draft ( Draft(Draft) )
+import Helpers.Internal()
+import HKD.HKD ( Front, Create, Update )
+import Test.QuickCheck ( Arbitrary(arbitrary) )
 
 instance Arbitrary (Article a) => Arbitrary (Draft a) where
   arbitrary = Draft <$> arbitrary
