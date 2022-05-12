@@ -40,8 +40,8 @@ import Entity.Picture
 import Entity.Tag (Tag)
 import Entity.User (User)
 import Extended.Text qualified as T
-import Logger ((.<))
 import Logger qualified
+import Logger ((.<))
 import Network.HTTP.Types qualified as HTTP
 import Network.Wai qualified as Wai
 import Network.Wai.Handler.Warp qualified as Wai
@@ -57,9 +57,11 @@ runServer = handle handler $ do
     Database.runMigrations @(DB IO) cDatabase logger
   Wai.run cPort $ \req respond -> do
     body <- Wai.strictRequestBody req
+    logger Logger.Debug 
+      $ T.take 1000 $ "Recieved request:\n" .< req
     ToResponse {..} <-
       toResponse
-        <$> runRouterWith @Main
+        <$> runRouter @Main
           logger
           connectionDB
           (toPath req)
@@ -68,7 +70,6 @@ runServer = handle handler $ do
           (toQueryParams $ Wai.queryString req)
           (T.decodeUtf8 <$> lookup "Authorization" (Wai.requestHeaders req))
           Config {..}
-          (Logger.debug $ T.take 1000 $ "Recieved request:\n" .< req)
     respond $ Wai.responseLBS respStatus respHeaders respBody
   where
     handler (e :: IOException) = Sys.die $ show e <> ". Terminating..."
@@ -100,12 +101,12 @@ responseFromResult = \case
 
 responseFromError :: AppError -> ToResponse
 responseFromError = \case
-  Err404 path -> r404 $ T.concat (getURL path) <> " doesn't exists!"
+  PageNotFoundError path -> r404 $ T.concat (getURL path) <> " doesn't exists!"
   EntityNotFound t -> r404 t
   AlreadyExists t -> r409 t
   AccessViolation t -> r403 t
-  AdminAccessViolation _ -> r404 ""
-  ParsingErr t -> r400 $ toBL t
+  AdminAccessViolation -> r404 ""
+  ParsingError t -> r400 $ toBL t
   DatabaseOtherError t -> r400 $ toBL t
   err -> r500 $ toBL $ "Internal error:" <> T.show err <> " (not handled yet)"
   where

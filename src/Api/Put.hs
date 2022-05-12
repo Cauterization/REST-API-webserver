@@ -3,7 +3,7 @@ module Api.Put where
 import App.Internal
   ( Application,
     decodedBody,
-    entityIDArityMissmatch,
+    idArityMissmatchError,
   )
 import App.Result (Endpoint, text)
 import App.Router (Router, put)
@@ -52,4 +52,4 @@ putEntity [eID] = do
   Database.putEntity @e @m @(Front Update) (Entity (coerce eID) e)
   Logger.info $ nameOf @(Entity e) <> " was found."
   text @_ @String "Successfuly updated."
-putEntity _ = entityIDArityMissmatch $ "putEntity " <> nameOf @(Entity e)
+putEntity _ = idArityMissmatchError $ "putEntity " <> nameOf @(Entity e)

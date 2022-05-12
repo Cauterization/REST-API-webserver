@@ -1,7 +1,7 @@
 module Api.Publish where
 
 import Api.Put (Puttable)
-import App.Internal (Application, entityIDArityMissmatch)
+import App.Internal (Application, idArityMissmatchError)
 import App.Result (Endpoint, text)
 import App.Router (Router, publish)
 import App.Types (ID (ID), nameOf)
@@ -37,4 +37,4 @@ publishEntity [eID] = do
   Logger.info $ "Attempt to publish " <> nameOf @e
   Database.putEntity @e @m @Publish (Entity (coerce eID) emptyData)
   text @_ @String "Successfuly published."
-publishEntity _ = entityIDArityMissmatch $ "putEntity " <> nameOf @e
+publishEntity _ = idArityMissmatchError $ "putEntity " <> nameOf @e

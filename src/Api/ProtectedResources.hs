@@ -7,6 +7,7 @@ import App.Internal
     Application,
     Env (envPath),
     HasEnv,
+    adminAccessViolationError
   )
 import App.Router (Middleware)
 import App.Types (Token, getURL)
@@ -43,9 +44,8 @@ adminCheck ::
 adminCheck = do
   Logger.info "Attempt to auth admin..."
   Entity {entity = User {..}} <- catch (User.getCurrentUser @Display) handler
-  unless admin $ throwM err
+  unless admin adminAccessViolationError
   where
-    err = AdminAccessViolation "Admin check."
     handler = \case
-      Database.EntityNotFound {} -> throwM err
+      Database.EntityNotFound {} -> adminAccessViolationError
       e -> throwM e

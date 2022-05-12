@@ -2,42 +2,55 @@
 
 module App.Router where
 
-import App.Config ( Config )
+import App.Config (Config)
 import App.Internal
-    ( ambiguousPatterns,
-      fromDBException,
-      runApp,
-      throw404,
-      AppError,
-      AppT,
-      Application,
-      DB,
-      Env(Env) )
-import App.QueryParams ( QueryParams )
-import App.Result ( AppResult, Endpoint )
+  ( AppError,
+    AppT,
+    Application,
+    DB,
+    Env (Env),
+    ambiguousPatterns,
+    fromDBException,
+    pageNotFoundError,
+    runApp,
+  )
+import App.QueryParams (QueryParams)
+import App.Result (AppResult, Endpoint)
 import App.Types
-    ( getMethod,
-      getURL,
-      Body,
-      ContentType,
-      Current,
-      ID,
-      Path(PUBLISH, POST, GET, PUT, DELETE),
-      Pattern,
-      Token )
+  ( Body,
+    ContentType,
+    Current,
+    ID,
+    Path (DELETE, GET, POST, PUBLISH, PUT),
+    Pattern,
+    Token,
+    getMethod,
+    getURL,
+  )
 import Control.Monad.Catch
-    ( MonadThrow(..), handle, try, MonadCatch )
+  ( MonadCatch,
+    MonadThrow (..),
+    handle,
+    try,
+  )
 import Control.Monad.Reader
-    ( ReaderT(..), MonadReader(ask) )
+  ( MonadReader (ask),
+    ReaderT (..),
+  )
 import Control.Monad.Writer
-    ( zipWithM, WriterT, MonadWriter(tell), execWriterT )
-import Data.Coerce ( coerce )
+  ( MonadWriter (tell),
+    WriterT,
+    execWriterT,
+    zipWithM,
+  )
+import Data.Coerce (coerce)
 import Data.Kind (Type)
 import Database.Internal qualified as Database
-    ( IsDatabase(ConnectionOf) )
+  ( IsDatabase (ConnectionOf),
+  )
 import Extended.Text (Text)
 import Extended.Text qualified as T
-import HKD.HKD ( Create, Delete, Display, Update, Publish, Front )
+import HKD.HKD (Create, Delete, Display, Front, Publish, Update)
 import Logger qualified
 
 type Middleware m = m AppResult -> m AppResult
@@ -72,11 +85,12 @@ newtype Router (e :: Type -> Type) (m :: Type -> Type) a = Router {unRouter :: R
       MonadWriter (RouterResult m)
     )
 
-runRouterWith ::
-  forall e m a.
+runRouter ::
+  forall e m.
   ( Monad m,
     MonadThrow m,
     Logger.RunLogger m,
+    Logger.HasLogger (AppT m),
     MonadCatch m,
     Application (AppT m),
     Routed e (AppT m)
@@ -89,20 +103,23 @@ runRouterWith ::
   QueryParams ->
   Maybe Token ->
   Config ->
-  AppT m a ->
   m (Either AppError AppResult)
-runRouterWith logger connDB path body conentType qparams token config with =
-  appHandler $
+runRouter logger connDB path body conentType qparams token config =
+  appHandler logger $
     runApp (Env logger connDB path body conentType qparams token config) $
-      with >> do
+      do
         execWriterT (runReaderT (unRouter (router @e @(AppT m))) path)
           >>= \case
             Route _ success -> success
             AmbiguousPatterns ps -> ambiguousPatterns ps
-            _ -> throw404
+            _ -> pageNotFoundError
 
-appHandler :: MonadCatch m => m AppResult -> m (Either AppError AppResult)
-appHandler = try . handle (throwM . fromDBException)
+appHandler :: (MonadCatch m) => Logger.Logger m -> m AppResult -> m (Either AppError AppResult)
+appHandler logger = try . handle (throwWithLog . fromDBException)
+  where
+    throwWithLog err = do
+      logger Logger.Info $ T.show err
+      throwM err
 
 withPathCmp :: Endpoint m -> Path Pattern -> Path Current -> RouterResult m
 withPathCmp f pp pc

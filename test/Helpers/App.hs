@@ -16,7 +16,7 @@ import App.Internal
     ( fromDBException, AppError, AppT(unApp), Env(..) )
 import App.Result ( AppResult )
 import App.Router
-    ( Routed(..), addMiddleware, get, newRouter, post, runRouterWith )
+    ( Routed(..), addMiddleware, get, newRouter, post, runRouter )
 import App.Types
     ( ContentType,
       Method,
@@ -96,7 +96,7 @@ runRouterTest :: EnvMod -> TestMonad AppResult
 runRouterTest f =
   let Env {..} = f defaultEnv
    in either throwError pure
-        =<< runRouterWith @Main
+        =<< runRouter @Main
           envLogger
           envConn
           envPath
@@ -105,7 +105,6 @@ runRouterTest f =
           envQParams
           envToken
           envConfig
-          (pure ())
 
 instance Routed Main (AppT TestMonad) where
   router = do

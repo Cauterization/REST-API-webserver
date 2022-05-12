@@ -6,6 +6,7 @@ import Api.Put ( Puttable )
 import App.Internal
     ( decodedBody,
       getToken,
+      wrongPasswordError,
       AppError(WrongPassword),
       Application,
       Impure(..) )
@@ -13,7 +14,6 @@ import App.Result ( text, Endpoint )
 import App.ResultJSON ( json )
 import App.Types ( ID(ID), Token )
 import Control.Lens ( (?~) )
-import Control.Monad.Catch ( MonadThrow(throwM) )
 import Control.Monad.Writer ( when )
 import Crypto.Hash qualified as Crypto
 import Data.Coerce ( coerce )
@@ -91,7 +91,7 @@ authUser _ = do
         [loginU]
         (<> " WHERE login = ?")
   let passwordDB = password entity
-  when (mkHash passwordU /= passwordDB) $ throwM WrongPassword
+  when (mkHash passwordU /= passwordDB) $ wrongPasswordError loginU
   newToken <- genToken
   Database.putEntity @User @m @Update $
     Entity

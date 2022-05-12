@@ -10,13 +10,12 @@ import App.Internal
     Env (envPath),
     Impure (getCurrentDate),
     decodedBody,
-    getToken,
+    getToken, accessViolationError
   )
 import App.Result (Endpoint, text)
 import App.ResultJSON (json)
 import App.Router (Middleware)
 import App.Types (ID (ID), Token, getURL)
-import Control.Monad.Catch (MonadThrow (throwM))
 import Control.Monad.Reader (asks, when)
 import Data.Coerce (coerce)
 import Database.Database (Database)
@@ -108,7 +107,7 @@ draftAccess ma =
             [draftID]
             (<> " AND id = ?")
       when ((entityID . user . entity . author . unDraft . entity) e /= coerce userID) $
-        throwM $ AccessViolation "You have no access to this draft."
+        accessViolationError "You have no access to this draft."
       ma
     _ -> ma
   where

@@ -1,16 +1,11 @@
 module Api.Category where
 
 import Api.Put (Puttable)
-import App.Internal
-  ( AppError (CategoryCycle),
-    Application,
-    decodedBody,
-    entityIDArityMissmatch,
-  )
 import App.Result (Endpoint, text)
 import App.Types (ID)
+import App.Internal
+    ( decodedBody, Application, categoryCycleError, idArityMissmatchError )
 import Control.Monad (when)
-import Control.Monad.Catch (MonadThrow (throwM))
 import Data.Coerce (coerce)
 import Database.Database qualified as Database
 import Database.HasDatabase (Database)
@@ -36,6 +31,6 @@ putCategory [cID] = do
   where
     validate parent = do
       parents <- Database.getEntitiesWith parent id
-      when (cast cID `elem` parents) $ throwM CategoryCycle
+      when (cast cID `elem` parents) $ categoryCycleError
     cast = coerce @_ @(ID (Category (Front Update)))
-putCategory _ = entityIDArityMissmatch "put category api"
+putCategory _ = idArityMissmatchError "put category api"

@@ -2,27 +2,47 @@
 
 module App.Internal where
 
-import App.Config
-import App.QueryParams
+import App.Config (Config (..))
+import App.QueryParams (QueryParams)
 import App.Types
+  ( Body,
+    ContentType,
+    Current,
+    Date,
+    Path (..),
+    Pattern,
+    Token,
+  )
 import Control.Monad.Catch
+  ( Exception,
+    MonadCatch,
+    MonadThrow (..),
+    handle,
+  )
 import Control.Monad.Reader
+  ( MonadIO (..),
+    MonadReader,
+    MonadTrans (..),
+    ReaderT (..),
+    asks,
+    replicateM,
+  )
 import Data.Aeson (FromJSON, eitherDecode)
 import Data.Char (toLower)
 import Data.Data (Typeable)
-import Data.Functor
+import Data.Functor ((<&>))
 import Data.Kind (Type)
 import Data.Map qualified as M
 import Data.Time qualified as Time
 import Database.Database qualified as Database
 import Extended.Text (Text)
 import Extended.Text qualified as T
-import Logger ((.<))
+import Logger (HasLogger, (.<))
 import Logger qualified
 import Network.HTTP.Types qualified as HTTP
 import Network.Wai qualified as Wai
-import Postgres.Internal
-import System.Random
+import Postgres.Internal (Postgres)
+import System.Random (randomRIO)
 
 type Application (m :: Type -> Type) =
   ( MonadThrow m,
@@ -114,15 +134,15 @@ decodedBody = do
   Logger.debug $ T.take 500 $ "JSON body:\n" .< body
   decode body
 
-decode :: (Monad m, FromJSON a, MonadThrow m) => Body -> m a
+decode :: (Monad m, FromJSON a, MonadThrow m, HasLogger m) => Body -> m a
 decode = either parsingError pure . eitherDecode
 
-getParam :: (HasEnv m, MonadThrow m) => Text -> m (Maybe Text)
+getParam :: (HasEnv m, Logger.HasLogger m, MonadThrow m) => Text -> m (Maybe Text)
 getParam (T.map toLower -> p) =
   asks (M.lookup p . envQParams) >>= \case
     Just [a] -> pure $ Just a
     Nothing -> pure Nothing
-    _ -> throwM $ QParamsErr $ "multiparam " <> p
+    _ -> queryParamsError $ "multiparam " <> p
 
 getNumParam ::
   ( Monad m,
@@ -168,12 +188,12 @@ getDateParam p =
   where
     parseTime = Time.parseTimeM True Time.defaultTimeLocale "%Y-%m-%d"
 
-getToken :: (Monad m, HasEnv m, MonadThrow m) => m Token
-getToken = asks envToken >>= maybe (unathorized "No token.") pure
+getToken :: (Monad m, HasEnv m, MonadThrow m, HasLogger m) => m Token
+getToken = asks envToken >>= maybe (unathorizedError "No token.") pure
 
 getServerAddress :: HasEnv m => m Text
 getServerAddress = do
-  Config {..} <- asks (envConfig)
+  Config {..} <- asks envConfig
   pure $ cAddress <> T.show cPort
 
 toPath :: Wai.Request -> Path a
@@ -188,15 +208,15 @@ toPath req =
         _ -> Unknown path
 
 data AppError
-  = Err404 (Path Current)
-  | ParsingErr Text
+  = PageNotFoundError (Path Current)
+  | ParsingError Text
   | UnknwonHTTPMethod HTTP.Method
-  | QParamsErr Text
-  | RequestHeadersErr Text
+  | QParamsError
+  | RequestHeadersError Text
   | RouterAmbiguousPatterns [Path Pattern]
   | Unathorized Text
   | AccessViolation Text
-  | AdminAccessViolation Text
+  | AdminAccessViolation
   | WrongPassword
   | EntityIDArityMissmatch Text
   | EntityNotFound Text
@@ -217,17 +237,52 @@ fromDBException = \case
   Database.OtherError t -> DatabaseOtherError t
   Database.UnknwonError t -> UnknownError t
 
-parsingError :: (MonadThrow m) => String -> m a
-parsingError = throwM . ParsingErr . T.pack
+parsingError :: (MonadThrow m, HasLogger m) => String -> m a
+parsingError (T.pack -> err) = do
+  Logger.info $ "Unable to parse: " <> err
+  throwM $ ParsingError err
 
-throw404 :: (MonadThrow m, HasEnv m) => m a
-throw404 = asks envPath >>= throwM . Err404
+pageNotFoundError :: (MonadThrow m, HasEnv m, HasLogger m) => m a
+pageNotFoundError = do
+  p <- asks envPath
+  Logger.info $ "Page doesn't exists: " <> T.show p
+  throwM $ PageNotFoundError p
 
-ambiguousPatterns :: (MonadThrow m) => [Path Pattern] -> m a
-ambiguousPatterns = throwM . RouterAmbiguousPatterns
+ambiguousPatterns :: (MonadThrow m, HasLogger m) => [Path Pattern] -> m a
+ambiguousPatterns ps = do
+  Logger.error $ "Ambiguous pattern in router pathes: " <> T.show ps
+  throwM $ RouterAmbiguousPatterns ps
 
-unathorized :: (MonadThrow m) => Text -> m a
-unathorized = throwM . Unathorized
+unathorizedError,
+  idArityMissmatchError,
+  accessViolationError,
+  requestHeadersError,
+  queryParamsError,
+  wrongPasswordError ::
+    (MonadThrow m, HasLogger m) => Text -> m a
+unathorizedError err = do
+  Logger.info err
+  throwM $ Unathorized err
+idArityMissmatchError err = do
+  Logger.error $ "Entity ID arity missmatch: " <> err
+  throwM $ EntityIDArityMissmatch err
+accessViolationError err = do
+  Logger.warning $ "Access violation: " <> err
+  throwM $ AccessViolation err
+requestHeadersError err = do
+  Logger.info $ "Entity ID arity missmatch: " <> err
+  throwM $ RequestHeadersError err
+wrongPasswordError uLogin = do
+  Logger.info $ "Wrong password for user: " <> uLogin
+  throwM WrongPassword
+queryParamsError err = do
+  Logger.info $ "Query parameters error: " <> err
+  throwM QParamsError
 
-entityIDArityMissmatch :: MonadThrow m => Text -> m a
-entityIDArityMissmatch = throwM . EntityIDArityMissmatch
+adminAccessViolationError, categoryCycleError :: (MonadThrow m, HasLogger m) => m a
+adminAccessViolationError = do
+  Logger.warning "Admin access violation!"
+  throwM AdminAccessViolation
+categoryCycleError = do
+  Logger.warning "Unacceptable category update - cycle in category tree!"
+  throwM CategoryCycle

@@ -3,14 +3,13 @@ module Api.Picture where
 import Api.Get (Gettable)
 import Api.Post (Postable)
 import App.Internal
-  ( AppError (RequestHeadersErr),
-    Application,
+  ( Application,
     Env (envBody, envContentType),
-    entityIDArityMissmatch,
+    idArityMissmatchError,
+    requestHeadersError
   )
 import App.Result (AppResult (ResPicture), Endpoint, text)
 import App.Types (ID (ID))
-import Control.Monad.Catch (MonadThrow (throwM))
 import Control.Monad.Reader (asks)
 import Data.Char (toLower)
 import Data.Coerce (coerce)
@@ -33,7 +32,7 @@ postPicture _ = do
   conentType <- asks envContentType >>= maybe err parseFormat
   text =<< Database.postEntity (Picture conentType body)
   where
-    err = throwM $ RequestHeadersErr "No content-type header."
+    err = requestHeadersError "No content-type header."
 
 getPicture ::
   forall m.
@@ -44,12 +43,12 @@ getPicture ::
 getPicture [pictureID] = do
   Logger.info "Attempt to get picture."
   ResPicture <$> Database.getEntityGeneric @Picture [coerce pictureID]
-getPicture _ = entityIDArityMissmatch $ "getPicture"
+getPicture _ = idArityMissmatchError "getPicture"
 
 parseFormat :: Application m => Text -> m PictureFormat
 parseFormat t = case T.stripPrefix "image/" $ T.map toLower t of
-  Nothing -> throwM $ RequestHeadersErr $ "Wrong content-type(" <> t <> ")"
+  Nothing -> requestHeadersError $ "Wrong content-type(" <> t <> ")"
   Just "jpeg" -> pure JPEG
   Just "png" -> pure PNG
   Just "gif" -> pure GIF
-  _ -> throwM $ RequestHeadersErr "Unknown picture format."
+  _ -> requestHeadersError "Unknown picture format."
