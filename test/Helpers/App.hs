@@ -14,7 +14,7 @@ import Api.User qualified as User
 import App.App ( Main )
 import App.Internal
     ( fromDBException, AppError, AppT(unApp), Env(..) )
-import App.Result ( AppResult )
+import App.Result ( AppResult, text )
 import App.Router
     ( Routed(..), addMiddleware, get, newRouter, post, runRouter )
 import App.Types
@@ -37,6 +37,7 @@ import Control.Monad.Writer
 import Data.Aeson ( ToJSON, encode )
 import Data.ByteString.Lazy qualified as BL
 import Data.Char ( toLower )
+import Data.Kind ( Type )
 import Data.Map qualified as M
 import Database.Database ( HasDatabase(..) )
 import Entity.Article ( Article )
@@ -46,7 +47,7 @@ import Entity.Draft ( Draft )
 import Entity.Picture ( Picture )
 import Entity.Tag ( Tag )
 import Entity.User ( User )
-import Extended.Text (Text)
+import Extended.Text ( Text )
 import Extended.Text qualified as T
 import Helpers.ArticleDB ()
 import Helpers.Database ( TestDB, StateMod )
@@ -57,6 +58,7 @@ import Helpers.Monad
 import Helpers.PictureDB ()
 import Logger qualified
 import Type.Reflection qualified as Refl
+import Api.ProtectedResources (protectedResources)
 
 runTest :: EnvMod -> StateMod -> IO (Either AppError AppResult, TestState)
 runTest eMod sMod = do
@@ -115,9 +117,8 @@ instance Routed Main (AppT TestMonad) where
     newRouter @Article
     newRouter @Picture
     newRouter @Draft
+    newRouter @OtherTests
 
--- | Note that urls listed here doesn't have an "admin" prefix
---   coz we have separated tests for protected content
 instance Routed User (AppT TestMonad) where
   router = do
     post "users" User.postUser
@@ -166,6 +167,17 @@ instance Routed Picture (AppT TestMonad) where
     post "pictures" Picture.postPicture
     get "pictures/{ID}" Picture.getPicture
     delete_ "pictures/{ID}"
+
+-- | Tests for router
+
+data OtherTests :: Type -> Type
+
+instance Routed OtherTests (AppT TestMonad) where
+  router = do
+    post "ambiguous" $ pure $ text ""
+    post "ambiguous" $ pure $ text ""
+   
+
 
 defaultEnv :: Env TestMonad
 defaultEnv =

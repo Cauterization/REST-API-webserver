@@ -227,6 +227,7 @@ test-suite server-test
       Api.PictureSpec
       Api.TagSpec
       Api.UserSpec
+      App.RouterSpec
       App.TypesSpec
       Helpers.App
       Helpers.Article

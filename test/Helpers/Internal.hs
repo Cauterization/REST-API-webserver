@@ -1,24 +1,29 @@
 module Helpers.Internal where
 
-import App.Config ( Config(Config, cDatabase, cAddress, cPort) )
+import App.Config (Config (Config, cAddress, cDatabase, cPort))
 import App.Internal
-    ( AppError(RequestHeadersErr, ParsingErr, EntityNotFound,
-               AlreadyExists, Unathorized, WrongPassword) )
-import App.Types ( ID(ID), Token, Date, PaginationSize )
+  ( AppError (..),
+  )
+import App.Types (Date, ID (ID), PaginationSize, Token)
 import Control.Monad (replicateM)
 import Data.Aeson
-    ( Value(Null, String, Number, Bool),
-      FromJSON(parseJSON),
-      ToJSON(toJSON) )
+  ( FromJSON (parseJSON),
+    ToJSON (toJSON),
+    Value (Bool, Null, Number, String),
+  )
 import Data.ByteString.Lazy qualified as LB
 import Data.Time qualified as Time
 import Database.Database qualified as Database
-import Entity.Internal ( Entity(..) )
+import Entity.Internal (Entity (..))
 import Extended.Text (Text)
 import Extended.Text qualified as T
 import HKD.HKD
-    ( Display, NotAllowedFromFront, NotDisplayed, NotUpdated )
-import Test.QuickCheck ( chooseInt, Arbitrary(arbitrary) )
+  ( Display,
+    NotAllowedFromFront,
+    NotDisplayed,
+    NotUpdated,
+  )
+import Test.QuickCheck (Arbitrary (arbitrary), chooseInt)
 
 testConfig :: Config
 testConfig =
@@ -46,29 +51,31 @@ testDate = Time.fromGregorian 1 2 3
 testToken :: Token
 testToken = "super unique token"
 
-isParsingError :: AppError -> Bool
-isParsingError ParsingErr {} = True
+isParsingError,
+  isEntityNotFoundError,
+  isAlreadyExistsError,
+  isUnathorizedError,
+  isWrongPasswordError,
+  isRequestHeadersError,
+  isAmbiguousPatternsError,
+  isAdminAccessViolationError ::
+    AppError -> Bool
+isParsingError ParsingError {} = True
 isParsingError _ = False
-
-isEntityNotFoundError :: AppError -> Bool
 isEntityNotFoundError EntityNotFound {} = True
 isEntityNotFoundError _ = False
-
-isAlreadyExistsError :: AppError -> Bool
 isAlreadyExistsError AlreadyExists {} = True
 isAlreadyExistsError _ = False
-
-isUnathorizedError :: AppError -> Bool
 isUnathorizedError Unathorized {} = True
 isUnathorizedError _ = False
-
-isWrongPasswordError :: AppError -> Bool
 isWrongPasswordError WrongPassword {} = True
 isWrongPasswordError _ = False
-
-isRequestHeadersError :: AppError -> Bool
-isRequestHeadersError RequestHeadersErr {} = True
+isRequestHeadersError RequestHeadersError {} = True
 isRequestHeadersError _ = False
+isAmbiguousPatternsError RouterAmbiguousPatterns {} = True
+isAmbiguousPatternsError _ = False
+isAdminAccessViolationError AdminAccessViolation {} = True
+isAdminAccessViolationError _ = False
 
 deriving instance Ord (e a) => Ord (Entity e a)
 

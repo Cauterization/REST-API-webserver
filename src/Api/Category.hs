@@ -31,6 +31,6 @@ putCategory [cID] = do
   where
     validate parent = do
       parents <- Database.getEntitiesWith parent id
-      when (cast cID `elem` parents) $ categoryCycleError
+      when (cast cID `elem` parents) categoryCycleError
     cast = coerce @_ @(ID (Category (Front Update)))
 putCategory _ = idArityMissmatchError "put category api"
