@@ -114,7 +114,7 @@ responseFromError = \case
   Unathorized t -> r401 $ toBL t
   UnknwonHTTPMethod method -> r405 $ "Method " <> T.show method <> " is not allowed."
   WrongPassword -> r403 "Wrong password."
-  err -> r500 $ toBL $ "Internal error:" <> T.show err <> " (not handled yet)"
+  err -> r500 $ toBL $ "Internal error:" <> T.show err
   where
     r400 = ToResponse HTTP.status400 []
     r401 = ToResponse HTTP.status401 []
