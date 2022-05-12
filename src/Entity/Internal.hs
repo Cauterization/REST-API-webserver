@@ -21,8 +21,8 @@ import GHC.Generics (Generic)
 import HKD.HKD ( Display, Front )
 
 data Entity e a = Entity
-  { entityID :: ID (e a),
-    entity :: e a
+  { entityID :: !(ID (e a)),
+    entity :: !(e a)
   }
   deriving stock (Generic)
 

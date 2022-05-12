@@ -42,9 +42,9 @@ data Mode
 instance FromJSON Mode
 
 data Config = Config
-  { cVerbosity :: Verbosity,
-    cMode :: Mode,
-    cFilePath :: FilePath
+  { cVerbosity :: !Verbosity,
+    cMode :: !Mode,
+    cFilePath :: !FilePath
   }
   deriving (Show, Generic)
 

@@ -57,12 +57,12 @@ class QConstraints db => IsDatabase db where
     (DatabaseMonad db) Integer
 
 data DBError
-  = EntityNotFound Text
-  | TooManyEntities Text
-  | AlreadyExists Text
-  | IsNull Text
-  | OtherError Text
-  | UnknwonError Text
+  = EntityNotFound !Text
+  | TooManyEntities !Text
+  | AlreadyExists !Text
+  | IsNull !Text
+  | OtherError !Text
+  | UnknwonError !Text
   deriving (Show, Exception)
 
 getSingle :: forall e a m. (MonadThrow m, Typeable e, Eq (e a)) => [e a] -> m (e a)

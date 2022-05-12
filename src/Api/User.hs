@@ -7,7 +7,6 @@ import App.Internal
     ( decodedBody,
       getToken,
       wrongPasswordError,
-      AppError(WrongPassword),
       Application,
       Impure(..) )
 import App.Result ( text, Endpoint )

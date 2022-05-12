@@ -34,8 +34,8 @@ instance Postgres.FromField PictureFormat where
       "Unexpected null in picture format."
 
 data Picture a = Picture
-  { format :: PictureFormat,
-    picture :: ByteString
+  { format :: !PictureFormat,
+    picture :: !ByteString
   }
   deriving (Data, Show, Generic, Eq, Ord, Postgres.FromRow)
 

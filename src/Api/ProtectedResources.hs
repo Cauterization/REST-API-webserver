@@ -3,8 +3,7 @@ module Api.ProtectedResources where
 import Api.Get (Gettable)
 import Api.User qualified as User
 import App.Internal
-  ( AppError (AdminAccessViolation),
-    Application,
+  ( Application,
     Env (envPath),
     HasEnv,
     adminAccessViolationError

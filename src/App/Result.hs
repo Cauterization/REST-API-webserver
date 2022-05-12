@@ -13,9 +13,9 @@ import HKD.HKD
 type Endpoint m = forall (entity :: Type -> Type) (action :: Type). IDs -> m AppResult
 
 data AppResult
-  = ResText Text
-  | ResJSON BL.ByteString
-  | ResPicture (Picture (Front Display))
+  = ResText !Text
+  | ResJSON !BL.ByteString
+  | ResPicture !(Picture (Front Display))
   deriving (Show, Eq)
 
 text :: (Applicative m, Show a) => a -> m AppResult

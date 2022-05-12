@@ -14,10 +14,10 @@ import Extended.Text (Text)
 import Logger qualified
 
 data EntityFilter
-  = EFString Text
-  | EFNum Text
-  | EFNumList Text
-  | EFDate Text
+  = EFString !Text
+  | EFNum !Text
+  | EFNumList !Text
+  | EFDate !Text
   | EFLimit
   | EFOffset
   deriving (Eq)
@@ -30,12 +30,12 @@ instance Ord EntityFilter where
   compare _ _ = EQ
 
 data EntityFilterParam
-  = EFPInt Int
-  | EFPText Text
-  | EFPTextOptional (Maybe Text)
-  | EFPIntOptional (Maybe Int)
-  | EFPIntListOptional (Maybe [Int])
-  | EFPDateOptional (Maybe Date)
+  = EFPInt !Int
+  | EFPText !Text
+  | EFPTextOptional !(Maybe Text)
+  | EFPIntOptional !(Maybe Int)
+  | EFPIntListOptional !(Maybe [Int])
+  | EFPDateOptional !(Maybe Date)
   deriving (Show)
 
 instance Postgres.ToField EntityFilterParam where

@@ -5,8 +5,7 @@ import Api.Post (Postable)
 import Api.User (getCurrentUser)
 import Api.User qualified as User
 import App.Internal
-  ( AppError (AccessViolation),
-    Application,
+  ( Application,
     Env (envPath),
     Impure (getCurrentDate),
     decodedBody,

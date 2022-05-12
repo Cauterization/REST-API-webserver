@@ -106,14 +106,14 @@ instance Impure (AppT IO) where
             return $ chars !! idx
 
 data Env (m :: Type -> Type) = Env
-  { envLogger :: Logger.Logger m,
-    envConn :: Database.ConnectionOf (Database.Database (AppT m)),
-    envPath :: Path Current,
-    envBody :: Body,
-    envContentType :: Maybe ContentType,
-    envQParams :: QueryParams,
-    envToken :: Maybe Token,
-    envConfig :: Config
+  { envLogger :: !(Logger.Logger m),
+    envConn :: !(Database.ConnectionOf (Database.Database (AppT m))),
+    envPath :: !(Path Current),
+    envBody :: !Body,
+    envContentType :: !(Maybe ContentType),
+    envQParams :: !QueryParams,
+    envToken :: !(Maybe Token),
+    envConfig :: !Config
   }
 
 type family EnvOf a where

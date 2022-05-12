@@ -27,10 +27,21 @@ module Database.Database
   )
 where
 
-import Database.Config
-import Database.Delete
+import Database.Config ( Config(..) )
+import Database.Delete ( Deletable(..), deleteEntity )
 import Database.Get
-import Database.HasDatabase
+    ( getEntitiesWith,
+      Gettable(..),
+      EntityFilterParam(..),
+      defaultFilters,
+      getEntitiesGeneric,
+      getEntityFilters,
+      getEntityGeneric,
+      EntityFilter(..) )
+import Database.HasDatabase ( HasDatabase(..) )
 import Database.Internal
+    ( QConstraints, IsDatabase(..), DBError(..), getSingle, qmarks )
 import Database.Post
+    ( postEntity, postEntityWith, qmarkfields, Postable(..) )
 import Database.Put
+    ( putEntity, Puttable(..), putEntityWith, toCoalesce )

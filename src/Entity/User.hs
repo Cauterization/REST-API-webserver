@@ -21,13 +21,13 @@ import HKD.HKD
       NotAllowedFromFront )
 
 data User a = User
-  { firstName :: Field a '[Immutable] Text,
-    lastName :: Field a '[Immutable] Text,
-    login :: Field a '[Immutable, AuthField] Text,
-    token :: Field a '[NotAllowedFromFront, Hidden] Text,
-    password :: Field a '[Immutable, Hidden, AuthField] Text,
-    registered :: Field a '[Immutable, NotAllowedFromFront] Date,
-    admin :: Field a '[Immutable] Bool
+  { firstName :: !(Field a '[Immutable] Text),
+    lastName :: !(Field a '[Immutable] Text),
+    login :: !(Field a '[Immutable, AuthField] Text),
+    token :: !(Field a '[NotAllowedFromFront, Hidden] Text),
+    password :: !(Field a '[Immutable, Hidden, AuthField] Text),
+    registered :: !(Field a '[Immutable, NotAllowedFromFront] Date),
+    admin :: !(Field a '[Immutable] Bool)
   }
   deriving stock (Generic)
 instance

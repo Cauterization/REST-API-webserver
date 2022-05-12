@@ -29,13 +29,13 @@ import HKD.HKD
       NotAllowedFromFront )
 
 data Article a = Article
-  { title :: Field a '[] Text,
-    created :: Field a '[NotAllowedFromFront, Immutable] Date,
-    content :: Field a '[] Text,
-    author :: Field a '[NotAllowedFromFront, Immutable] (EntityOrID Author a),
-    category :: Field a '[] (EntityOrID Category a),
-    tags :: Field a '[] [EntityOrID Tag a],
-    pics :: Field a '[] [ID (Picture a)]
+  { title :: !(Field a '[] Text),
+    created :: !(Field a '[NotAllowedFromFront, Immutable] Date),
+    content :: !(Field a '[] Text),
+    author :: !(Field a '[NotAllowedFromFront, Immutable] (EntityOrID Author a)),
+    category :: !(Field a '[] (EntityOrID Category a)),
+    tags :: !(Field a '[] [EntityOrID Tag a]),
+    pics :: !(Field a '[] [ID (Picture a)])
   }
   deriving stock (Generic)
 

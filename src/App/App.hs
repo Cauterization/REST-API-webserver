@@ -78,9 +78,9 @@ runServer = handle handler $ do
     toResponse = either responseFromError responseFromResult
 
 data ToResponse = ToResponse
-  { respStatus :: HTTP.Status,
-    respHeaders :: [HTTP.Header],
-    respBody :: Body
+  { respStatus :: !HTTP.Status,
+    respHeaders :: ![HTTP.Header],
+    respBody :: !Body
   }
   deriving (Show)
 

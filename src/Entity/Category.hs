@@ -19,8 +19,8 @@ import GHC.Generics ( Generic )
 import HKD.HKD ( Field, Create, Delete, Display, Update, Front )
 
 data Category a = Category
-  { name :: Field a '[] (CategoryName a),
-    parent :: Field a '[] (CatParent a)
+  { name :: !(Field a '[] (CategoryName a)),
+    parent :: !(Field a '[] (CatParent a))
   }
   deriving stock (Generic)
 

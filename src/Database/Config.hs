@@ -6,7 +6,7 @@ import Data.Text (Text)
 import GHC.Generics
 
 data Config = Config
-  { cConn :: Text,
-    cPagSize :: PaginationSize
+  { cConn :: !Text,
+    cPagSize :: !PaginationSize
   }
   deriving (Show, Generic, FromJSON)

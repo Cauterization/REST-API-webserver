@@ -14,8 +14,8 @@ import GHC.Generics (Generic)
 import HKD.HKD ( Field, Create, Display, Immutable, Update, Front )
 
 data Author a = Author
-  { user :: Field a '[Immutable] (EntityOrID User a),
-    description :: Field a '[] Text
+  { user :: !(Field a '[Immutable] (EntityOrID User a)),
+    description :: !(Field a '[] Text)
   }
   deriving stock (Generic)
 
