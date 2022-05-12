@@ -34,7 +34,7 @@ CREATE OR REPLACE VIEW articles_view AS (
         INNER JOIN cat_branches          ON AR.category = cat_branches.id
         LEFT  JOIN article_tag           ON article_tag.article_id = AR.id 
         LEFT  JOIN tags                  ON article_tag.tag_id  = tags.id 
-        LEFT  JOIN article_picture           ON article_picture.article_id = AR.id
+        LEFT  JOIN article_picture       ON article_picture.article_id = AR.id
 
      GROUP BY AR.id, AR.title, AR.created, AR.content, 
              authors_view.id, description, 
