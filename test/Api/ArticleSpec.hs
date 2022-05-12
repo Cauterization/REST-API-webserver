@@ -261,17 +261,14 @@ propGetArticlesTag dbA tagID = property $ do
 
 propGetArticlesTagIn :: TDB Article -> [Int] -> Property
 propGetArticlesTagIn dbA tagIn = property $ do
-  res <-
+  Right (ResJSON j) <-
     evalTest
       ( withGetPath "articles"
           . withParam "tag_in" tagIn
       )
       (withDatabase @Article dbA)
-  case res of
-    Left err -> error $ show err
-    Right (ResJSON j) -> do
-      let Right ref' = runTestMonadNoMods $ toJSONResult ref
-      j `shouldBe` encode ref'
+  let Right ref' = runTestMonadNoMods $ toJSONResult ref
+  j `shouldBe` encode ref'
   where
     ref = doFiltering $ map (\(a, b) -> Entity (ID a) (fromDisplay @(Article (Front Display)) b)) $ IM.toList dbA
     doFiltering = takeMax . filter (any ((`elem` map ID tagIn) . entityID) . tags . entity)
@@ -294,12 +291,9 @@ propGetArticle :: TDB Article -> ID (Article Display) -> Property
 propGetArticle dbA (ID articleID) =
   property $
     articleID `elem` IM.keys dbA ==> do
-      res <-
+      Right (ResJSON j) <-
         evalTest
           (withGetPath $ "articles/" <> T.show articleID)
           (withDatabase @Article dbA)
-      case res of
-        Left err -> error $ show err
-        Right (ResJSON j) -> do
-          j ^? key "title" . _String
-            `shouldBe` title <$> IM.lookup articleID dbA
+      j ^? key "title" . _String
+        `shouldBe` title <$> IM.lookup articleID dbA

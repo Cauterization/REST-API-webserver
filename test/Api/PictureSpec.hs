@@ -81,13 +81,11 @@ propGetPicture :: TDB Picture -> ID (Picture Display) -> Property
 propGetPicture db (ID pictureID) =
   property $
     pictureID `elem` IM.keys db ==> do
-      res <-
+      Right (ResPicture p) <-
         evalTest
           (withGetPath $ "pictures/" <> T.show pictureID)
           (withDatabase @Picture db)
-      case res of
-        Right (ResPicture p) -> Just p `shouldBe` (fromDisplay <$> IM.lookup pictureID db)
-        Left err -> error $ show err
+      Just p `shouldBe` (fromDisplay <$> IM.lookup pictureID db)
 
 deleteSpec :: Spec
 deleteSpec = describe "DELETE" $ do

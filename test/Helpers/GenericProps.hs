@@ -74,19 +74,16 @@ propPostsEntity ::
 propPostsEntity path db e =
   property $
     not (alreadyExists e db) ==> do
-      x <-
+      (Right (ResText t), st) <-
         runTest
           ( withBody (toFrontCreate e)
               . withPostPath path
           )
           (withDatabase @e db)
-      case x of
-        (Right (ResText t), st) -> do
-          let Right (ID eID) = T.read @(ID (e Display)) t
-          fromDisplay
-            <$> IM.lookup eID (extractTestDatabaseFromTestState @(e Create) st)
-              `shouldBe` Just e
-        (Left err, _) -> error $ show err
+      let Right (ID eID) = T.read @(ID (e Display)) t
+      fromDisplay
+        <$> IM.lookup eID (extractTestDatabaseFromTestState @(e Create) st)
+          `shouldBe` Just e
 
 propPostsAlreadyExists ::
   forall e.
@@ -138,12 +135,9 @@ propGetEntities ::
 propGetEntities path db =
   property $
     condition ==> do
-      res <- evalTest (withGetPath path) (withDatabase @e db)
-      case res of
-        Left err -> error $ show err
-        Right (ResJSON j) -> do
-          let es = map (\(eID, e) -> Entity (ID eID) $ fromDisplay e) $ IM.toList db
-          j `shouldBe` encode @[Entity e (Front Display)] es
+      Right (ResJSON j) <- evalTest (withGetPath path) (withDatabase @e db)
+      let es = map (\(eID, e) -> Entity (ID eID) $ fromDisplay e) $ IM.toList db
+      j `shouldBe` encode @[Entity e (Front Display)] es
   where
     condition = length (IM.toList db) < testPaginationConstant
 
@@ -165,12 +159,9 @@ propGetEntitiesIsPaginated ::
   BigTDB e ->
   Property
 propGetEntitiesIsPaginated path (unBigTDB -> db) = property $ do
-  res <- evalTest (withGetPath path) (withDatabase @e db)
-  case res of
-    Left err -> error $ show err
-    Right (ResJSON j) ->
-      let Just os = decode @(Maybe [Object]) j
-       in length os <= testPaginationConstant `shouldBe` True
+  Right (ResJSON j) <- evalTest (withGetPath path) (withDatabase @e db)
+  let Just os = decode @(Maybe [Object]) j
+   in length os <= testPaginationConstant `shouldBe` True
 
 propGetEntitiesWithLimitOffset ::
   forall (e :: Type -> Type).
@@ -183,23 +174,20 @@ propGetEntitiesWithLimitOffset ::
   BigTDB e ->
   Property
 propGetEntitiesWithLimitOffset path limit offset (unBigTDB -> db) = property $ do
-  res <-
+  Right (ResJSON j) <-
     evalTest
       ( withGetPath path
           . withLimit limit
           . withOffset offset
       )
       (withDatabase @e db)
-  case res of
-    Left err -> error $ show err
-    Right (ResJSON j) -> do
-      j
-        `shouldBe` encode
-          ( take (min limit testPaginationConstant) $
-              drop offset $
-                map (\(eID, e) -> Entity (ID eID) $ fromDisplay @(e (Front Display)) e) $
-                  IM.toList db
-          )
+  j
+    `shouldBe` encode
+      ( take (min limit testPaginationConstant) $
+          drop offset $
+            map (\(eID, e) -> Entity (ID eID) $ fromDisplay @(e (Front Display)) e) $
+              IM.toList db
+      )
 
 propGetEntity ::
   forall (e :: Type -> Type).
@@ -213,15 +201,12 @@ propGetEntity ::
 propGetEntity path db (ID eID) =
   property $
     eID `elem` IM.keys db ==> do
-      res <- evalTest withPath (withDatabase @e db)
-      case res of
-        Left err -> error $ show err
-        Right (ResJSON j) ->
-          j
-            `shouldBe` encode
-              ( (\(Just e) -> Entity (ID eID) (fromDisplay @(e (Front Display)) e)) $
-                  IM.lookup eID db
-              )
+      Right (ResJSON j) <- evalTest withPath (withDatabase @e db)
+      j
+        `shouldBe` encode
+          ( (\(Just e) -> Entity (ID eID) (fromDisplay @(e (Front Display)) e)) $
+              IM.lookup eID db
+          )
   where
     withPath = withGetPath $ path <> "/" <> T.show eID
 

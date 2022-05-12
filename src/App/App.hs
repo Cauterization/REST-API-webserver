@@ -101,18 +101,26 @@ responseFromResult = \case
 
 responseFromError :: AppError -> ToResponse
 responseFromError = \case
-  PageNotFoundError path -> r404 $ T.concat (getURL path) <> " doesn't exists!"
-  EntityNotFound t -> r404 t
-  AlreadyExists t -> r409 t
   AccessViolation t -> r403 t
-  AdminAccessViolation -> r404 ""
-  ParsingError t -> r400 $ toBL t
+  AdminAccessViolation -> r404 "Page not found."
+  AlreadyExists t -> r409 t
   DatabaseOtherError t -> r400 $ toBL t
+  EntityNotFound t -> r404 t
+  IsNull t -> r400 $ toBL t
+  ParsingError t -> r400 $ toBL t
+  PageNotFoundError path -> r404 $ T.intercalate "/" (getURL path) <> " doesn't exists!"
+  RequestHeadersError t -> r400 $ toBL t
+  QParamsError -> r400 $ toBL "Query parameters error."
+  Unathorized t -> r401 $ toBL t
+  UnknwonHTTPMethod method -> r405 $ "Method " <> T.show method <> " is not allowed."
+  WrongPassword -> r403 "Wrong password."
   err -> r500 $ toBL $ "Internal error:" <> T.show err <> " (not handled yet)"
   where
     r400 = ToResponse HTTP.status400 []
+    r401 = ToResponse HTTP.status401 []
     r403 = ToResponse HTTP.status403 [] . fromString . T.unpack
     r404 = ToResponse HTTP.status404 [] . fromString . T.unpack
+    r405 = ToResponse HTTP.status405 [] . fromString . T.unpack
     r409 = ToResponse HTTP.status409 [] . fromString . T.unpack
     r500 = ToResponse HTTP.internalServerError500 []
     toBL = BL.fromStrict . T.encodeUtf8
@@ -157,6 +165,7 @@ instance Routed Category (AppT IO) where
   router = do
     post_ "admin/categories"
     get_ "categories"
+    get_ "categories/{ID}"
     put "admin/categories/{ID}" Category.putCategory
     delete_ "admin/categories/{ID}"
 
