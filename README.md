@@ -19,7 +19,7 @@ This folder contains the topmost transformer layer - the router, which is respon
 ### App
 This folder contains a list of all server endpoints which is represented through an specific router instances for each server entity and endpoints associated with them. These endpoints consists of method name, URL and specific function from Api, or just method and URL if this function is generic (in this cases method name ends with "_"). All this methods are bunch togetger throught dummy Main type and router instrance of it, which is just enumeration of all other instances and main server middlwewares. Also here are located functions that start server, recieve wai request, process it through transformer stack, convert final result to response and sends it back.  
 
-### Other folder
+### Other folders
 Also here is some more folders - result and resultJSON, where you can find code, responsible for processing the final result of each endpoint; config which describe config's data; queryParams which describe http query parameters list parsing; types where most commonly used types are located; and iternal for internal code for all of other modules.
 Also in internal module located second transformer layer - AppT which do most of the work. It is just newtype on top of ReaderT with server environment and underlying monad which determines whether the server is running in prod mode or in test mode (for production this monad is just IO and for test purposes there exists some other mtl stack). All database logic also lives in this monad.
 
