@@ -7,7 +7,7 @@ Server is written using HKD and MTL patterns and consists of several large modul
 
 
 ## Api
-The Api module is responsible for all functionality of each server endpoint. Here are presented both specific functions for interacting with certain entities (they are located in folders with names corresponding to the names of entities) and generic functions for entities that do not require specific logic for post/get/put/delete/publish reuest methods. Also here presented server middlewares (authentication middleware for example).
+The Api module is responsible for all functionality of each server endpoint. Here are presented both specific functions for interacting with certain entities (they are located in folders with names corresponding to the names of entities) and generic functions for entities that do not require specific logic for post/get/put/delete/publish reuest methods. Also here presented server middlewares (basic authentication middleware for example).
 
 
 ## App
