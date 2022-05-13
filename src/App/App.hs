@@ -8,35 +8,44 @@ where
 
 import Api.Article qualified as Article
 import Api.Category qualified as Category
-import Api.Delete
+import Api.Delete ( delete_ )
 import Api.Draft qualified as Draft
-import Api.Get
+import Api.Get ( get_ )
 import Api.Picture qualified as Picture
-import Api.Post
+import Api.Post ( post_ )
 import Api.ProtectedResources (protectedResources)
-import Api.Publish
-import Api.Put
+import Api.Publish ( publish_ )
+import Api.Put ( put_ )
 import Api.User qualified as User
 import App.Config
+    ( Config(Config, cAddress, cPort, cLogger, cDatabase) )
 import App.Internal
-import App.QueryParams
-import App.Result
+    ( toPath,
+      AppT,
+      AppError(WrongPassword, AccessViolation, AdminAccessViolation,
+               AlreadyExists, DatabaseOtherError, EntityNotFound, IsNull,
+               ParsingError, PageNotFoundError, RequestHeadersError, QParamsError,
+               Unathorized, UnknwonHTTPMethod),
+      DB )
+import App.QueryParams ( toQueryParams )
+import App.Result ( AppResult(..) )
 import App.Router
-import App.Types
+    ( put, get, post, newRouter, addMiddleware, runRouter, Routed(..) )
+import App.Types ( getURL, Body )
 import Control.Exception (IOException)
-import Control.Monad.Catch
+import Control.Monad.Catch ( handle )
 import Control.Monad.Extra (whenM)
 import Data.Aeson (eitherDecode)
 import Data.ByteString.Lazy qualified as BL
-import Data.Char
-import Data.Kind
+import Data.Char ( toLower )
+import Data.Kind ( Type )
 import Data.String (fromString)
 import Database.Database qualified as Database
 import Entity.Article (Article)
 import Entity.Author (Author)
 import Entity.Category (Category)
 import Entity.Draft (Draft)
-import Entity.Picture
+import Entity.Picture ( Picture(Picture) )
 import Entity.Tag (Tag)
 import Entity.User (User)
 import Extended.Text qualified as T
@@ -45,7 +54,7 @@ import Logger ((.<))
 import Network.HTTP.Types qualified as HTTP
 import Network.Wai qualified as Wai
 import Network.Wai.Handler.Warp qualified as Wai
-import System.Environment
+import System.Environment ( getArgs )
 import System.Exit qualified as Sys
 
 runServer :: IO ()
