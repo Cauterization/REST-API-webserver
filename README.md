@@ -1,6 +1,8 @@
 # Rest API webserver (no frameworks)
 Test project for Metalamp. Description of requirements aviable [here](https://coda.io/@metalamp/education/4-15) and [here](https://coda.io/@metalamp/education/5-16).
 
+## Getting started
+All you need to do to run server is write your database hostname, port, user login and password into configuration file. 
 
 ## Architecture
 Server is written using HKD and MTL patterns and consists of several large modules, the contents of which are in their own separate folder.
