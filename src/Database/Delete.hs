@@ -1,14 +1,18 @@
 module Database.Delete where
 
-import App.Types
+import App.Types ( ID, nameOf )
 import Control.Monad (when)
-import Control.Monad.Catch
-import Data.Data
-import Data.Kind
-import Data.String
-import Database.HasDatabase
+import Control.Monad.Catch ( MonadThrow(..) )
+import Data.Data ( Data, Typeable )
+import Data.Kind ( Type )
+import Data.String ( IsString(..) )
+import Database.HasDatabase ( HasDatabase(..) )
 import Database.Internal
-import HKD.HKD
+    ( IsDatabase(deleteFromDatabase, ToRowOf),
+      DBError(EntityNotFound),
+      QConstraints,
+      withPluralEnding )
+import HKD.HKD ( Delete )
 import Logger qualified
 
 class Deletable (e :: Type -> Type) a where

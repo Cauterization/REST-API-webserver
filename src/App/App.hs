@@ -8,53 +8,73 @@ where
 
 import Api.Article qualified as Article
 import Api.Category qualified as Category
-import Api.Delete ( delete_ )
+import Api.Delete (delete_)
 import Api.Draft qualified as Draft
-import Api.Get ( get_ )
+import Api.Get (get_)
 import Api.Picture qualified as Picture
-import Api.Post ( post_ )
+import Api.Post (post_)
 import Api.ProtectedResources (protectedResources)
-import Api.Publish ( publish_ )
-import Api.Put ( put_ )
+import Api.Publish (publish_)
+import Api.Put (put_)
 import Api.User qualified as User
 import App.Config
-    ( Config(Config, cAddress, cPort, cLogger, cDatabase) )
+  ( Config (Config, cAddress, cDatabase, cLogger, cPort),
+  )
 import App.Internal
-    ( toPath,
-      AppT,
-      AppError(WrongPassword, AccessViolation, AdminAccessViolation,
-               AlreadyExists, DatabaseOtherError, EntityNotFound, IsNull,
-               ParsingError, PageNotFoundError, RequestHeadersError, QParamsError,
-               Unathorized, UnknwonHTTPMethod),
-      DB )
-import App.QueryParams ( toQueryParams )
-import App.Result ( AppResult(..) )
+  ( AppError
+      ( AccessViolation,
+        AdminAccessViolation,
+        AlreadyExists,
+        DatabaseOtherError,
+        EntityNotFound,
+        IsNull,
+        PageNotFoundError,
+        ParsingError,
+        QParamsError,
+        RequestHeadersError,
+        Unathorized,
+        UnknwonHTTPMethod,
+        WrongPassword
+      ),
+    AppT,
+    DB,
+    toPath,
+  )
+import App.QueryParams (toQueryParams)
+import App.Result (AppResult (..))
 import App.Router
-    ( put, get, post, newRouter, addMiddleware, runRouter, Routed(..) )
-import App.Types ( getURL, Body )
+  ( Routed (..),
+    addMiddleware,
+    get,
+    newRouter,
+    post,
+    put,
+    runRouter,
+  )
+import App.Types (Body, getURL)
 import Control.Exception (IOException)
-import Control.Monad.Catch ( handle )
+import Control.Monad.Catch (handle)
 import Control.Monad.Extra (whenM)
 import Data.Aeson (eitherDecode)
 import Data.ByteString.Lazy qualified as BL
-import Data.Char ( toLower )
-import Data.Kind ( Type )
+import Data.Char (toLower)
+import Data.Kind (Type)
 import Data.String (fromString)
 import Database.Database qualified as Database
 import Entity.Article (Article)
 import Entity.Author (Author)
 import Entity.Category (Category)
 import Entity.Draft (Draft)
-import Entity.Picture ( Picture(Picture) )
+import Entity.Picture (Picture (Picture))
 import Entity.Tag (Tag)
 import Entity.User (User)
 import Extended.Text qualified as T
-import Logger qualified
 import Logger ((.<))
+import Logger qualified
 import Network.HTTP.Types qualified as HTTP
 import Network.Wai qualified as Wai
 import Network.Wai.Handler.Warp qualified as Wai
-import System.Environment ( getArgs )
+import System.Environment (getArgs)
 import System.Exit qualified as Sys
 
 runServer :: IO ()
@@ -64,27 +84,34 @@ runServer = handle handler $ do
   let logger = Logger.runLogger @IO cLogger
   whenM (("migrations" `elem`) <$> getArgs) $
     Database.runMigrations @(DB IO) cDatabase logger
-  Wai.run cPort $ \req respond -> do
-    body <- Wai.strictRequestBody req
-    logger Logger.Debug 
-      $ T.take 1000 $ "Recieved request:\n" .< req
-    ToResponse {..} <-
-      toResponse
-        <$> runRouter @Main
-          logger
-          connectionDB
-          (toPath req)
-          body
-          (T.decodeUtf8 <$> lookup "Content-Type" (Wai.requestHeaders req))
-          (toQueryParams $ Wai.queryString req)
-          (T.decodeUtf8 <$> lookup "Authorization" (Wai.requestHeaders req))
-          Config {..}
-    respond $ Wai.responseLBS respStatus respHeaders respBody
+  processRequest Config {..} connectionDB
   where
     handler (e :: IOException) = Sys.die $ show e <> ". Terminating..."
     parsingFail = fail . ("Parsing config error: " <>) . show
     parseOrFail = either parsingFail pure . eitherDecode
-    toResponse = either responseFromError responseFromResult
+
+processRequest ::
+  Config ->
+  Database.ConnectionOf (DB IO) ->
+  IO ()
+processRequest Config {..} connectionDB = Wai.run cPort $ \req respond -> do
+  let logger = Logger.runLogger @IO cLogger
+  body <- Wai.strictRequestBody req
+  logger Logger.Debug $
+    T.take 1000 $ "Recieved request:\n" .< req
+  ToResponse {..} <-
+    let getFromHeaders p = T.decodeUtf8 <$> lookup p (Wai.requestHeaders req)
+     in either responseFromError responseFromResult
+          <$> runRouter @Main
+            logger
+            connectionDB
+            (toPath req)
+            body
+            (getFromHeaders "Content-Type")
+            (toQueryParams $ Wai.queryString req)
+            (getFromHeaders "Authorization")
+            Config {..}
+  respond $ Wai.responseLBS respStatus respHeaders respBody
 
 data ToResponse = ToResponse
   { respStatus :: !HTTP.Status,
@@ -113,26 +140,27 @@ responseFromError = \case
   AccessViolation t -> r403 t
   AdminAccessViolation -> r404 "Page not found."
   AlreadyExists t -> r409 t
-  DatabaseOtherError t -> r400 $ toBL t
+  DatabaseOtherError t -> r400 t
   EntityNotFound t -> r404 t
-  IsNull t -> r400 $ toBL t
-  ParsingError t -> r400 $ toBL t
+  IsNull t -> r400 t
+  ParsingError t -> r400 t
   PageNotFoundError path -> r404 $ T.intercalate "/" (getURL path) <> " doesn't exists!"
-  RequestHeadersError t -> r400 $ toBL t
-  QParamsError -> r400 $ toBL "Query parameters error."
-  Unathorized t -> r401 $ toBL t
+  RequestHeadersError t -> r400 t
+  QParamsError -> r400 "Query parameters error."
+  Unathorized t -> r401 t
   UnknwonHTTPMethod method -> r405 $ "Method " <> T.show method <> " is not allowed."
   WrongPassword -> r403 "Wrong password."
-  err -> r500 $ toBL $ "Internal error:" <> T.show err
+  err -> r500 $ "Internal error:" <> T.show err
   where
-    r400 = ToResponse HTTP.status400 []
-    r401 = ToResponse HTTP.status401 []
-    r403 = ToResponse HTTP.status403 [] . fromString . T.unpack
-    r404 = ToResponse HTTP.status404 [] . fromString . T.unpack
-    r405 = ToResponse HTTP.status405 [] . fromString . T.unpack
-    r409 = ToResponse HTTP.status409 [] . fromString . T.unpack
-    r500 = ToResponse HTTP.internalServerError500 []
-    toBL = BL.fromStrict . T.encodeUtf8
+    r400 = ToResponse HTTP.status400 [] . encodeBL
+    r401 = ToResponse HTTP.status401 [] . encodeBL
+    r403 = ToResponse HTTP.status403 [] . toBL
+    r404 = ToResponse HTTP.status404 [] . toBL
+    r405 = ToResponse HTTP.status405 [] . toBL
+    r409 = ToResponse HTTP.status409 [] . toBL
+    r500 = ToResponse HTTP.internalServerError500 [] . encodeBL
+    toBL = fromString . T.unpack
+    encodeBL = BL.fromStrict . T.encodeUtf8
 
 data Main :: Type -> Type
 
