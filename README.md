@@ -1,6 +1,8 @@
 # Rest API webserver (no frameworks)
 Test project for Metalamp. Description of requirements aviable [here](https://coda.io/@metalamp/education/4-15) and [here](https://coda.io/@metalamp/education/5-16).
 
+## Getting started
+All you need to do to run server is write your database hostname, port, user login and password into configuration file. After that you need to run main.hs file with 'migrations' command line argument. 
 
 ## Architecture
 Server is written using HKD and MTL patterns and consists of several large modules, the contents of which are in their own separate folder.
@@ -21,7 +23,7 @@ This folder contains a list of all server endpoints which is represented through
 
 ### Other folders
 Also here is some more folders - result and resultJSON, where you can find code, responsible for processing the final result of each endpoint; config which describe config's data; queryParams which describe http query parameters list parsing; types where most commonly used types are located; and iternal for internal code for all of other modules.
-Also in internal module located second transformer layer - AppT which do most of the work. It is just newtype on top of ReaderT with server environment and underlying monad which determines whether the server is running in prod mode or in test mode (for production this monad is just IO and for test purposes there exists some other mtl stack). All database logic also lives in this monad.
+Also in internal module located second transformer layer - AppT which do most of the work. It is just newtype on top of ReaderT with server environment and underlying monad which determines whether the server is running in prod mode or in test mode (for production this monad is just IO and for test purposes there exists some other pure mtl stack). All database logic also lives in this monad.
 
 ## Database
 Server database is represented through two type classes. One of then is isDatabse class that responsible for database behavior itself. It located in internal folder. The other is hasDatabase that is responsible for interaction with server. At current moment server uses postgresql and PostgreSQL.Simple library, the instantiation of which is located at postgres folder. But if required, the database can be easily changed by just creating new isDatabase instance.
