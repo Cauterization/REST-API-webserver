@@ -57,7 +57,6 @@ putEntity ::
 putEntity e = do
   connection <- getDatabaseConnection
   let q = putQuery @(Entity e a)
-  -- Logger.sql q
   res <- liftDatabase (putIntoDatabase @(Database m) @(Entity e a) connection q e)
   when (res == 0) $ throwM $ EntityNotFound $ nameOf @e <> " not found."
 
