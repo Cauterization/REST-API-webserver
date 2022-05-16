@@ -1,40 +1,64 @@
 module Helpers.DraftDB where
 
-import App.Types ( ID(ID), Token )
-import Control.Lens ( (%~), (.~), (?~) )
-import Control.Monad.State ( gets, modify )
-import Data.Coerce ( coerce )
+import App.Types (ID (ID), Token)
+import Control.Lens ((%~), (.~), (?~))
+import Control.Monad.State (gets, modify)
+import Data.Coerce (coerce)
 import Data.IntMap qualified as IM
-import Data.Maybe ( fromMaybe )
+import Data.Maybe (fromMaybe)
 import Database.Database (EntityFilterParam)
 import Database.Database qualified as Database
 import Entity.Article
-    ( Article(Article, created, author, category, tags, pics, content,
-              title) )
-import Entity.Author ( Author(user) )
+  ( Article
+      ( Article,
+        author,
+        category,
+        content,
+        created,
+        pics,
+        tags,
+        title
+      ),
+  )
+import Entity.Author (Author (..))
 import Entity.Category
-    ( Category(Category, name, parent), CategoryName(CategoryName) )
-import Entity.Draft ( Draft(..) )
-import Entity.Internal ( Entity(..) )
-import Entity.User ( User(token) )
+  ( Category (Category, name, parent),
+    CategoryName (CategoryName),
+  )
+import Entity.Draft (Draft (..))
+import Entity.Internal (Entity (..))
+import Entity.Tag (Tag (..))
+import Entity.User (User (..))
 import Extended.Text (Text)
-import HKD.HKD ( Publish, Front, Update, Create, Display )
+import HKD.HKD (Create, Display, Front, Publish, Update)
 import Helpers.AuthorDB ()
 import Helpers.Database
-    ( TestEntity(putIntoTestDatabase, putToTestState,
-                 getFromTestDatabase, alreadyExists, getTestDatabase, toDisplay,
-                 fromDisplay, toFrontCreate, putDatabase,
-                 extractTestDatabaseFromTestState, withTestDatabase),
-      TestUpdate(..),
-      getManyOrSingle,
-      putEntityIntoTestDatabase )
+  ( TestEntity
+      ( alreadyExists,
+        extractTestDatabaseFromTestState,
+        fromDisplay,
+        getFromTestDatabase,
+        getTestDatabase,
+        putDatabase,
+        putIntoTestDatabase,
+        putToTestState,
+        toDisplay,
+        toFrontCreate,
+        withTestDatabase
+      ),
+    TestUpdate (..),
+    getManyOrSingle,
+    putEntityIntoTestDatabase,
+  )
+import Helpers.Internal (testDate)
 import Helpers.Monad
-    ( TestState(_tsArticleDB, _tsToken, _tsUserDB, _tsDraftDB),
-      tsArticleDB,
-      tsDraftDB,
-      tsGetFilters,
-      tsToken )
-import Unsafe.Coerce ( unsafeCoerce )
+  ( TestState (_tsArticleDB, _tsDraftDB, _tsToken, _tsUserDB),
+    tsArticleDB,
+    tsDraftDB,
+    tsGetFilters,
+    tsToken,
+  )
+import Unsafe.Coerce (unsafeCoerce)
 
 instance TestEntity (Draft Display) where
   toFrontCreate (Draft Article {..}) =
@@ -68,12 +92,26 @@ instance TestEntity (Draft Create) where
   toDisplay (Draft Article {..}) =
     Draft
       Article
-        { author = undefined,
-          category = undefined,
-          tags = undefined,
+        { author = Entity (coerce author) a,
+          category = Entity (coerce category) c,
+          tags = map (\tID -> Entity (coerce tID) (Tag "")) tags,
           pics = map coerce pics,
           ..
         }
+    where
+      a =
+        let u =
+              User
+                { firstName = "",
+                  lastName = "",
+                  login = "",
+                  token = "",
+                  password = "",
+                  registered = testDate,
+                  admin = False
+                }
+         in Author {user = Entity 0 u, description = ""}
+      c = Category {name = "", parent = Nothing}
 
   getTestDatabase = gets _tsDraftDB
 
@@ -144,7 +182,7 @@ instance TestEntity (Entity Draft Publish) where
   putIntoTestDatabase (Entity (ID draftID) _) = do
     dbD <- gets _tsDraftDB
     case IM.lookup draftID dbD of
-      Nothing -> return 0 
+      Nothing -> return 0
       Just (Draft Article {..}) -> do
         modify $ tsDraftDB %~ IM.delete draftID
         len <- gets (IM.size . _tsArticleDB)

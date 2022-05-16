@@ -185,10 +185,10 @@ defaultEnv =
     { envLogger = \v t -> when (v >= Logger.Warning) $ tell [(v, t)],
       envConn = (),
       envConfig = testConfig,
-      envPath = error "envPath",
+      envPath = POST [],
       envBody = "",
       envQParams = M.empty,
-      envContentType = error "envContentType",
+      envContentType = Nothing,
       envToken = Nothing
     }
 

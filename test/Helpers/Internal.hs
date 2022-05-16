@@ -1,6 +1,6 @@
 module Helpers.Internal where
 
-import App.Config (Config (Config, cAddress, cDatabase, cPort))
+import App.Config (Config (Config, cAddress, cDatabase, cPort, cLogger))
 import App.Internal
   ( AppError (..),
   )
@@ -23,7 +23,9 @@ import HKD.HKD
     NotDisplayed,
     NotUpdated,
   )
+import Logger qualified
 import Test.QuickCheck (Arbitrary (arbitrary), chooseInt)
+
 
 testConfig :: Config
 testConfig =
@@ -31,9 +33,16 @@ testConfig =
     { cDatabase =
         Database.Config
           { cPagSize = testPaginationConstant
+          , cConn = ""
           },
       cAddress = testAddressConstant,
-      cPort = testPortConstant
+      cPort = testPortConstant,
+      cLogger = 
+        Logger.Config
+          { cVerbosity = Logger.Warning
+          , cMode = Logger.Both
+          , cFilePath= ""
+          }
     }
 
 testPaginationConstant :: PaginationSize

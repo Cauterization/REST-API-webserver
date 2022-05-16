@@ -1,25 +1,35 @@
 module Helpers.AuthorDB where
 
-import App.Types ( ID(ID) )
-import Control.Lens ( (.~) )
-import Control.Monad.State ( gets, modify )
-import Data.Coerce ( coerce )
+import App.Types (ID (ID))
+import Control.Lens ((.~))
+import Control.Monad.State (gets, modify)
+import Data.Coerce (coerce)
 import Data.IntMap qualified as IM
-import Data.Maybe ( fromMaybe )
-import Entity.Author ( Author(..) )
-import Entity.Internal ( Entity(..) )
-import Entity.User ( User(User) )
+import Data.Maybe (fromMaybe)
+import Entity.Author (Author (..))
+import Entity.Internal (Entity (..))
+import Entity.User (User (..))
 import Extended.Text (Text)
-import HKD.HKD ( Front, Update, Create, Display )
+import HKD.HKD (Create, Display, Front, Update)
 import Helpers.Database
-    ( TestEntity(putIntoTestDatabase, withTestDatabase, putDatabase,
-                 getFromTestDatabase, getTestDatabase,
-                 extractTestDatabaseFromTestState, fromDisplay, toFrontCreate,
-                 toDisplay, alreadyExists),
-      TestUpdate(..),
-      getManyOrSingle,
-      putEntityIntoTestDatabase )
-import Helpers.Monad ( TestState(_tsAuthorDB), tsAuthorDB )
+  ( TestEntity
+      ( alreadyExists,
+        extractTestDatabaseFromTestState,
+        fromDisplay,
+        getFromTestDatabase,
+        getTestDatabase,
+        putDatabase,
+        putIntoTestDatabase,
+        toDisplay,
+        toFrontCreate,
+        withTestDatabase
+      ),
+    TestUpdate (..),
+    getManyOrSingle,
+    putEntityIntoTestDatabase,
+  )
+import Helpers.Internal
+import Helpers.Monad (TestState (_tsAuthorDB), tsAuthorDB)
 import Helpers.UserDB ()
 
 -- | Post
@@ -33,7 +43,18 @@ instance TestEntity (Author Create) where
           ((== coerce (user a)) . entityID . user)
           db
 
-  toDisplay Author {..} = Author {user = Entity (coerce user) User {}, ..}
+  toDisplay Author {..} =
+    let u =
+          User
+            { firstName = "",
+              lastName = "",
+              login = "",
+              token = "",
+              password = "",
+              registered = testDate,
+              admin = False
+            }
+     in Author {user = Entity (coerce user) u, ..}
 
   toFrontCreate Author {..} = Author {user = coerce user, ..}
 
@@ -84,4 +105,3 @@ instance TestUpdate (Author (Front Update)) where
 
 instance TestEntity (Entity Author (Front Update)) where
   putIntoTestDatabase = putEntityIntoTestDatabase
-
