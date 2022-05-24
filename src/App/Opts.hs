@@ -7,13 +7,14 @@ import Options.Applicative
   ( Parser,
     execParser,
     fullDesc,
+    help,
     helper,
     info,
     long,
     short,
     strOption,
     switch,
-    (<**>), help
+    (<**>),
   )
 
 data Options = Options
@@ -25,7 +26,7 @@ configFileParser :: Parser FilePath
 configFileParser =
   strOption
     ( long "conf"
-   <> help "Configuration file location"
+        <> help "Configuration file location"
     )
 
 migrationParser :: Parser Bool
@@ -33,7 +34,7 @@ migrationParser =
   switch
     ( long "migrate"
         <> short 'm'
-   <> help "Run database migrations before running server"
+        <> help "Run database migrations before running server"
     )
 
 optionsParser :: Parser Options
