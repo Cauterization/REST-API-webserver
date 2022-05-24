@@ -18,27 +18,17 @@ import Api.Publish (publish_)
 import Api.Put (put_)
 import Api.User qualified as User
 import App.Config
-  ( Config (Config, cAddress, cDatabase, cLogger, cPort),
+  ( Config (..),
   )
 import App.Internal
-  ( AppError
-      ( AccessViolation,
-        AdminAccessViolation,
-        AlreadyExists,
-        DatabaseOtherError,
-        EntityNotFound,
-        IsNull,
-        PageNotFoundError,
-        ParsingError,
-        QParamsError,
-        RequestHeadersError,
-        Unathorized,
-        UnknwonHTTPMethod,
-        WrongPassword
-      ),
+  ( AppError (..),
     AppT,
     DB,
     toPath,
+  )
+import App.Opts
+  ( Options (..),
+    runWithOpts,
   )
 import App.QueryParams (toQueryParams)
 import App.Result (AppResult (..))
@@ -53,14 +43,14 @@ import App.Router
   )
 import App.Types (Body, getURL)
 import Control.Exception (IOException)
+import Control.Monad (when)
 import Control.Monad.Catch (handle)
-import Control.Monad.Extra (whenM)
-import Data.Aeson (eitherDecode)
 import Data.ByteString.Lazy qualified as BL
 import Data.Char (toLower)
 import Data.Kind (Type)
 import Data.String (fromString)
 import Database.Database qualified as Database
+import Dhall qualified
 import Entity.Article (Article)
 import Entity.Author (Author)
 import Entity.Category (Category)
@@ -74,21 +64,19 @@ import Logger qualified
 import Network.HTTP.Types qualified as HTTP
 import Network.Wai qualified as Wai
 import Network.Wai.Handler.Warp qualified as Wai
-import System.Environment (getArgs)
 import System.Exit qualified as Sys
 
 runServer :: IO ()
 runServer = handle handler $ do
-  Config {..} <- BL.readFile "config.json" >>= parseOrFail
+  Options {..} <- runWithOpts
+  Config {..} <- Dhall.input Dhall.auto $ T.pack optConfigPath
   connectionDB <- Database.mkConnectionIO @(DB IO) cDatabase
   let logger = Logger.runLogger @IO cLogger
-  whenM (("migrations" `elem`) <$> getArgs) $
+  when optRunMigrations $
     Database.runMigrations @(DB IO) cDatabase logger
   processRequest Config {..} connectionDB
   where
     handler (e :: IOException) = Sys.die $ show e <> ". Terminating..."
-    parsingFail = fail . ("Parsing config error: " <>) . show
-    parseOrFail = either parsingFail pure . eitherDecode
 
 processRequest ::
   Config ->

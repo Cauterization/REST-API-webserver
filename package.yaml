@@ -27,6 +27,7 @@ dependencies:
 - cryptonite
 - directory
 - deriving-aeson
+- dhall
 - exceptions
 - extra
 - file-embed
@@ -37,6 +38,7 @@ dependencies:
 - memory
 - monad-control
 - mtl
+- optparse-applicative
 - postgresql-simple
 - postgresql-simple-migration 
 - random

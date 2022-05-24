@@ -40,6 +40,7 @@ library
       App.App
       App.Config
       App.Internal
+      App.Opts
       App.QueryParams
       App.Result
       App.ResultJSON
@@ -119,6 +120,7 @@ library
     , containers
     , cryptonite
     , deriving-aeson
+    , dhall
     , directory
     , exceptions
     , extra
@@ -131,6 +133,7 @@ library
     , memory
     , monad-control
     , mtl
+    , optparse-applicative
     , postgresql-simple
     , postgresql-simple-migration
     , random
@@ -190,6 +193,7 @@ executable server-exe
     , containers
     , cryptonite
     , deriving-aeson
+    , dhall
     , directory
     , exceptions
     , extra
@@ -202,6 +206,7 @@ executable server-exe
     , memory
     , monad-control
     , mtl
+    , optparse-applicative
     , postgresql-simple
     , postgresql-simple-migration
     , random
@@ -291,6 +296,7 @@ test-suite server-test
     , containers
     , cryptonite
     , deriving-aeson
+    , dhall
     , directory
     , exceptions
     , extra
@@ -303,6 +309,7 @@ test-suite server-test
     , memory
     , monad-control
     , mtl
+    , optparse-applicative
     , postgresql-simple
     , postgresql-simple-migration
     , random

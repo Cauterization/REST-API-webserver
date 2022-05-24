@@ -2,11 +2,14 @@
 
 module Postgres.Internal where
 
-import Control.Monad ( forM_ )
+import Control.Monad (forM_)
 import Control.Monad.Catch
-    ( MonadThrow(throwM), catches, Handler(Handler) )
+  ( Handler (Handler),
+    MonadThrow (throwM),
+    catches,
+  )
 import Data.ByteString qualified as B hiding (putStrLn)
-import Data.FileEmbed ( embedDir )
+import Data.FileEmbed (embedDir)
 import Data.Function (on)
 import Data.List qualified as L
 import Data.Pool qualified as Pool
@@ -14,15 +17,20 @@ import Database.Config qualified as Database
 import Database.Internal (IsDatabase)
 import Database.Internal qualified as Database
 import Database.PostgreSQL.Simple.Migration
-    ( runMigration,
-      MigrationCommand(MigrationScript, MigrationInitialization),
-      MigrationContext(MigrationContext, migrationContextVerbose,
-                       migrationContextConnection, migrationContextCommand),
-      MigrationResult(MigrationError, MigrationSuccess) )
+  ( MigrationCommand (MigrationInitialization, MigrationScript),
+    MigrationContext
+      ( MigrationContext,
+        migrationContextCommand,
+        migrationContextConnection,
+        migrationContextVerbose
+      ),
+    MigrationResult (MigrationError, MigrationSuccess),
+    runMigration,
+  )
 import Extended.Postgres
 import Extended.Text qualified as T
 import Logger qualified
-import System.Exit ( exitFailure )
+import System.Exit (exitFailure)
 
 data Postgres
 
@@ -35,7 +43,7 @@ instance IsDatabase Postgres where
 
   mkConnectionIO Database.Config {..} =
     Pool.createPool
-      (connectPostgreSQL $ T.encodeUtf8 cConn)
+      (connectPostgreSQL $ Database.toDBConnectionString Database.Config {..})
       close
       1
       30

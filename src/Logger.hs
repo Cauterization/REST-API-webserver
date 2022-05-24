@@ -14,11 +14,10 @@ module Logger
   )
 where
 
-import Control.Applicative (Alternative ((<|>)))
-import Control.Monad
-import Control.Monad.IO.Class
-import Data.Aeson hiding (Error)
+import Control.Monad (Monad ((>>), (>>=)), when)
+import Control.Monad.IO.Class (MonadIO (..))
 import Data.Time qualified as Time
+import Dhall (FromDhall (..))
 import Extended.Text qualified as T
 import GHC.Generics (Generic)
 import Prelude hiding (error, log)
@@ -28,32 +27,21 @@ data Verbosity
   | Info
   | Warning
   | Error
-  deriving (Eq, Ord, Show, Generic)
-
-instance FromJSON Verbosity
+  deriving (Eq, Ord, Show, Generic, FromDhall)
 
 data Mode
   = None
   | Display
   | Write
   | Both
-  deriving (Eq, Ord, Show, Generic)
-
-instance FromJSON Mode
+  deriving (Eq, Ord, Show, Generic, FromDhall)
 
 data Config = Config
   { cVerbosity :: !Verbosity,
     cMode :: !Mode,
     cFilePath :: !FilePath
   }
-  deriving (Show, Generic)
-
-instance FromJSON Config where
-  parseJSON = withObject "Config" $ \o -> do
-    cVerbosity <- o .: "Verbosity"
-    cMode <- o .: "Mode"
-    cFilePath <- o .: "FilePath" <|> pure "log.txt"
-    pure Config {..}
+  deriving (Show, Generic, FromDhall)
 
 type Logger m = Verbosity -> T.Text -> m ()
 

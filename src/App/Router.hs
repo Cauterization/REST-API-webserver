@@ -76,7 +76,8 @@ instance Semigroup (RouterResult m) where
 instance Monoid (RouterResult m) where
   mempty = NotMatched
 
-newtype Router (e :: Type -> Type) (m :: Type -> Type) a = Router {unRouter :: ReaderT (Path Current) (WriterT (RouterResult m) m) a}
+newtype Router (e :: Type -> Type) (m :: Type -> Type) a = Router
+  {unRouter :: ReaderT (Path Current) (WriterT (RouterResult m) m) a}
   deriving newtype
     ( Functor,
       Applicative,
@@ -114,7 +115,11 @@ runRouter logger connDB path body conentType qparams token config =
             AmbiguousPatterns ps -> ambiguousPatterns ps
             _ -> pageNotFoundError
 
-appHandler :: (MonadCatch m) => Logger.Logger m -> m AppResult -> m (Either AppError AppResult)
+appHandler ::
+  (MonadCatch m) =>
+  Logger.Logger m ->
+  m AppResult ->
+  m (Either AppError AppResult)
 appHandler logger = try . handle (throwWithLog . fromDBException)
   where
     throwWithLog err = do

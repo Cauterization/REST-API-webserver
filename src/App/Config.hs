@@ -1,10 +1,9 @@
 module App.Config where
 
-import Data.Aeson ( FromJSON )
 import Database.Config qualified as Database
-import Deriving.Aeson (CustomJSON (..), FieldLabelModifier, StripPrefix)
+import Dhall (FromDhall (..))
 import Extended.Text (Text)
-import GHC.Generics ( Generic )
+import GHC.Generics (Generic)
 import Logger qualified
 
 type Port = Int
@@ -15,5 +14,4 @@ data Config = Config
     cPort :: !Port,
     cAddress :: !Text
   }
-  deriving (Show, Generic)
-  deriving FromJSON via (CustomJSON '[FieldLabelModifier (StripPrefix "c")] Config) 
+  deriving (Show, Generic, FromDhall)
