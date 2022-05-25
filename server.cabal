@@ -37,22 +37,30 @@ library
       Api.Publish
       Api.Put
       Api.User
-      App.App
+      App.AppT
       App.Config
-      App.Internal
+      App.Endpoints
+      App.Error
+      App.Getters
+      App.Impure
+      App.Path
       App.QueryParams
       App.Result
       App.ResultJSON
       App.Router
+      App.RunServer
       App.Types
+      Database.Article
       Database.Config
-      Database.Database
       Database.Delete
+      Database.Draft
+      Database.EntityFilters
       Database.Get
       Database.HasDatabase
       Database.Internal
       Database.Post
       Database.Put
+      Database.User
       Entity.Article
       Entity.Author
       Entity.Category
@@ -95,7 +103,6 @@ library
       FlexibleContexts
       FlexibleInstances
       ImplicitParams
-      ImportQualifiedPost
       InstanceSigs
       LambdaCase
       MultiParamTypeClasses
@@ -105,11 +112,10 @@ library
       RecordWildCards
       ScopedTypeVariables
       StandaloneDeriving
-      TypeApplications
       TypeFamilies
       TypeOperators
       UndecidableInstances
-      ViewPatterns
+      UndecidableSuperClasses
   ghc-options: -j6  -O0
   build-depends:
       QuickCheck
@@ -166,7 +172,6 @@ executable server-exe
       FlexibleContexts
       FlexibleInstances
       ImplicitParams
-      ImportQualifiedPost
       InstanceSigs
       LambdaCase
       MultiParamTypeClasses
@@ -176,11 +181,10 @@ executable server-exe
       RecordWildCards
       ScopedTypeVariables
       StandaloneDeriving
-      TypeApplications
       TypeFamilies
       TypeOperators
       UndecidableInstances
-      ViewPatterns
+      UndecidableSuperClasses
   ghc-options: -j6  -O0 -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
   build-depends:
       QuickCheck
@@ -267,7 +271,6 @@ test-suite server-test
       FlexibleContexts
       FlexibleInstances
       ImplicitParams
-      ImportQualifiedPost
       InstanceSigs
       LambdaCase
       MultiParamTypeClasses
@@ -277,11 +280,10 @@ test-suite server-test
       RecordWildCards
       ScopedTypeVariables
       StandaloneDeriving
-      TypeApplications
       TypeFamilies
       TypeOperators
       UndecidableInstances
-      ViewPatterns
+      UndecidableSuperClasses
   ghc-options: -j6  -O0 -threaded -rtsopts -with-rtsopts=-N -Wno-missing-methods -Wno-missing-fields
   build-depends:
       QuickCheck

@@ -1,16 +1,21 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
+
 module Api.Post where
 
-import App.Internal (Application, decodedBody)
+import App.AppT (Application)
+import App.Getters (decodedBody)
 import App.Result (Endpoint, text)
 import App.Router (Router, post)
-import App.Types (ID (ID), nameOf)
+import App.Types (ID, nameOf)
 import Data.Aeson (FromJSON)
 import Data.Coerce (coerce)
 import Data.Data (Data, Typeable)
 import Data.Kind (Type)
 import Data.Text (Text)
-import Database.Database (Database)
-import Database.Database qualified as Database
+import Database.HasDatabase qualified as Database
+import Database.Post qualified as Database
 import Entity.Author (Author (..))
 import Entity.Category (Category (..), CategoryName (CategoryName))
 import Entity.Tag (Tag (..))
@@ -18,9 +23,9 @@ import HKD.HKD (Create, Front)
 import Logger qualified
 
 type Postable m e =
-  ( Database.Postable e Create,
-    Database.ToRowOf (Database m) (e Create),
-    Database.FromRowOf (Database m) (ID (e Create)),
+  ( Database.Postable e,
+    Database.ToRowOf m (e Create),
+    Database.FromRowOf m (ID (e Create)),
     Show (ID (e Create)),
     Data (e Create),
     Show (e Create),

@@ -1,16 +1,28 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Entity.Draft where
 
-import Data.Aeson ( FromJSON )
-import Data.Data ( Data )
-import Database.Database qualified as Database
-import Entity.Article ( articleGetQuery, Article(..) )
-import Entity.Internal ( Entity(..) )
+import Data.Aeson (FromJSON)
+import Data.Data (Data)
+import Database.Delete qualified as Database
+import Database.Get qualified as Database
+import Database.Post qualified as Database
+import Database.Put qualified as Database
+import Entity.Article (Article (..), articleGetQuery)
+import Entity.Internal (Entity (..))
 import Extended.Postgres qualified as Postgres
 import GHC.Generics (Generic)
 import HKD.HKD
-    ( EmptyData, Create, Delete, Display, Update, Publish, Front )
+  ( Create,
+    Display,
+    EmptyData,
+    Front,
+    Publish,
+    Update,
+  )
 
 newtype Draft a = Draft {unDraft :: Article a} deriving stock (Generic)
 
@@ -25,7 +37,7 @@ deriving newtype instance FromJSON (Draft (Front Create))
 
 deriving via (Article Create) instance Postgres.ToRow (Draft Create)
 
-instance Database.Postable Draft Create where
+instance Database.Postable Draft where
   postQuery =
     mconcat
       [ "SELECT post_draft",
@@ -49,13 +61,13 @@ instance Database.Gettable (Entity Draft) (Front Display) where
 -- | Put
 deriving newtype instance FromJSON (Draft (Front Update))
 
-instance Postgres.ToRow (Entity Draft (Front Update)) where
+instance {-# OVERLAPPING #-} Postgres.ToRow (Entity Draft (Front Update)) where
   toRow (Entity draftID (Draft Article {..})) =
     Postgres.toRow (title, content, category, tags, pics, draftID, draftID)
 
 -- | Last query here preventing entity not found error due to procedure execution
 -- (execute with procedure dosn't returns number of affected rows)
-instance Database.Puttable (Entity Draft (Front Update)) where
+instance Database.Puttable (Draft (Front Update)) where
   putQuery =
     mconcat
       [ "CALL put_draft",
@@ -64,14 +76,14 @@ instance Database.Puttable (Entity Draft (Front Update)) where
       ]
 
 -- | Delete
-instance Database.Deletable Draft Delete where
-  deleteQuery = Database.deleteQuery @Article @Delete
+instance Database.Deletable Draft where
+  deleteQuery = Database.deleteQueryDefault @Article
 
 -- | Publish
 deriving newtype instance EmptyData (Draft Publish)
 
-instance Postgres.ToRow (Entity Draft Publish) where
+instance {-# OVERLAPPING #-} Postgres.ToRow (Entity Draft Publish) where
   toRow Entity {..} = Postgres.toRow entityID
 
-instance Database.Puttable (Entity Draft Publish) where
+instance Database.Puttable (Draft Publish) where
   putQuery = "UPDATE articles SET published = true WHERE id = ?"

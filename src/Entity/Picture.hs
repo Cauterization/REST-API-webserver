@@ -4,13 +4,15 @@ module Entity.Picture where
 
 import Data.ByteString.Char8 qualified as BC8
 import Data.ByteString.Lazy (ByteString)
-import Data.Data ( Data )
-import Database.Database qualified as Database
+import Data.Data (Data)
+import Database.Delete qualified as Database
+import Database.Get qualified as Database
+import Database.Post qualified as Database
 import Extended.Postgres qualified as Postgres
 import Extended.Text qualified as T
-import GHC.Generics ( Generic )
-import HKD.HKD ( Create, Display, Front )
-import Text.Read ( readMaybe )
+import GHC.Generics (Generic)
+import HKD.HKD (Display, Front)
+import Text.Read (readMaybe)
 
 data PictureFormat
   = JPEG
@@ -42,8 +44,10 @@ data Picture a = Picture
 instance Postgres.ToRow (Picture a) where
   toRow (Picture f p) = Postgres.toRow (f, Postgres.Binary p)
 
-instance Database.Postable Picture Create where
+instance Database.Postable Picture where
   postQuery = "INSERT INTO pictures (format, picture) VALUES (?,?)"
 
 instance Database.Gettable Picture (Front Display) where
   getQuery = "SELECT format, picture FROM pictures"
+
+instance Database.Deletable Picture

@@ -1,55 +1,29 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
+
 module Database.Get where
 
-import App.Types
+import App.Types (ID, fieldsQuery, nameOf, withPluralEnding)
 import Control.Monad.Catch (MonadThrow)
-import Data.Data
+import Data.Data (Data, Typeable)
 import Data.Kind (Type)
-import Data.List
-import Data.String
+import Data.List (sort)
+import Data.String (IsString (fromString))
+import Database.EntityFilters
+  ( EntityFilter (EFLimit, EFOffset),
+    EntityFilterParam,
+  )
 import Database.HasDatabase
-import Database.Internal
+  ( HasDatabase (FromRowOf, ToRowOf, getFromDatabase),
+  )
+import Database.Internal (DBQuery, addWhere, getSingle)
 import Entity.Internal (Entity (..))
-import Extended.Postgres qualified as Postgres
-import Extended.Text (Text)
 import Logger qualified
 
-data EntityFilter
-  = EFString !Text
-  | EFNum !Text
-  | EFNumList !Text
-  | EFDate !Text
-  | EFLimit
-  | EFOffset
-  deriving (Eq)
-
-instance Ord EntityFilter where
-  compare EFOffset _ = GT
-  compare _ EFOffset = LT
-  compare EFLimit _ = GT
-  compare _ EFLimit = LT
-  compare _ _ = EQ
-
-data EntityFilterParam
-  = EFPInt !Int
-  | EFPText !Text
-  | EFPTextOptional !(Maybe Text)
-  | EFPIntOptional !(Maybe Int)
-  | EFPIntListOptional !(Maybe [Int])
-  | EFPDateOptional !(Maybe Date)
-  deriving (Show)
-
-instance Postgres.ToField EntityFilterParam where
-  toField = \case
-    EFPInt i -> Postgres.toField i
-    EFPText t -> Postgres.toField t
-    EFPIntOptional i -> Postgres.toField i
-    EFPIntListOptional il -> Postgres.toField $ Postgres.PGArray <$> il
-    EFPTextOptional t -> Postgres.toField t
-    EFPDateOptional d -> Postgres.toField d
-
-class Gettable (e :: Type -> Type) a where
-  getQuery :: (IsString s, Monoid s) => s
-  default getQuery :: (Data (e a), Typeable e, IsString s, Monoid s) => s
+class Gettable (x :: Type -> Type) a where
+  getQuery :: DBQuery
+  default getQuery :: forall e. (x ~ Entity e, Data (e a), Typeable e) => DBQuery
   getQuery =
     mconcat
       [ "SELECT ",
@@ -62,7 +36,7 @@ class Gettable (e :: Type -> Type) a where
   entityFilters :: [EntityFilter]
   entityFilters = defaultFilters
 
-  entityFiltersQuery :: (IsString s, Monoid s) => s
+  entityFiltersQuery :: DBQuery
   entityFiltersQuery = " LIMIT ? OFFSET ? "
 
 defaultFilters :: [EntityFilter]
@@ -71,81 +45,48 @@ defaultFilters = [EFLimit, EFOffset]
 getEntityFilters :: forall e a. Gettable e a => [EntityFilter]
 getEntityFilters = sort $ entityFilters @e @a
 
-instance
-  {-# OVERLAPPABLE #-}
-  ( Typeable e,
-    Data (e a)
-  ) =>
-  Gettable (Entity e) a
-  where
-  getQuery =
-    mconcat
-      [ "SELECT id, ",
-        fromString $ fieldsQuery @(e a),
-        " FROM ",
-        fromString $ withPluralEnding $ nameOf @e
-      ]
-
-getEntitiesGeneric ::
+getEntities ::
   forall e a m.
   ( HasDatabase m,
-    Monad m,
-    Logger.HasLogger m,
-    IsDatabase (Database m),
-    ToRowOf (Database m) [EntityFilterParam],
     Gettable e a,
-    FromRowOf (Database m) (e a),
-    QConstraints (Database m),
-    Data (e a),
-    Typeable e
+    FromRowOf m (e a)
   ) =>
   [EntityFilterParam] ->
   m [e a]
-getEntitiesGeneric filterParams =
+getEntities filterParams =
   getEntitiesWith
     filterParams
     (<> entityFiltersQuery @e @a)
 
-getEntityGeneric ::
+getEntity ::
   forall e m a.
   ( HasDatabase m,
-    Monad m,
     MonadThrow m,
     Logger.HasLogger m,
-    IsDatabase (Database m),
     Gettable e a,
-    ToRowOf (Database m) [ID (e a)],
-    FromRowOf (Database m) (e a),
-    QConstraints (Database m),
-    Data (e a),
+    ToRowOf m [ID (e a)],
+    FromRowOf m (e a),
     Typeable e,
     (Eq (e a))
   ) =>
   [ID (e a)] ->
   m (e a)
-getEntityGeneric eID = getEntitiesWith eID (addWhere @(Database m) "id = ?") >>= getSingle
+getEntity eID = getEntitiesWith eID (addWhere "id = ?") >>= getSingle
 
 getEntitiesWith ::
   forall e a x m.
   ( HasDatabase m,
     Monad m,
     Logger.HasLogger m,
-    IsDatabase (Database m),
-    ToRowOf (Database m) x,
+    ToRowOf m x,
     Gettable e a,
-    FromRowOf (Database m) (e a),
-    QConstraints (Database m),
-    Data (e a),
-    Typeable e
+    FromRowOf m (e a)
   ) =>
   x ->
-  (QueryOf (Database m) -> QueryOf (Database m)) ->
+  (DBQuery -> DBQuery) ->
   m [e a]
 getEntitiesWith a f = do
-  connection <- getDatabaseConnection
   let q = f $ getQuery @e @a
-  liftDatabase $
-    getFromDatabase @(Database m)
-      connection
-      q
-      a
+  getFromDatabase @m
+    q
+    a

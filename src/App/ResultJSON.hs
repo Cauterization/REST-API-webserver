@@ -1,18 +1,29 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
+
 module App.ResultJSON where
 
-import App.Internal
-import App.Result
-import App.Types
+import App.AppT (Application)
+import App.Getters (getServerAddress)
+import App.Result (AppResult (ResJSON))
+import App.Types (ID (ID))
 import Data.Aeson
-import Data.Coerce
+  ( KeyValue ((.=)),
+    ToJSON (toJSON),
+    Value (Array),
+    encode,
+    object,
+  )
+import Data.Coerce (coerce)
 import Data.Text (Text)
 import Data.Vector qualified as Vector
-import Entity.Article
-import Entity.Draft
-import Entity.Internal
-import Entity.Picture
+import Entity.Article (Article (..))
+import Entity.Draft (Draft (Draft))
+import Entity.Internal (Entity (..))
+import Entity.Picture (Picture)
 import Extended.Text qualified as T
-import HKD.HKD
+import HKD.HKD (Display, Front)
 
 json :: (Application m, ToJSONResult e) => e -> m AppResult
 json = fmap (ResJSON . encode) . toJSONResult

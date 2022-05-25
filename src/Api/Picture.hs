@@ -1,19 +1,21 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
+
 module Api.Picture where
 
 import Api.Get (Gettable)
 import Api.Post (Postable)
-import App.Internal
-  ( Application,
-    Env (envBody, envContentType),
-    idArityMissmatchError,
-    requestHeadersError
-  )
+import App.AppT (Application, Env (envBody, envContentType))
+import App.Error (idArityMissmatchError, requestHeadersError)
 import App.Result (AppResult (ResPicture), Endpoint, text)
 import App.Types (ID (ID))
 import Control.Monad.Reader (asks)
 import Data.Char (toLower)
 import Data.Coerce (coerce)
-import Database.Database qualified as Database
+import Database.Get qualified as Database
+import Database.HasDatabase qualified as Database
+import Database.Post qualified as Database
 import Entity.Picture (Picture (Picture), PictureFormat (..))
 import Extended.Text (Text)
 import Extended.Text qualified as T
@@ -37,12 +39,13 @@ postPicture _ = do
 getPicture ::
   forall m.
   ( Application m,
-    Gettable m Picture (Front Display)
+    Gettable m Picture (Front Display),
+    Database.FromRowOf m (Picture (Front Display))
   ) =>
   Endpoint m
 getPicture [pictureID] = do
   Logger.info "Attempt to get picture."
-  ResPicture <$> Database.getEntityGeneric @Picture [coerce pictureID]
+  ResPicture <$> Database.getEntity @Picture [coerce pictureID]
 getPicture _ = idArityMissmatchError "getPicture"
 
 parseFormat :: Application m => Text -> m PictureFormat

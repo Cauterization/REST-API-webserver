@@ -1,13 +1,19 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
+
 module Extended.Text
   ( module Data.Text,
     module Data.Text.Encoding,
     module Data.Text.IO,
     read,
     show,
+    fromText,
   )
 where
 
-import Control.Arrow
+import Control.Arrow (ArrowChoice (left))
+import Data.String (IsString (..))
 import Data.Text
 import Data.Text.Encoding
 import Data.Text.IO
@@ -20,3 +26,6 @@ show = pack . Prelude.show
 
 read :: forall a. Read a => Text -> Either Text a
 read = left pack . readEither @a . unpack
+
+fromText :: IsString s => Text -> s
+fromText = fromString . unpack

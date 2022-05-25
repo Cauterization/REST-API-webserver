@@ -1,24 +1,35 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
+
 module Entity.User where
-import App.Types ( Date )
+
+import App.Types (Date)
 import Data.Aeson (FromJSON (..), ToJSON (..), camelTo2, defaultOptions, fieldLabelModifier, genericParseJSON, genericToJSON, omitNothingFields)
 import Data.Aeson qualified as A
-import Data.Data ( Data )
+import Data.Data (Data)
 import Data.Generics.Product.Fields qualified as GL
 import Data.Text (Text)
+import Database.Delete qualified as Database
+import Database.Get qualified as Database
+import Database.Post qualified as Database
 import Database.PostgreSQL.Simple qualified as Postgres
+import Database.Put qualified as Database
+import Entity.Internal (Entity)
 import GHC.Generics (Generic)
 import HKD.HKD
-    ( Contains,
-      If,
-      EmptyData,
-      Field,
-      Create,
-      Display,
-      Hidden,
-      Immutable,
-      Update,
-      Front,
-      NotAllowedFromFront )
+  ( Contains,
+    Create,
+    Display,
+    EmptyData,
+    Field,
+    Front,
+    Hidden,
+    If,
+    Immutable,
+    NotAllowedFromFront,
+    Update,
+  )
 
 data User a = User
   { firstName :: !(Field a '[Immutable] Text),
@@ -30,6 +41,7 @@ data User a = User
     admin :: !(Field a '[Immutable] Bool)
   }
   deriving stock (Generic)
+
 instance
   {-# OVERLAPPING #-}
   (GL.HasField' name (User f) a, f ~ g, a ~ b) =>
@@ -74,6 +86,7 @@ deriving instance
 data AuthField
 
 data Auth
+
 type instance
   Field Auth modifiers a =
     If
@@ -87,16 +100,35 @@ aesonOpts =
     { omitNothingFields = True,
       fieldLabelModifier = camelTo2 '_'
     }
+
 -- | Post / Create
 instance FromJSON (User (Front Create)) where
   parseJSON = genericParseJSON aesonOpts
+
 deriving instance Postgres.ToRow (User Create)
+
+instance Database.Postable User
+
 -- | Get / Front Display
 instance ToJSON (User (Front Display)) where
   toJSON = genericToJSON aesonOpts
+
 deriving instance Postgres.FromRow (User (Front Display))
+
+instance Database.Gettable (Entity User) (Front Display)
+
 -- | Put / Update on Auth
 deriving instance FromJSON (User Auth)
+
 deriving instance Postgres.FromRow (User Display)
+
 deriving instance EmptyData (User Update)
+
 deriving instance Postgres.ToRow (User Update)
+
+instance Database.Puttable (User Update)
+
+instance Database.Gettable (Entity User) Display
+
+-- | Delete
+instance Database.Deletable User

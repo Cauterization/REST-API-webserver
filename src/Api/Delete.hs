@@ -1,6 +1,9 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Api.Delete where
 
-import App.Internal (Application)
+import App.AppT (Application)
 import App.Result (Endpoint, text)
 import App.Router (Router, delete)
 import App.Types (ID (ID), nameOf)
@@ -8,14 +11,14 @@ import Data.Coerce (coerce)
 import Data.Data (Data, Typeable)
 import Data.Kind (Type)
 import Data.Text (Text)
-import Database.Database (Database)
-import Database.Database qualified as Database
+import Database.Delete qualified as Database
+import Database.HasDatabase qualified as Database
 import HKD.HKD (Delete)
 import Logger qualified
 
-type Deletable m e =
-  ( Database.Deletable e Delete,
-    Database.ToRowOf (Database m) [ID (e Delete)],
+type Deletable (m :: Type -> Type) (e :: Type -> Type) =
+  ( Database.Deletable e,
+    Database.ToRowOf m [ID (e Delete)],
     Data (e Delete),
     Typeable e
   )
