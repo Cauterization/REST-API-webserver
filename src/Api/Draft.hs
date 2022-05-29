@@ -12,7 +12,7 @@ import App.Error (accessViolationError)
 import App.Getters (decodedBody, getToken)
 import App.Impure (Impure (getCurrentDate))
 import App.Path (getURL)
-import App.Result (Endpoint, text)
+import App.Result (Endpoint, toResText)
 import App.ResultJSON (json)
 import App.Router (Middleware)
 import App.Types (ID (ID), Token)
@@ -53,7 +53,7 @@ postDraft _ = do
               pics = map coerce pics,
               ..
             }
-  text =<< Database.postDraft draft
+  toResText =<< Database.postDraft draft
 
 getDrafts ::
   forall m.

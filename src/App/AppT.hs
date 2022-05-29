@@ -13,6 +13,7 @@ import Control.Monad.Catch (MonadCatch, MonadThrow (..))
 import Control.Monad.Reader
   ( MonadIO (..),
     MonadReader,
+    MonadTrans (..),
     ReaderT (..),
     asks,
     (>=>),
@@ -54,10 +55,13 @@ deriving newtype instance MonadIO (AppT IO)
 
 deriving newtype instance MonadCatch (AppT IO)
 
+instance MonadTrans AppT where
+  lift ma = App $ lift ma
+
 deriving anyclass instance Impure (AppT IO)
 
 instance Logger.HasLogger (AppT IO) where
-  mkLog v t = asks envLogger >>= \l -> liftIO (l v t)
+  mkLog v t = asks envLogger >>= \l -> lift (l v t)
 
 instance Database.HasDatabase (AppT IO) where
   type ConnectionOf (AppT IO) = Postgres.PGConnection

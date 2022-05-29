@@ -1,243 +1,109 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
+
 module Api.UserSpec where
 
-import Api.User ( mkHash )
-import App.Result ( AppResult(ResText, ResJSON) )
-import App.Types ( ID(ID), Token )
-import Data.Aeson ( encode, Value, eitherDecode )
-import Data.Either ( isLeft )
-import Data.IntMap qualified as IM
-import Data.List (sort)
-import Data.String (fromString)
-import Data.Time qualified as Time
-import Entity.Internal ( Entity(Entity) )
-import Entity.User ( User(..), Auth )
+import App.Error
+import App.Path
+import App.Result
+import App.Types
+import Control.Monad
+import Control.Monad.Catch
+import Data.Aeson
+import Data.ByteString.Lazy qualified as BL
+import Data.Data
+import Data.Either
+import Data.Kind
+import Database.Internal qualified as Database
+import Entity.Author
+import Entity.Tag
+import Entity.User
 import Extended.Text qualified as T
-import HKD.HKD ( Front, Display, Create )
-import Helpers.App
-    ( withGetPath,
-      evalTest,
-      withToken,
-      withPostPath,
-      withBody,
-      runTest )
-import Helpers.Database
-    ( withDatabase, TestEntity(fromDisplay, alreadyExists) )
-import Helpers.GenericProps
-    ( propPostsParsingFail,
-      propDeleteEntityDoesntExists,
-      propDeleteEntity )
-import Helpers.Internal
-    ( isParsingError,
-      isEntityNotFoundError,
-      isUnathorizedError,
-      testToken,
-      isAlreadyExistsError,
-      testDate )
-import Helpers.Monad ( TDB, TestState(_tsUserDB) )
-import Helpers.User ()
+import HKD.HKD
+import Mocks.Arbitrary
+import Mocks.Constant
+import Mocks.Predicates
+import Mocks.Run
+import Mocks.TestMonad
+import Mocks.With
 import Test.Hspec
-    ( shouldBe, it, describe, Spec, shouldSatisfy, shouldNotBe )
-import Test.QuickCheck ( (==>), Testable(property), Property )
+import Test.QuickCheck
+
 
 spec :: Spec
-spec = do
-  postSpec
-  getSpec
-  deleteSpec
-  authSpec
+spec = describe "User API" $ do
+  it "Actually posts user into database when all is ok" $ property propPostUser
 
-postSpec :: Spec
-postSpec = describe "POST" $ do
-  it "When all is ok it posts user into the database" $
-    property propPostsUser
+propPostUser :: User (Front Create) -> Property
+propPostUser user = property $ do
+    res <- evalTest
+      (withPostPath "users" . withBody user)
+      id
+    res `shouldBe` Right (ResJSON $ encode (defaultPostResult, testTokenConstant))
 
-  it "Throws error when user already in the database" $
-    property propPostsUserAlreadyExists
+-- testPost ::
+--   forall (e :: Type -> Type).
+--   ( Typeable e,
+--     ToJSON (e Create),
+--     Arbitrary (e Create),
+--     Show (e Create)
+--   ) =>
+--   SpecWith (Arg Property)
+-- testPost = it (nameOf @e) $ property $ propPost @e
 
-  it "Throws error when it fails to parse request body" $
-    property $ propPostsParsingFail @User "users"
+-- testPostUnparsable ::
+--   forall (e :: Type -> Type).
+--   ( Typeable e,
+--     FromJSON (e (Front Create))
+--   ) =>
+--   SpecWith (Arg Property)
+-- testPostUnparsable = it (nameOf @e) $ property $ propPostUnparsable @e
 
-propPostsUser :: TDB User -> User (Front Create) -> Property
-propPostsUser db u =
-  property $
-    not (alreadyExists u db) ==> do
-      (Right (ResJSON j), st) <-
-        runTest
-          ( withBody u
-              . withPostPath "users"
-          )
-          (withDatabase @User db)
-      let Right (userID, token) = eitherDecode j
-      IM.lookup userID (_tsUserDB st)
-        `shouldBe` Just
-          User
-            { firstName = firstName u,
-              lastName = lastName u,
-              login = login u,
-              token = token,
-              password = mkHash $ password u,
-              registered = testDate,
-              admin = admin u
-            }
+-- testPostAlreadyExists ::
+--   forall (e :: Type -> Type).
+--   ( Typeable e,
+--     ToJSON (e Create),
+--     Arbitrary (e Create),
+--     Show (e Create)
+--   ) =>
+--   SpecWith (Arg Property)
+-- testPostAlreadyExists = it (nameOf @e) $ property $ propPostAlreadyExists @e
 
-propPostsUserAlreadyExists :: User Display -> Property
-propPostsUserAlreadyExists u = property $ do
-  Left err <-
-    evalTest
-      ( withBody u'
-          . withPostPath "users"
-      )
-      ( withDatabase @User (IM.fromList [(1, u)])
-      )
-  err `shouldSatisfy` isAlreadyExistsError
-  where
-    u' =
-      User
-        { firstName = firstName u,
-          lastName = lastName u,
-          login = login u,
-          password = password u,
-          admin = admin u,
-          token = Nothing,
-          registered = Nothing
-        } ::
-        User (Front Create)
+-- propPost :: forall (e :: Type -> Type). (Typeable e, ToJSON (e Create)) => e Create -> Property
+-- propPost entity = property $ do
+--   res <-
+--     evalTest
+--       (withEPostPath @e . withBody @(e Create) entity)
+--       id
+--   res `shouldBe` Right (ResText $ T.show defaultPostResult)
 
-getSpec :: Spec
-getSpec = describe "GET" $ do
-  it "Allows to get user by its own token" $
-    property propGetUser
+-- propPostUnparsable ::
+--   forall (e :: Type -> Type).
+--   ( Typeable e,
+--     FromJSON (e (Front Create))
+--   ) =>
+--   BL.ByteString ->
+--   Property
+-- propPostUnparsable bl =
+--   property $
+--     isLeft (eitherDecode @(e (Front Create)) bl) ==> do
+--       Left err <-
+--         evalTest
+--           (withEPostPath @e . withBLBody bl)
+--           id
+--       err `shouldSatisfy` isParsingError
 
-  it "Throws error when there is no token provided" $
-    property propGetUserNoToken
+-- propPostAlreadyExists :: forall (e :: Type -> Type). (Typeable e, ToJSON (e Create)) => e Create -> Property
+-- propPostAlreadyExists entity = property $ do
+--   Left err <-
+--     evalTest
+--       (withEPostPath @e . withBody @(e Create) entity)
+--       withAlreadyExistsPosts
+--   err `shouldSatisfy` isAlreadyExistsError
+--   where
+--     withAlreadyExistsPosts TestState {..} = TestState {postResult = throwAE, ..}
+--     throwAE = throwM $ Database.AlreadyExists ""
 
-  it "Throws error when wrong token is provided" $
-    property propGetUserWrongToken
-
-propGetUser :: TDB User -> Property
-propGetUser db =
-  property $
-    conditions ==> do
-      Right (ResJSON j) <-
-        evalTest
-          ( withToken t
-              . withGetPath "users/me"
-          )
-          (withDatabase @User db)
-      let [(eID, u)] = IM.toList $ IM.filter ((== t) . token) db
-      j
-        `shouldBe` encode @(Entity User (Front Display)) (Entity (ID eID) $ fromDisplay u)
-  where
-    t = token $ minimum $ IM.elems db
-    conditions = not (IM.null db) && nonRepetitiveToken
-    nonRepetitiveToken = (== 1) . length . filter (\User {..} -> token == t) $ IM.elems db
-
-propGetUserNoToken :: TDB User -> Property
-propGetUserNoToken db =
-  property $
-    not (IM.null db) ==> do
-      Left err <-
-        evalTest
-          (withGetPath "users/me")
-          (withDatabase @User db)
-      err `shouldSatisfy` isUnathorizedError
-
-propGetUserWrongToken :: Token -> TDB User -> Property
-propGetUserWrongToken t db =
-  property $
-    not (IM.null db) && wrongToken ==> do
-      Left err <-
-        evalTest
-          ( withToken t
-              . withGetPath "users/me"
-          )
-          (withDatabase @User db)
-      err `shouldSatisfy` isEntityNotFoundError
-  where
-    wrongToken = not . any (\User {..} -> token == t) $ IM.elems db
-
-deleteSpec :: Spec
-deleteSpec = describe "DELETE" $ do
-  it "Actually deletes user from database" $
-    property $ propDeleteEntity @User "users"
-
-  it "Throws error when user with this ID doesn't exists" $
-    property $ propDeleteEntityDoesntExists @User "users"
-
-authSpec :: Spec
-authSpec = describe "User authentication" $ do
-  it "When all is ok it gives new token to user and updates token in the database" $
-    property propAuthUser
-
-  it "Throws error when user with this login doesn't exists" $
-    property propAuthUserDoesntExists
-
-  it "Throws error when invalid request body is provided" $
-    property propAuthParsingFail
-
-propAuthUser :: User Display -> ID (User Display) -> TDB User -> Property
-propAuthUser user (ID userID) unpreaparedDB =
-  property $
-    token user /= testToken ==> do
-      (Right (ResText newToken), st) <-
-        runTest
-          ( withBody auth
-              . withPostPath "auth"
-          )
-          (withDatabase @User db)
-      let Just user' = IM.lookup userID $ _tsUserDB st
-      newToken `shouldNotBe` token user
-      T.show (token user') `shouldBe` newToken
-  where
-    db =
-      let p u = (login u /= login user && token u /= token user)
-       in IM.insert userID dbUser $ IM.filter p unpreaparedDB
-    dbUser = (\User {..} -> User {password = mkHash password, ..}) user
-    auth =
-      User
-        { firstName = Nothing,
-          lastName = Nothing,
-          login = login user,
-          token = Nothing,
-          password = password user,
-          registered = Nothing,
-          admin = Nothing
-        } ::
-        User Auth
-
-propAuthUserDoesntExists :: User Display -> ID (User Display) -> TDB User -> Property
-propAuthUserDoesntExists user uID (IM.filter ((/= login user) . login) -> db) =
-  property $ do
-    Left err <-
-      evalTest
-        ( withBody auth
-            . withPostPath "auth"
-        )
-        (withDatabase @User db)
-    err `shouldSatisfy` isEntityNotFoundError
-  where
-    auth =
-      User
-        { firstName = Nothing,
-          lastName = Nothing,
-          login = login user,
-          token = Nothing,
-          password = password user,
-          registered = Nothing,
-          admin = Nothing
-        } ::
-        User Auth
-
-propAuthParsingFail :: TDB User -> Value -> Property
-propAuthParsingFail db obj =
-  property $
-    conditions ==> do
-      Left err <-
-        evalTest
-          ( withBody obj
-              . withPostPath "auth"
-          )
-          (withDatabase @User db)
-      err `shouldSatisfy` isParsingError
-  where
-    conditions = isLeft $ eitherDecode @(User Auth) $ fromString $ show obj
+-- withEPostPath :: forall (e :: Type -> Type). Typeable e => EnvEndo
+-- withEPostPath = withPostPath $ T.pack (withPluralEnding (nameOf @e))

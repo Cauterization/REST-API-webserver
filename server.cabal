@@ -224,34 +224,25 @@ test-suite server-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Api.ArticleSpec
-      Api.AuthorSpec
-      Api.CategorySpec
-      Api.DraftSpec
-      Api.PictureSpec
-      Api.TagSpec
+      Api.DeleteSpec
+      Api.GetSpec
+      Api.PostSpec
+      Api.PutSpec
       Api.UserSpec
       App.RouterSpec
-      App.TypesSpec
-      Helpers.App
-      Helpers.Article
-      Helpers.ArticleDB
-      Helpers.Author
-      Helpers.AuthorDB
-      Helpers.Category
-      Helpers.CategoryDB
-      Helpers.Database
-      Helpers.Draft
-      Helpers.DraftDB
-      Helpers.GenericProps
-      Helpers.Internal
-      Helpers.Monad
-      Helpers.Picture
-      Helpers.PictureDB
-      Helpers.Tag
-      Helpers.TagDB
-      Helpers.User
-      Helpers.UserDB
+      Mocks.Arbitrary
+      Mocks.Config
+      Mocks.Constant
+      Mocks.Endpoints
+      Mocks.Entity.Author
+      Mocks.Entity.Tag
+      Mocks.Entity.User
+      Mocks.Get
+      Mocks.Predicates
+      Mocks.Run
+      Mocks.TestMonad
+      Mocks.Utils
+      Mocks.With
       Paths_server
   hs-source-dirs:
       test
@@ -284,7 +275,7 @@ test-suite server-test
       TypeOperators
       UndecidableInstances
       UndecidableSuperClasses
-  ghc-options: -j6  -O0 -threaded -rtsopts -with-rtsopts=-N -Wno-missing-methods -Wno-missing-fields
+  ghc-options: -j6  -O0 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
     , aeson

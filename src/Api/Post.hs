@@ -6,7 +6,7 @@ module Api.Post where
 
 import App.AppT (Application)
 import App.Getters (decodedBody)
-import App.Result (Endpoint, text)
+import App.Result (Endpoint, toResText)
 import App.Router (Router, post)
 import App.Types (ID, nameOf)
 import Data.Aeson (FromJSON)
@@ -54,7 +54,7 @@ postEntity ::
 postEntity _ = do
   Logger.info $ "Attempt to post " <> nameOf @e
   e <- fromFront =<< decodedBody @(e (Front Create))
-  Database.postEntity @e @m e >>= text
+  Database.postEntity @e @m e >>= toResText
 
 class CreateFromFront e where
   fromFront :: Application m => e (Front Create) -> m (e Create)

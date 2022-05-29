@@ -8,7 +8,7 @@ import Api.Get (Gettable)
 import Api.Post (Postable)
 import App.AppT (Application, Env (envBody, envContentType))
 import App.Error (idArityMissmatchError, requestHeadersError)
-import App.Result (AppResult (ResPicture), Endpoint, text)
+import App.Result (AppResult (ResPicture), Endpoint, toResText)
 import App.Types (ID (ID))
 import Control.Monad.Reader (asks)
 import Data.Char (toLower)
@@ -32,7 +32,7 @@ postPicture _ = do
   Logger.info "Attempt to post picture."
   body <- asks envBody
   conentType <- asks envContentType >>= maybe err parseFormat
-  text =<< Database.postEntity (Picture conentType body)
+  toResText =<< Database.postEntity (Picture conentType body)
   where
     err = requestHeadersError "No content-type header."
 

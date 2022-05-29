@@ -41,28 +41,24 @@ data AppError
   deriving (Show, Typeable, Exception, Eq)
 
 handleDBErrors :: (MonadCatch m, Logger.HasLogger m) => m a -> m a
-handleDBErrors = handle $ \case
-  Database.EntityNotFound t -> do
-    Logger.info t
-    throwM $ EntityNotFound t
-  Database.TooManyEntities t -> do
-    Logger.error t
-    throwM $ TooManyEntities t
-  Database.AlreadyExists t -> do
-    Logger.info t
-    throwM $ AlreadyExists t
-  Database.IsNull t -> do
-    Logger.info t
-    throwM $ IsNull t
-  Database.ConstraintViolation t -> do
-    Logger.info t
-    throwM $ ConstraintViolation t
-  Database.FormatError t -> do
-    Logger.error t
-    throwM $ DatabaseFormatError t
-  Database.UnknwonError t -> do
-    Logger.error t
-    throwM $ UnknownError t
+handleDBErrors = handle $ \err -> (>> throwM (fromDBError err)) $ case err of
+  Database.EntityNotFound t -> Logger.info t
+  Database.TooManyEntities t -> Logger.error t
+  Database.AlreadyExists t -> Logger.info t
+  Database.IsNull t -> Logger.info t
+  Database.ConstraintViolation t -> Logger.info t
+  Database.FormatError t -> Logger.error t
+  Database.UnknwonError t -> Logger.error t
+
+fromDBError :: Database.DBError -> AppError
+fromDBError = \case
+  Database.EntityNotFound t -> EntityNotFound t
+  Database.TooManyEntities t -> TooManyEntities t
+  Database.AlreadyExists t -> AlreadyExists t
+  Database.IsNull t -> IsNull t
+  Database.ConstraintViolation t -> DatabaseFormatError t
+  Database.FormatError t -> DatabaseFormatError t
+  Database.UnknwonError t -> UnknownError t
 
 parsingError :: (MonadThrow m, Logger.HasLogger m) => String -> m a
 parsingError (T.pack -> err) = do
@@ -71,7 +67,7 @@ parsingError (T.pack -> err) = do
 
 ambiguousPatterns :: (MonadThrow m, Logger.HasLogger m) => [Path Pattern] -> m a
 ambiguousPatterns ps = do
-  Logger.error $ "Ambiguous pattern in router pathes: " <> T.show ps
+  -- Logger.error $ "Ambiguous pattern in router pathes: " <> T.show ps
   throwM $ RouterAmbiguousPatterns ps
 
 unathorizedError,
@@ -108,5 +104,5 @@ categoryCycleError = do
   Logger.warning "Unacceptable category update - cycle in category tree!"
   throwM CategoryCycle
 pageNotFoundError = do
-  Logger.info "Page doesn't exists: "
+  Logger.info "Page doesn't exists."
   throwM PageNotFoundError

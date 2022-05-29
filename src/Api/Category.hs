@@ -30,7 +30,7 @@ putCategory [cID] = do
   c <- decodedBody @(Category (Front Update))
   mapM_ validate $ parent c
   Database.putEntity $ Entity (coerce cID) c
-  text @_ @Text "Successfuly updated."
+  text "Successfuly updated."
   where
     validate parent = do
       parents <- Database.getEntitiesWith parent id

@@ -53,5 +53,5 @@ putEntity [eID] = do
   e <- decodedBody @(e (Front Update))
   Database.putEntity @e @m @(Front Update) (Entity (coerce eID) e)
   Logger.info $ nameOf @(Entity e) <> " was found."
-  text @_ @String "Successfuly updated."
+  text "Successfuly updated."
 putEntity _ = idArityMissmatchError $ "putEntity " <> nameOf @(Entity e)

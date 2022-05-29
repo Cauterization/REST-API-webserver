@@ -42,4 +42,4 @@ deleteEntity eIDs = do
   Logger.info $ "Attempt to delete " <> nameOf @e
   Database.deleteEntity @e (map coerce eIDs)
   Logger.info $ nameOf @e <> " successfuly deleted."
-  text @_ @Text "Successfuly deleted."
+  text "Successfuly deleted."

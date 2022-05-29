@@ -21,5 +21,8 @@ data AppResult
   | ResPicture !(Picture (Front Display))
   deriving (Show, Eq)
 
-text :: (Applicative m, Show a) => a -> m AppResult
-text = pure . ResText . T.show
+text :: Applicative m => Text -> m AppResult
+text = pure . ResText
+
+toResText :: (Applicative m, Show a) => a -> m AppResult
+toResText = pure . ResText . T.show

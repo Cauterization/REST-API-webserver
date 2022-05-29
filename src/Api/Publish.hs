@@ -41,5 +41,5 @@ publishEntity ::
 publishEntity [eID] = do
   Logger.info $ "Attempt to publish " <> nameOf @e
   Database.putEntity @e @m @Publish (Entity (coerce eID) emptyData)
-  text @_ @String "Successfuly published."
+  text "Successfuly published."
 publishEntity _ = idArityMissmatchError $ "putEntity " <> nameOf @e
