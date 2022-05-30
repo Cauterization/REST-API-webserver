@@ -1,24 +1,27 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Entity.Internal where
 
-import App.Types ( nameOf, ID )
+import App.Types (ID, nameOf)
 import Data.Aeson
-    ( Value(Object),
-      FromJSON(parseJSON),
-      ToJSON(toJSON),
-      (.:),
-      withObject,
-      object,
-      KeyValue((.=)) )
-import Data.Data ( Data, Typeable )
+  ( FromJSON (parseJSON),
+    KeyValue ((.=)),
+    ToJSON (toJSON),
+    Value (Object),
+    object,
+    withObject,
+    (.:),
+  )
+import Data.Data (Data, Typeable)
 import Data.Generics.Labels ()
 import Data.Generics.Product.Fields qualified as GL
 import Data.HashMap.Strict qualified as HMAP
 import Data.Kind (Type)
 import Extended.Postgres qualified as Postgres
 import GHC.Generics (Generic)
-import HKD.HKD ( Display, Front )
+import HKD.HKD (Display, Front)
 
 data Entity e a = Entity
   { entityID :: !(ID (e a)),
@@ -45,13 +48,13 @@ instance
   where
   field = GL.field' @name
 
-instance {-# OVERLAPPABLE #-} (FromJSON (e a), Typeable e) => FromJSON (Entity e a) where
+instance (FromJSON (e a), Typeable e) => FromJSON (Entity e a) where
   parseJSON = withObject ("Entity " <> nameOf @e) $ \o -> do
     entityID <- o .: "id"
     entity <- o .: (nameOf @e)
     pure Entity {..}
 
-instance {-# OVERLAPPABLE #-} (ToJSON (e a), Typeable e) => ToJSON (Entity e a) where
+instance (ToJSON (e a), Typeable e) => ToJSON (Entity e a) where
   toJSON Entity {..} = case toJSON entity of
     Object o -> Object $ HMAP.insert "id" (toJSON entityID) o
     x -> object ["id" .= entityID, nameOf @e .= x]
@@ -65,7 +68,7 @@ instance
     entity <- Postgres.fromRow
     pure Entity {..}
 
-instance {-# OVERLAPPABLE #-} Postgres.ToRow (e a) => Postgres.ToRow (Entity e a) where
+instance Postgres.ToRow (e a) => Postgres.ToRow (Entity e a) where
   toRow Entity {..} = Postgres.toRow entity ++ Postgres.toRow entityID
 
 type family EntityOrID (e :: Type -> Type) a :: * where

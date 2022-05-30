@@ -1,7 +1,7 @@
 module HKD.Create where
 
-import Data.Data ( Data )
-import HKD.Field ( Field ) 
+import Data.Data (Data)
+import HKD.Field (Field)
 
 data Create deriving (Data)
 

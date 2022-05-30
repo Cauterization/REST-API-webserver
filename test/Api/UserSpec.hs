@@ -1,243 +1,161 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Api.UserSpec where
 
-import Api.User ( mkHash )
-import App.Result ( AppResult(ResText, ResJSON) )
-import App.Types ( ID(ID), Token )
-import Data.Aeson ( encode, Value, eitherDecode )
-import Data.Either ( isLeft )
-import Data.IntMap qualified as IM
-import Data.List (sort)
-import Data.String (fromString)
-import Data.Time qualified as Time
-import Entity.Internal ( Entity(Entity) )
-import Entity.User ( User(..), Auth )
-import Extended.Text qualified as T
-import HKD.HKD ( Front, Display, Create )
-import Helpers.App
-    ( withGetPath,
-      evalTest,
-      withToken,
-      withPostPath,
-      withBody,
-      runTest )
-import Helpers.Database
-    ( withDatabase, TestEntity(fromDisplay, alreadyExists) )
-import Helpers.GenericProps
-    ( propPostsParsingFail,
-      propDeleteEntityDoesntExists,
-      propDeleteEntity )
-import Helpers.Internal
-    ( isParsingError,
-      isEntityNotFoundError,
-      isUnathorizedError,
-      testToken,
-      isAlreadyExistsError,
-      testDate )
-import Helpers.Monad ( TDB, TestState(_tsUserDB) )
-import Helpers.User ()
+import Api.User (mkHash)
+import App.Result (AppResult (ResJSON, ResText))
+import App.Types (Token)
+import Data.Aeson (eitherDecode, encode)
+import Data.ByteString.Lazy qualified as BL
+import Data.Either (isLeft)
+import Entity.Internal (Entity (Entity))
+import Entity.User (Auth, User (..))
+import Extended.Text (Text)
+import HKD.HKD (Create, Display, Front)
+import Mocks.Constant (testTokenConstant)
+import Mocks.Predicates
+  ( isEntityNotFoundError,
+    isParsingError,
+    isUnathorizedError,
+    isWrongPasswordError,
+  )
+import Mocks.Run (evalTest)
+import Mocks.TestMonad
+  ( TestEntity (withGetEntities),
+    defaultPostResult,
+  )
+import Mocks.With
+  ( withBLBody,
+    withBody,
+    withGetPath,
+    withPostPath,
+    withToken,
+  )
 import Test.Hspec
-    ( shouldBe, it, describe, Spec, shouldSatisfy, shouldNotBe )
-import Test.QuickCheck ( (==>), Testable(property), Property )
+  ( Spec,
+    describe,
+    it,
+    shouldBe,
+    shouldNotBe,
+    shouldSatisfy,
+  )
+import Test.QuickCheck (Property, Testable (property), (==>))
 
 spec :: Spec
 spec = do
-  postSpec
-  getSpec
-  deleteSpec
-  authSpec
+  describe "POST" $ do
+    it "Actually posts user into database when all is ok" $
+      property propPostUser
+  describe "GET" $ do
+    it "Allows to get user by its own token" $
+      property propGetUser
+    it "Throws an appropriate error when no token is provided" $
+      property propGetUserNoToken
+    it "Throws an appropriate error when wrong token is provided" $
+      property propGetUserWrongToken
+  describe "Auth" $ do
+    it "Gives new token to user when all is ok" $
+      property propAuthUser
+    it "Throws an appropriate error when wrong password is provided" $
+      property propAuthUserWrongPassword
+    it "Throws an appropriate error when request body is unparsable" $
+      property propAuthUserUnparsable
+    it "Throws an appropriate error when user with this login doesn't exists" $
+      property propAuthUserDoesntExists
 
-postSpec :: Spec
-postSpec = describe "POST" $ do
-  it "When all is ok it posts user into the database" $
-    property propPostsUser
+propPostUser :: User (Front Create) -> Property
+propPostUser user = property $ do
+  res <-
+    evalTest
+      (withPostPath "users" . withBody user)
+      id
+  res `shouldBe` Right (ResJSON $ encode (defaultPostResult, testTokenConstant))
 
-  it "Throws error when user already in the database" $
-    property propPostsUserAlreadyExists
+propGetUser :: Token -> Entity User (Front Display) -> Property
+propGetUser t user = property $ do
+  Right res <-
+    evalTest
+      (withGetPath "users/me" . withToken t)
+      (withGetEntities @(Entity User (Front Display)) [user])
+  res `shouldBe` ResJSON (encode user)
 
-  it "Throws error when it fails to parse request body" $
-    property $ propPostsParsingFail @User "users"
-
-propPostsUser :: TDB User -> User (Front Create) -> Property
-propPostsUser db u =
-  property $
-    not (alreadyExists u db) ==> do
-      (Right (ResJSON j), st) <-
-        runTest
-          ( withBody u
-              . withPostPath "users"
-          )
-          (withDatabase @User db)
-      let Right (userID, token) = eitherDecode j
-      IM.lookup userID (_tsUserDB st)
-        `shouldBe` Just
-          User
-            { firstName = firstName u,
-              lastName = lastName u,
-              login = login u,
-              token = token,
-              password = mkHash $ password u,
-              registered = testDate,
-              admin = admin u
-            }
-
-propPostsUserAlreadyExists :: User Display -> Property
-propPostsUserAlreadyExists u = property $ do
+propGetUserNoToken :: Property
+propGetUserNoToken = property $ do
   Left err <-
     evalTest
-      ( withBody u'
-          . withPostPath "users"
-      )
-      ( withDatabase @User (IM.fromList [(1, u)])
-      )
-  err `shouldSatisfy` isAlreadyExistsError
-  where
-    u' =
-      User
-        { firstName = firstName u,
-          lastName = lastName u,
-          login = login u,
-          password = password u,
-          admin = admin u,
-          token = Nothing,
-          registered = Nothing
-        } ::
-        User (Front Create)
+      (withGetPath "users/me")
+      id
+  err `shouldSatisfy` isUnathorizedError
 
-getSpec :: Spec
-getSpec = describe "GET" $ do
-  it "Allows to get user by its own token" $
-    property propGetUser
+propGetUserWrongToken :: Token -> Property
+propGetUserWrongToken t = property $ do
+  Left err <-
+    evalTest
+      (withGetPath "users/me" . withToken t)
+      id
+  err `shouldSatisfy` isEntityNotFoundError
 
-  it "Throws error when there is no token provided" $
-    property propGetUserNoToken
-
-  it "Throws error when wrong token is provided" $
-    property propGetUserWrongToken
-
-propGetUser :: TDB User -> Property
-propGetUser db =
+propAuthUser :: Entity User Display -> Property
+propAuthUser (Entity eID User {..}) =
   property $
-    conditions ==> do
-      Right (ResJSON j) <-
+    token /= testTokenConstant ==> do
+      let auth =
+            User
+              { firstName = Nothing,
+                lastName = Nothing,
+                login = login,
+                token = Nothing,
+                password = password,
+                registered = Nothing,
+                admin = Nothing
+              } ::
+              User Auth
+      Right (ResText newToken) <-
         evalTest
-          ( withToken t
-              . withGetPath "users/me"
-          )
-          (withDatabase @User db)
-      let [(eID, u)] = IM.toList $ IM.filter ((== t) . token) db
-      j
-        `shouldBe` encode @(Entity User (Front Display)) (Entity (ID eID) $ fromDisplay u)
-  where
-    t = token $ minimum $ IM.elems db
-    conditions = not (IM.null db) && nonRepetitiveToken
-    nonRepetitiveToken = (== 1) . length . filter (\User {..} -> token == t) $ IM.elems db
+          (withPostPath "auth" . withBody auth)
+          (withGetEntities @(Entity User Display) [Entity eID User {password = mkHash password, ..}])
+      newToken `shouldBe` testTokenConstant
+      newToken `shouldNotBe` token
 
-propGetUserNoToken :: TDB User -> Property
-propGetUserNoToken db =
+propAuthUserWrongPassword :: Text -> Entity User Display -> Property
+propAuthUserWrongPassword wrong (Entity eID User {..}) =
   property $
-    not (IM.null db) ==> do
+    wrong /= password ==> do
+      let auth =
+            User
+              { firstName = Nothing,
+                lastName = Nothing,
+                login = login,
+                token = Nothing,
+                password = wrong,
+                registered = Nothing,
+                admin = Nothing
+              } ::
+              User Auth
+      res <-
+        evalTest
+          (withPostPath "auth" . withBody auth)
+          (withGetEntities @(Entity User Display) [Entity eID User {password = mkHash password, ..}])
+      case res of
+        Left err ->
+          err `shouldSatisfy` isWrongPasswordError
+        Right r -> print r
+
+propAuthUserUnparsable :: BL.ByteString -> Property
+propAuthUserUnparsable bl =
+  property $
+    isLeft (eitherDecode @(User Auth) bl) ==> do
       Left err <-
         evalTest
-          (withGetPath "users/me")
-          (withDatabase @User db)
-      err `shouldSatisfy` isUnathorizedError
-
-propGetUserWrongToken :: Token -> TDB User -> Property
-propGetUserWrongToken t db =
-  property $
-    not (IM.null db) && wrongToken ==> do
-      Left err <-
-        evalTest
-          ( withToken t
-              . withGetPath "users/me"
-          )
-          (withDatabase @User db)
-      err `shouldSatisfy` isEntityNotFoundError
-  where
-    wrongToken = not . any (\User {..} -> token == t) $ IM.elems db
-
-deleteSpec :: Spec
-deleteSpec = describe "DELETE" $ do
-  it "Actually deletes user from database" $
-    property $ propDeleteEntity @User "users"
-
-  it "Throws error when user with this ID doesn't exists" $
-    property $ propDeleteEntityDoesntExists @User "users"
-
-authSpec :: Spec
-authSpec = describe "User authentication" $ do
-  it "When all is ok it gives new token to user and updates token in the database" $
-    property propAuthUser
-
-  it "Throws error when user with this login doesn't exists" $
-    property propAuthUserDoesntExists
-
-  it "Throws error when invalid request body is provided" $
-    property propAuthParsingFail
-
-propAuthUser :: User Display -> ID (User Display) -> TDB User -> Property
-propAuthUser user (ID userID) unpreaparedDB =
-  property $
-    token user /= testToken ==> do
-      (Right (ResText newToken), st) <-
-        runTest
-          ( withBody auth
-              . withPostPath "auth"
-          )
-          (withDatabase @User db)
-      let Just user' = IM.lookup userID $ _tsUserDB st
-      newToken `shouldNotBe` token user
-      T.show (token user') `shouldBe` newToken
-  where
-    db =
-      let p u = (login u /= login user && token u /= token user)
-       in IM.insert userID dbUser $ IM.filter p unpreaparedDB
-    dbUser = (\User {..} -> User {password = mkHash password, ..}) user
-    auth =
-      User
-        { firstName = Nothing,
-          lastName = Nothing,
-          login = login user,
-          token = Nothing,
-          password = password user,
-          registered = Nothing,
-          admin = Nothing
-        } ::
-        User Auth
-
-propAuthUserDoesntExists :: User Display -> ID (User Display) -> TDB User -> Property
-propAuthUserDoesntExists user uID (IM.filter ((/= login user) . login) -> db) =
-  property $ do
-    Left err <-
-      evalTest
-        ( withBody auth
-            . withPostPath "auth"
-        )
-        (withDatabase @User db)
-    err `shouldSatisfy` isEntityNotFoundError
-  where
-    auth =
-      User
-        { firstName = Nothing,
-          lastName = Nothing,
-          login = login user,
-          token = Nothing,
-          password = password user,
-          registered = Nothing,
-          admin = Nothing
-        } ::
-        User Auth
-
-propAuthParsingFail :: TDB User -> Value -> Property
-propAuthParsingFail db obj =
-  property $
-    conditions ==> do
-      Left err <-
-        evalTest
-          ( withBody obj
-              . withPostPath "auth"
-          )
-          (withDatabase @User db)
+          (withPostPath "auth" . withBLBody bl)
+          id
       err `shouldSatisfy` isParsingError
-  where
-    conditions = isLeft $ eitherDecode @(User Auth) $ fromString $ show obj
+
+propAuthUserDoesntExists :: User Auth -> Property
+propAuthUserDoesntExists auth = property $ do
+  Left err <-
+    evalTest
+      (withPostPath "auth" . withBody auth)
+      id
+  err `shouldSatisfy` isEntityNotFoundError

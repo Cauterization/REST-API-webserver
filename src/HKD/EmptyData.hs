@@ -1,7 +1,12 @@
 module HKD.EmptyData where
 
 import GHC.Generics
-    ( Generic(to, Rep), U1(..), K1(K1), M1(M1), type (:*:)(..) )
+  ( Generic (Rep, to),
+    K1 (K1),
+    M1 (M1),
+    U1 (..),
+    type (:*:) (..),
+  )
 
 class EmptyData a where
   emptyData :: a

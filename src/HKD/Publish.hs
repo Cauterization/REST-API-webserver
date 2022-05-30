@@ -1,8 +1,8 @@
 module HKD.Publish where
 
-import Data.Data ( Data )
-import HKD.Field ( Field )
-import HKD.Update ( NotUpdated )
+import Data.Data (Data)
+import HKD.Field (Field)
+import HKD.Update (NotUpdated)
 
 data Publish deriving (Data)
 

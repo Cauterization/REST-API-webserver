@@ -1,9 +1,11 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+
 module HKD.Front where
 
-import Data.Aeson ( FromJSON(parseJSON) )
-import Data.Data ( Data )
+import Data.Aeson (FromJSON (parseJSON))
+import Data.Data (Data)
 import Extended.Postgres qualified as Postgres
-import GHC.Generics ( Generic )
+import GHC.Generics (Generic)
 import HKD.Create (Create)
 import HKD.Display (Display, Hidden, NotDisplayed)
 import HKD.Field (Field)

@@ -1,17 +1,22 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Entity.Author where
 
-import App.Types ( fieldsQuery )
+import App.Types (fieldsQuery)
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Data ( Data )
+import Data.Data (Data)
 import Data.Generics.Product.Fields qualified as GL
 import Data.Text (Text)
-import Database.Database qualified as Database
-import Database.PostgreSQL.Simple qualified as Postgres
-import Database.PostgreSQL.Simple.FromRow qualified as Postgres
+import Database.Delete qualified as Database
+import Database.Get qualified as Database
+import Database.Post qualified as Database
+import Database.Put qualified as Database
 import Entity.Internal (Entity, EntityOrID)
-import Entity.User ( User )
+import Entity.User (User)
+import Extended.Postgres qualified as Postgres
 import GHC.Generics (Generic)
-import HKD.HKD ( Field, Create, Display, Immutable, Update, Front )
+import HKD.HKD (Create, Display, Field, Front, Immutable, Update)
 
 data Author a = Author
   { user :: !(Field a '[Immutable] (EntityOrID User a)),
@@ -50,7 +55,7 @@ deriving instance FromJSON (Author (Front Create))
 
 deriving instance Postgres.ToRow (Author Create)
 
-instance Database.Postable Author Create where
+instance Database.Postable Author where
   postQuery = "INSERT INTO authors (user_id, description) VALUES (?,?)"
 
 -- | Get
@@ -78,7 +83,7 @@ deriving instance FromJSON (Author (Front Update))
 
 deriving instance Postgres.ToRow (Author (Front Update))
 
-instance Database.Puttable (Entity Author (Front Update)) where
+instance Database.Puttable (Author (Front Update)) where
   putQuery =
     mconcat
       [ "UPDATE authors ",
@@ -86,3 +91,6 @@ instance Database.Puttable (Entity Author (Front Update)) where
         "description = COALESCE (?, description) ",
         "WHERE id = ? "
       ]
+
+-- | Delete
+instance Database.Deletable Author

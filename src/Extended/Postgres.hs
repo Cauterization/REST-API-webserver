@@ -1,3 +1,5 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+
 module Extended.Postgres
   ( module Database.PostgreSQL.Simple,
     module Database.PostgreSQL.Simple.ToField,
@@ -5,7 +7,7 @@ module Extended.Postgres
     module Database.PostgreSQL.Simple.FromField,
     module Database.PostgreSQL.Simple.FromRow,
     module Database.PostgreSQL.Simple.Types,
-    renderNull
+    renderNull,
   )
 where
 
@@ -19,4 +21,3 @@ import Database.PostgreSQL.Simple.Types (PGArray (..), fromPGArray)
 
 renderNull :: Action
 renderNull = Plain (BSB.byteString "null")
-

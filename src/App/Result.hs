@@ -1,14 +1,15 @@
+{-# LANGUAGE ImportQualifiedPost #-}
 {-# OPTIONS_GHC -Wno-unused-foralls #-}
 
 module App.Result where
 
-import App.Types
+import App.Path (IDs)
 import Data.ByteString.Lazy qualified as BL
 import Data.Kind (Type)
 import Data.Text (Text)
-import Entity.Picture
+import Entity.Picture (Picture)
 import Extended.Text qualified as T
-import HKD.HKD
+import HKD.HKD (Display, Front)
 
 type Endpoint m = forall (entity :: Type -> Type) (action :: Type). IDs -> m AppResult
 
@@ -18,5 +19,8 @@ data AppResult
   | ResPicture !(Picture (Front Display))
   deriving (Show, Eq)
 
-text :: (Applicative m, Show a) => a -> m AppResult
-text = pure . ResText . T.show
+text :: Applicative m => Text -> m AppResult
+text = pure . ResText
+
+toResText :: (Applicative m, Show a) => a -> m AppResult
+toResText = pure . ResText . T.show

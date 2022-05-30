@@ -1,9 +1,11 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+
 module App.QueryParams where
 
 import Data.Char (toLower)
 import Data.Function (on)
 import Data.Map qualified as M
-import Data.Maybe
+import Data.Maybe (fromMaybe)
 import Data.Text.Encoding qualified as T
 import Extended.Text (Text)
 import Extended.Text qualified as T

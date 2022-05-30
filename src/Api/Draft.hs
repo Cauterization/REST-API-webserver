@@ -1,36 +1,27 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Api.Draft where
 
 import Api.Get (Gettable, getLimit, getOffset)
 import Api.Post (Postable)
 import Api.User (getCurrentUser)
 import Api.User qualified as User
-import App.Internal
-  ( Application,
-    Env (envPath),
-    Impure (getCurrentDate),
-    decodedBody,
-    getToken, accessViolationError
-  )
-import App.Result (Endpoint, text)
+import App.AppT (Application, Env (envPath))
+import App.Error (accessViolationError)
+import App.Getters (decodedBody, getToken)
+import App.Impure (Impure (getCurrentDate))
+import App.Path (getURL)
+import App.Result (Endpoint, toResText)
 import App.ResultJSON (json)
 import App.Router (Middleware)
-import App.Types (ID (ID), Token, getURL)
+import App.Types (ID (ID), Token)
 import Control.Monad.Reader (asks, when)
 import Data.Coerce (coerce)
-import Database.Database (Database)
-import Database.Database qualified as Database
-import Entity.Article
-  ( Article
-      ( Article,
-        author,
-        category,
-        content,
-        created,
-        pics,
-        tags,
-        title
-      ),
-  )
+import Database.Draft qualified as Database
+import Database.EntityFilters qualified as Database
+import Database.HasDatabase qualified as Database
+import Entity.Article (Article (..))
 import Entity.Author (Author (user))
 import Entity.Draft (Draft (..))
 import Entity.Internal (Entity (..))
@@ -44,7 +35,7 @@ postDraft ::
   ( Application m,
     Postable m Draft,
     Gettable m (Entity User) (Front Display),
-    Database.ToRowOf (Database m) [Token]
+    Database.ToRowOf m [Token]
   ) =>
   Endpoint m
 postDraft _ = do
@@ -52,10 +43,8 @@ postDraft _ = do
   Draft Article {..} <- decodedBody @(Draft (Front Create))
   now <- getCurrentDate
   Entity {entityID = userID} <- getCurrentUser @(Front Display)
-  text
-    =<< Database.postEntityWith @Draft @m
-      id
-      ( Draft
+  let draft =
+        Draft
           Article
             { category = coerce category,
               tags = coerce tags,
@@ -64,14 +53,12 @@ postDraft _ = do
               pics = map coerce pics,
               ..
             }
-      )
+  toResText =<< Database.postDraft draft
 
 getDrafts ::
   forall m.
   ( Application m,
-    Database.ToRowOf
-      (Database m)
-      (Token, Database.EntityFilterParam, Database.EntityFilterParam),
+    Database.ToRowOf m (Token, Database.EntityFilterParam, Database.EntityFilterParam),
     Gettable m (Entity Draft) (Front Display)
   ) =>
   Endpoint m
@@ -80,16 +67,13 @@ getDrafts _ = do
   limit <- getLimit
   offset <- getOffset
   token <- getToken
-  json
-    =<< Database.getEntitiesWith @(Entity Draft) @(Front Display)
-      (token, limit, offset)
-      (<> "AND token = ? " <> Database.entityFiltersQuery @(Entity Draft) @(Front Display))
+  json =<< Database.getDraftsByToken token limit offset
 
 draftAccess ::
   forall m.
   ( Application m,
     Gettable m (Entity User) (Front Display),
-    Database.ToRowOf (Database m) [Token],
+    Database.ToRowOf m [Token],
     Gettable m (Entity Draft) (Front Display)
   ) =>
   Middleware m
@@ -97,14 +81,7 @@ draftAccess ma =
   extractDraftID . getURL <$> asks envPath >>= \case
     Just draftID -> do
       Entity {entityID = userID} <- User.getCurrentUser @(Front Display)
-      e <-
-        Database.getSingle
-          =<< Database.getEntitiesWith
-            @(Entity Draft)
-            @(Front Display)
-            @[ID (Entity Draft (Front Display))]
-            [draftID]
-            (<> " AND id = ?")
+      e <- Database.getDraftByID draftID
       when ((entityID . user . entity . author . unDraft . entity) e /= coerce userID) $
         accessViolationError "You have no access to this draft."
       ma

@@ -1,13 +1,15 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Api.Get where
 
+import App.AppT (Application, Env (envConfig))
 import App.Config (Config (cDatabase))
-import App.Internal
-  ( Application,
-    Env (envConfig),
-    getDateParam,
+import App.Getters
+  ( getDateParam,
     getNumListParam,
     getNumParam,
-    getParam
+    getParam,
   )
 import App.Result (Endpoint)
 import App.ResultJSON (ToJSONResult, json)
@@ -18,21 +20,22 @@ import Control.Monad.Reader (asks)
 import Data.Coerce (coerce)
 import Data.Data (Data, Typeable)
 import Data.Kind (Type)
-import Data.List (sort)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.Text qualified as T
-import Database.Database (Database)
-import Database.Database qualified as Database
+import Database.Config qualified as Database
+import Database.EntityFilters qualified as Database
+import Database.Get qualified as Database
+import Database.HasDatabase qualified as Database
 import Entity.Internal (Entity (..))
 import HKD.HKD (Display, Front)
 import Logger qualified
 
 type Gettable m e a =
   ( Database.Gettable e a,
-    Database.ToRowOf (Database m) [ID (e a)],
-    Database.FromRowOf (Database m) (e a),
-    Database.ToRowOf (Database.Database m) [Database.EntityFilterParam],
+    Database.ToRowOf m [ID (e a)],
+    Database.FromRowOf m (e a),
+    Database.ToRowOf m [Database.EntityFilterParam],
     Data (e a),
     Show (e a),
     Typeable e,
@@ -60,9 +63,9 @@ getEntity ::
   Endpoint m
 getEntity eIDs = do
   Logger.info $ "Attempt to get " <> nameOf @e
-  entity <- Database.getEntityGeneric @e @m (map coerce eIDs)
+  entity <- Database.getEntity @e @m @a (map coerce eIDs)
   Logger.info $ nameOf @e <> " was found."
-  json @_ @(e a) entity
+  json @_ entity
 
 getEntities ::
   forall (e :: Type -> Type) a m.
@@ -74,7 +77,7 @@ getEntities ::
 getEntities _ = do
   Logger.info $ "Attempt to get " <> nameOf @e <> "s"
   fs <- getFilters @e @a
-  entities <- Database.getEntitiesGeneric @e @a @m fs
+  entities <- Database.getEntities @e @a @m fs
   Logger.info $ nameOf @e <> " was found."
   json entities
 
@@ -84,7 +87,7 @@ getFilters ::
     Gettable m e a
   ) =>
   m [Database.EntityFilterParam]
-getFilters = forM (sort $ Database.getEntityFilters @e @a) $ \case
+getFilters = forM (Database.getEntityFilters @e @a) $ \case
   Database.EFString p -> Database.EFPTextOptional <$> getParam p
   Database.EFNum p -> Database.EFPIntOptional <$> getNumParam p
   Database.EFNumList p -> Database.EFPIntListOptional <$> getNumListParam p

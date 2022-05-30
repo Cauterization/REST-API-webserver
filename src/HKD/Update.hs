@@ -1,11 +1,13 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+
 module HKD.Update where
 
 import Data.Aeson qualified as J
-import Data.Data ( Data )
+import Data.Data (Data)
 import Extended.Postgres qualified as Postgres
-import HKD.EmptyData ( EmptyData(..) )
-import HKD.Field ( Field )
-import HKD.Utils ( Contains, If )
+import HKD.EmptyData (EmptyData (..))
+import HKD.Field (Field)
+import HKD.Utils (Contains, If)
 
 data Update deriving (Data)
 

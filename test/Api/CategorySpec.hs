@@ -1,43 +1,79 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Api.CategorySpec where
 
-import Data.Kind (Type)
-import Data.Map qualified as M
-import Entity.Category ( Category )
-import Extended.Text (Text)
+import App.Result (AppResult (ResText))
+import App.Types (ID (ID))
+import Data.ByteString.Lazy qualified as BL
+import Data.Coerce (coerce)
+import Data.Maybe (isJust)
+import Entity.Category (Category (..))
+import Entity.Internal (Entity (Entity))
 import Extended.Text qualified as T
-import Helpers.Category ()
-import Helpers.GenericProps
-    ( propDeleteEntity,
-      propDeleteEntityDoesntExists,
-      propPostsAlreadyExists,
-      propPostsEntity,
-      propPostsParsingFail )
-import Test.Hspec ( Spec, describe, it )
-import Test.QuickCheck ( Testable(property) )
+import HKD.HKD (Front, Update)
+import Mocks.Predicates
+  ( isCategoryCycleError,
+    isEntityNotFoundError,
+  )
+import Mocks.Run (evalTest)
+import Mocks.TestMonad (TestEntity (withGetEntities))
+import Mocks.With
+  ( withBody,
+    withFailedPut,
+    withPutPath,
+    woLogger,
+  )
+import Test.Hspec (Spec, describe, it, shouldBe, shouldSatisfy)
+import Test.QuickCheck (Property, Testable (property), (==>))
 
 spec :: Spec
-spec = do
-  postSpec
-  deleteSpec
+spec = describe "PUT" $ do
+  it "It actually updates category when all is ok" $
+    property propPut
+  it "Throws an appropriate error when there is no category with that ID" $
+    property propPutDoesntExists
+  it "Throws an appropriate error when put update forms a cycle in the category tree" $
+    property propPutCategoryCycle
 
-postSpec :: Spec
-postSpec = describe "POST" $ do
-  it "When all is ok it posts category into the database" $
-    property $ propPostsEntity @Category "categories"
+propPut ::
+  Category (Front Update) ->
+  ID (Category Update) ->
+  Property
+propPut c@Category {..} eID =
+  property $
+    parent /= Just (coerce eID) ==> do
+      res <-
+        evalTest
+          (withPutPath ("categories/" <> T.show eID) . withBody c)
+          id
+      res `shouldBe` Right (ResText "Successfuly updated.")
 
-  it "Throws error when category already in the database" $
-    property $ propPostsAlreadyExists @Category "categories"
+propPutDoesntExists ::
+  Category (Front Update) ->
+  ID (Category Update) ->
+  Property
+propPutDoesntExists c@Category {..} eID =
+  property $
+    parent /= Just (coerce eID) ==> do
+      Left err <-
+        evalTest
+          (withPutPath ("categories/" <> T.show eID) . withBody c)
+          withFailedPut
+      err `shouldSatisfy` isEntityNotFoundError
 
-  it "Throws error when it fails to parse request body" $
-    property $ propPostsParsingFail @Category "categories"
-
-deleteSpec :: Spec
-deleteSpec = describe "DELETE" $ do
-  it "Actually deletes category from database" $
-    property $ propDeleteEntity @Category "categories"
-
-  it "Throws error when category with this ID doesn't exists" $
-    property $ propDeleteEntityDoesntExists @Category "categories"
-
--- | Other endpoints rely heavily on Postgres recursive queries so I don't think
--- it makes sense to test them.
+propPutCategoryCycle :: Entity Category (Front Update) -> Property
+propPutCategoryCycle (Entity eID cat) =
+  property $
+    isJust (parent cat) ==> do
+      res <-
+        evalTest
+          ( withPutPath ("categories/" <> T.show eID)
+              . woLogger
+              . withBody cat
+          )
+          (withGetEntities @(ID (Category (Front Update))) [eID])
+      case res of
+        Right r -> error $ show r
+        Left err ->
+          err `shouldSatisfy` isCategoryCycleError

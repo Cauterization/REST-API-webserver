@@ -1,11 +1,13 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+
 module HKD.Display where
 
-import Data.Aeson ( ToJSON )
-import Data.Data ( Data )
+import Data.Aeson (ToJSON)
+import Data.Data (Data)
 import Extended.Postgres qualified as Postgres
-import GHC.Generics ( Generic )
-import HKD.EmptyData ( EmptyData(..) )
-import HKD.Field ( Field )
+import GHC.Generics (Generic)
+import HKD.EmptyData (EmptyData (..))
+import HKD.Field (Field)
 
 data Display deriving (Data)
 

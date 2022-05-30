@@ -1,29 +1,37 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Api.User where
 
-import Api.Get ( Gettable )
-import Api.Post ( Postable )
-import Api.Put ( Puttable )
-import App.Internal
-    ( decodedBody,
-      getToken,
-      wrongPasswordError,
-      Application,
-      Impure(..) )
-import App.Result ( text, Endpoint )
-import App.ResultJSON ( json )
-import App.Types ( ID(ID), Token )
-import Control.Lens ( (?~) )
-import Control.Monad.Writer ( when )
+import Api.Get (Gettable)
+import Api.Post (Postable)
+import Api.Put (Puttable)
+import App.AppT (Application)
+import App.Error (wrongPasswordError)
+import App.Getters (decodedBody, getToken)
+import App.Impure (Impure (..))
+import App.Result (Endpoint, text)
+import App.ResultJSON (json)
+import App.Types (ID (ID), Token)
+import Control.Lens ((?~))
+import Control.Monad.Writer (when)
 import Crypto.Hash qualified as Crypto
-import Data.Coerce ( coerce )
-import Database.Database (Database)
-import Database.Database qualified as Database
-import Entity.Internal ( Entity(..) )
-import Entity.User ( Auth, User(..) )
+import Data.Coerce (coerce)
+import Database.HasDatabase qualified as Database
+import Database.Post qualified as Database
+import Database.Put qualified as Database
+import Database.User qualified as Database
+import Entity.Internal (Entity (..))
+import Entity.User (Auth, User (..))
 import Extended.Text (Text)
 import Extended.Text qualified as T
 import HKD.HKD
-    ( EmptyData(emptyData), Create, Display, Update, Front )
+  ( Create,
+    Display,
+    EmptyData (emptyData),
+    Front,
+    Update,
+  )
 import Logger ((.<))
 import Logger qualified
 
@@ -31,18 +39,14 @@ getCurrentUser ::
   forall a m.
   ( Application m,
     Gettable m (Entity User) a,
-    Database.ToRowOf (Database m) [Token]
+    Database.ToRowOf m [Token]
   ) =>
   m (Entity User a)
 getCurrentUser = do
   Logger.info "Attempt to get user"
   token <- getToken
   Logger.debug $ "With token: " .< token
-  u <-
-    Database.getSingle
-      =<< Database.getEntitiesWith @(Entity User) @a
-        [token]
-        (<> " WHERE token = ?")
+  u <- Database.getUserByToken @m @a token
   Logger.info $ "User was found : " .< u
   pure u
 
@@ -50,7 +54,7 @@ getMe ::
   forall m.
   ( Application m,
     Gettable m (Entity User) (Front Display),
-    Database.ToRowOf (Database m) [Token]
+    Database.ToRowOf m [Token]
   ) =>
   Endpoint m
 getMe = const $ getCurrentUser @(Front Display) >>= json
@@ -77,18 +81,14 @@ authUser ::
   ( Application m,
     Impure m,
     Gettable m (Entity User) Display,
-    Puttable m (Entity User) Update,
-    Database.ToRowOf (Database.Database m) [Text]
+    Puttable m User Update,
+    Database.ToRowOf m [Text]
   ) =>
   Endpoint m
 authUser _ = do
   Logger.info "Attempt to login user"
   User {login = loginU, password = passwordU} <- decodedBody @(User Auth)
-  Entity {..} <-
-    Database.getSingle
-      =<< Database.getEntitiesWith @(Entity User) @Display
-        [loginU]
-        (<> " WHERE login = ?")
+  Entity {..} <- Database.getUserByLogin loginU
   let passwordDB = password entity
   when (mkHash passwordU /= passwordDB) $ wrongPasswordError loginU
   newToken <- genToken

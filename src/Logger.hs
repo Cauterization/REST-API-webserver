@@ -1,30 +1,17 @@
-module Logger
-  ( debug,
-    info,
-    warning,
-    error,
-    Config (..),
-    Logger,
-    Verbosity (..),
-    Mode (..),
-    HasLogger (..),
-    RunLogger (..),
-    (.<),
-    (>.),
-  )
-where
+{-# LANGUAGE ImportQualifiedPost #-}
+
+module Logger where
 
 import Control.Applicative (Alternative ((<|>)))
-import Control.Monad
-import Control.Monad.IO.Class
-import Data.Aeson hiding (Error)
+import Data.Aeson (FromJSON (parseJSON), withObject, (.:))
 import Data.Time qualified as Time
 import Extended.Text qualified as T
 import GHC.Generics (Generic)
 import Prelude hiding (error, log)
 
 data Verbosity
-  = Debug
+  = Sql
+  | Debug
   | Info
   | Warning
   | Error
@@ -57,7 +44,8 @@ instance FromJSON Config where
 
 type Logger m = Verbosity -> T.Text -> m ()
 
-debug, info, warning, error :: (HasLogger m) => T.Text -> m ()
+sql, debug, info, warning, error :: HasLogger m => T.Text -> m ()
+sql = mkLog Sql
 debug = mkLog Debug
 info = mkLog Info
 warning = mkLog Warning
@@ -76,26 +64,18 @@ infixr 7 .<
 
 infixr 7 >.
 
-class RunLogger m where
-  runLogger :: Config -> Logger m
-  default runLogger :: MonadIO m => Config -> Logger m
-  runLogger c = (liftIO .) . runLogger @IO c
-
-instance RunLogger IO where
-  runLogger Config {..} v t = do
-    when (v >= cVerbosity) $ formatted >>= toOutput
-    where
-      formatted = do
-        utcTime <- Time.getCurrentTime
-        let localTime = Time.addUTCTime (10800 :: Time.NominalDiffTime) utcTime
-            asctime =
-              Time.formatTime
-                Time.defaultTimeLocale
-                "%a %b %d %H:%M:%S %Y"
-                localTime
-        pure $ "\n\n" <> T.pack asctime <> " " .< v <> "\n" <> t
-      toOutput out = case cMode of
-        None -> pure ()
-        Display -> T.putStrLn out
-        Write -> T.appendFile cFilePath out
-        Both -> T.putStrLn out >> T.appendFile cFilePath out
+fromConfig :: Config -> Logger IO
+fromConfig Config {..} v t
+  | v < cVerbosity = pure ()
+  | otherwise = format >>= toOutput
+  where
+    format = do
+      utcTime <- Time.getCurrentTime
+      let localTime = Time.addUTCTime (10800 :: Time.NominalDiffTime) utcTime
+          asctime = Time.formatTime Time.defaultTimeLocale "%a %b %d %H:%M:%S %Y" localTime
+      pure $ "\n\n" <> T.pack asctime <> " " .< v <> "\n" <> t
+    toOutput out = case cMode of
+      None -> pure ()
+      Display -> T.putStrLn out
+      Write -> T.appendFile cFilePath out
+      Both -> T.putStrLn out >> T.appendFile cFilePath out

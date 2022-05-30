@@ -1,32 +1,41 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Entity.Article where
 
-import App.Types ( fieldsQuery, Date, ID(ID) )
-import Data.Aeson ( FromJSON )
-import Data.Data ( Data )
-import Data.Maybe ( catMaybes )
-import Data.String (IsString)
-import Database.Database qualified as Database
-import Entity.Author ( Author )
-import Entity.Category ( Category )
-import Entity.Internal ( EntityOrID, Entity(Entity) )
-import Entity.Picture ( Picture )
-import Entity.Tag ( Tag(Tag) )
-import Entity.User ( User )
+import App.Types (Date, ID (ID), fieldsQuery)
+import Data.Aeson (FromJSON)
+import Data.Char (toLower)
+import Data.Data (Data)
+import Data.Maybe (catMaybes)
+import Data.String (IsString (fromString))
+import Database.EntityFilters qualified as Database
+import Database.Get qualified as Database
+import Database.Post qualified as Database
+import Database.Put qualified as Database
+import Entity.Author (Author)
+import Entity.Category (Category)
+import Entity.Internal (Entity (Entity), EntityOrID)
+import Entity.Picture (Picture)
+import Entity.Tag (Tag (Tag))
+import Entity.User (User)
 import Extended.Postgres qualified as Postgres
 import Extended.Text (Text)
+import Extended.Text qualified as T
 import GHC.Generics (Generic)
 import HKD.HKD
-    ( EmptyData,
-      Field,
-      Create,
-      Display,
-      Immutable,
-      Update,
-      Publish,
-      Front,
-      NotAllowedFromFront )
+  ( Create,
+    Display,
+    EmptyData,
+    Field,
+    Front,
+    Immutable,
+    NotAllowedFromFront,
+    Publish,
+    Update,
+  )
 
 data Article a = Article
   { title :: !(Field a '[] Text),
@@ -78,7 +87,48 @@ deriving instance FromJSON (Article (Front Create))
 
 deriving instance Postgres.ToRow (Article Create)
 
+instance Database.Postable Article
+
 -- | Get / Front Display
+data OrderDirection = AscOD | DescOD
+
+data OrderField = DateOF | AuthorOF | CategoryOF | PhotosOF | IDOF
+
+data ArticleOrder = ArticleOrder OrderField OrderDirection
+
+defaultOrderField :: OrderField
+defaultOrderField = IDOF
+
+defaultOrder :: ArticleOrder
+defaultOrder = ArticleOrder defaultOrderField AscOD
+
+parseOrder :: Text -> ArticleOrder
+parseOrder (T.break (== ',') -> (field, direction)) = ArticleOrder fieldOrder directionOrder
+  where
+    fieldOrder = case T.map toLower field of
+      "date" -> DateOF
+      "author" -> AuthorOF
+      "category" -> CategoryOF
+      "photos" -> PhotosOF
+      _ -> defaultOrderField
+    directionOrder = case T.map toLower direction of
+      ",desc" -> DescOD
+      _ -> AscOD
+
+orderToQuery :: IsString s => ArticleOrder -> s
+orderToQuery (ArticleOrder field direction) =
+  fromString $ "ORDER BY " <> fieldOrder <> " " <> directionOrder
+  where
+    fieldOrder = case field of
+      DateOF -> "created"
+      AuthorOF -> "login"
+      CategoryOF -> "category[1]"
+      PhotosOF -> "array_length(pics,1)"
+      IDOF -> "id"
+    directionOrder = case direction of
+      DescOD -> "DESC"
+      _ -> ""
+
 instance Postgres.FromRow (Article (Front Display)) where
   fromRow = do
     title <- Postgres.field
@@ -128,7 +178,7 @@ articleGetQuery =
       "FROM articles_view "
     ]
 
-articlesGetQuery :: (IsString s, Monoid s) => s -> s
+articlesGetQuery :: (IsString s, Monoid s) => ArticleOrder -> s
 articlesGetQuery ordering =
   mconcat
     [ "WITH F (crAt, crAtLt, crAtGt, authorF, catF, tagF, tagsIn, tagsAll, ",
@@ -169,7 +219,7 @@ articlesGetQuery ordering =
       "                  FROM UNNEST(tags_names) ",
       "                  WHERE unnest LIKE CONCAT('%',substring,'%') ",
       "      )         ) ",
-      ordering,
+      orderToQuery ordering,
       " LIMIT ? ",
       "OFFSET ? "
     ]
@@ -178,6 +228,8 @@ articlesGetQuery ordering =
 deriving instance FromJSON (Article (Front Update))
 
 deriving instance Postgres.ToRow (Article (Front Update))
+
+instance Database.Puttable (Article (Front Update))
 
 -- | Other
 deriving instance EmptyData (Article Publish)
