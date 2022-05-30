@@ -10,7 +10,9 @@ is404Error,
   isWrongPasswordError,
   isRequestHeadersError,
   isAmbiguousPatternsError,
-  isAdminAccessViolationError ::
+  isAccessViolationError,
+  isAdminAccessViolationError,
+  isCategoryCycleError ::
     AppError -> Bool
 is404Error PageNotFoundError = True
 is404Error _ = False
@@ -28,5 +30,9 @@ isRequestHeadersError RequestHeadersError {} = True
 isRequestHeadersError _ = False
 isAmbiguousPatternsError RouterAmbiguousPatterns {} = True
 isAmbiguousPatternsError _ = False
+isAccessViolationError AccessViolation {} = True
+isAccessViolationError _ = False
 isAdminAccessViolationError AdminAccessViolation {} = True
 isAdminAccessViolationError _ = False
+isCategoryCycleError CategoryCycle {} = True
+isCategoryCycleError _ = False

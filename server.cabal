@@ -224,8 +224,11 @@ test-suite server-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Api.ArticleSpec
+      Api.CategorySpec
       Api.DeleteSpec
       Api.GetSpec
+      Api.PictureSpec
       Api.PostSpec
       Api.PutSpec
       Api.UserSpec
@@ -234,7 +237,10 @@ test-suite server-test
       Mocks.Config
       Mocks.Constant
       Mocks.Endpoints
+      Mocks.Entity.Article
       Mocks.Entity.Author
+      Mocks.Entity.Category
+      Mocks.Entity.Picture
       Mocks.Entity.Tag
       Mocks.Entity.User
       Mocks.Get

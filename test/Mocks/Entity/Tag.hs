@@ -15,11 +15,16 @@ import Mocks.TestMonad
 import Test.Hspec
 import Test.QuickCheck
 
-deriving instance ToJSON (Tag Create)
+-- deriving instance ToJSON (Tag Create)
+
+deriving instance ToJSON (Tag (Front Create))
 
 deriving instance ToJSON (Tag (Front Update))
 
 instance Arbitrary (Tag Create) where
+  arbitrary = Tag <$> arbitrary
+
+instance Arbitrary (Tag (Front Create)) where
   arbitrary = Tag <$> arbitrary
 
 instance Arbitrary (Tag (Front Update)) where

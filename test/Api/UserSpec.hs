@@ -16,9 +16,9 @@ import Data.Data
 import Data.Either
 import Data.Kind
 import Database.Internal qualified as Database
-import Entity.Author
-import Entity.Tag
+import Entity.Internal
 import Entity.User
+import Extended.Text (Text)
 import Extended.Text qualified as T
 import HKD.HKD
 import Mocks.Arbitrary
@@ -29,11 +29,30 @@ import Mocks.TestMonad
 import Mocks.With
 import Test.Hspec
 import Test.QuickCheck
+import Api.User
 
 
 spec :: Spec
-spec = describe "User API" $ do
-  it "Actually posts user into database when all is ok" $ property propPostUser
+spec = do
+  describe "POST" $ do
+    it "Actually posts user into database when all is ok" $ 
+      property propPostUser
+  describe "GET" $ do
+    it "Allows to get user by its own token" $ 
+      property propGetUser
+    it "Throws an appropriate error when no token is provided" $ 
+      property propGetUserNoToken
+    it "Throws an appropriate error when wrong token is provided" $ 
+      property propGetUserWrongToken
+  describe "Auth" $ do
+    it "Gives new token to user when all is ok" $ 
+      property propAuthUser
+    it "Throws an appropriate error when wrong password is provided" $ 
+      property propAuthUserWrongPassword
+    it "Throws an appropriate error when request body is unparsable" $ 
+      property propAuthUserUnparsable
+    it "Throws an appropriate error when user with this login doesn't exists" $ 
+      property propAuthUserDoesntExists
 
 propPostUser :: User (Front Create) -> Property
 propPostUser user = property $ do
@@ -42,68 +61,73 @@ propPostUser user = property $ do
       id
     res `shouldBe` Right (ResJSON $ encode (defaultPostResult, testTokenConstant))
 
--- testPost ::
---   forall (e :: Type -> Type).
---   ( Typeable e,
---     ToJSON (e Create),
---     Arbitrary (e Create),
---     Show (e Create)
---   ) =>
---   SpecWith (Arg Property)
--- testPost = it (nameOf @e) $ property $ propPost @e
+propGetUser :: Token -> Entity User (Front Display) -> Property
+propGetUser t user = property $ do
+    Right res <- evalTest
+      (withGetPath "users/me" . withToken t)
+      (withGetEntities @(Entity User (Front Display)) [user])
+    res `shouldBe` ResJSON (encode  user)
 
--- testPostUnparsable ::
---   forall (e :: Type -> Type).
---   ( Typeable e,
---     FromJSON (e (Front Create))
---   ) =>
---   SpecWith (Arg Property)
--- testPostUnparsable = it (nameOf @e) $ property $ propPostUnparsable @e
+propGetUserNoToken :: Property
+propGetUserNoToken = property $ do
+    Left err <- evalTest
+      (withGetPath "users/me")
+      id
+    err `shouldSatisfy` isUnathorizedError
 
--- testPostAlreadyExists ::
---   forall (e :: Type -> Type).
---   ( Typeable e,
---     ToJSON (e Create),
---     Arbitrary (e Create),
---     Show (e Create)
---   ) =>
---   SpecWith (Arg Property)
--- testPostAlreadyExists = it (nameOf @e) $ property $ propPostAlreadyExists @e
+propGetUserWrongToken :: Token -> Property
+propGetUserWrongToken t = property $ do
+    Left err <- evalTest
+      (withGetPath "users/me" . withToken t)
+      id
+    err `shouldSatisfy` isEntityNotFoundError
 
--- propPost :: forall (e :: Type -> Type). (Typeable e, ToJSON (e Create)) => e Create -> Property
--- propPost entity = property $ do
---   res <-
---     evalTest
---       (withEPostPath @e . withBody @(e Create) entity)
---       id
---   res `shouldBe` Right (ResText $ T.show defaultPostResult)
+propAuthUser :: Entity User Display -> Property    
+propAuthUser (Entity eID User{..}) = property $ token /= testTokenConstant ==> do
+  let auth = User
+       { firstName = Nothing
+       , lastName = Nothing
+       , login = login 
+       , token = Nothing
+       , password = password 
+       , registered = Nothing
+       , admin = Nothing
+       } :: User Auth
+  Right (ResText newToken) <- evalTest
+    (withPostPath "auth" . withBody auth)
+    (withGetEntities @(Entity User Display) [Entity eID User{password = mkHash password, ..}])
+  newToken `shouldBe` testTokenConstant
+  newToken `shouldNotBe` token
 
--- propPostUnparsable ::
---   forall (e :: Type -> Type).
---   ( Typeable e,
---     FromJSON (e (Front Create))
---   ) =>
---   BL.ByteString ->
---   Property
--- propPostUnparsable bl =
---   property $
---     isLeft (eitherDecode @(e (Front Create)) bl) ==> do
---       Left err <-
---         evalTest
---           (withEPostPath @e . withBLBody bl)
---           id
---       err `shouldSatisfy` isParsingError
+propAuthUserWrongPassword :: Text -> Entity User Display -> Property    
+propAuthUserWrongPassword wrong (Entity eID User{..}) = property $ wrong /= password ==> do
+  let auth = User
+       { firstName = Nothing
+       , lastName = Nothing
+       , login = login 
+       , token = Nothing
+       , password = wrong 
+       , registered = Nothing
+       , admin = Nothing
+       } :: User Auth
+  res <- evalTest
+    (withPostPath "auth" . withBody auth)
+    (withGetEntities @(Entity User Display) [Entity eID User{password = mkHash password, ..}])
+  case res of
+      Left err -> 
+         err `shouldSatisfy` isWrongPasswordError
+      Right r -> print r
 
--- propPostAlreadyExists :: forall (e :: Type -> Type). (Typeable e, ToJSON (e Create)) => e Create -> Property
--- propPostAlreadyExists entity = property $ do
---   Left err <-
---     evalTest
---       (withEPostPath @e . withBody @(e Create) entity)
---       withAlreadyExistsPosts
---   err `shouldSatisfy` isAlreadyExistsError
---   where
---     withAlreadyExistsPosts TestState {..} = TestState {postResult = throwAE, ..}
---     throwAE = throwM $ Database.AlreadyExists ""
+propAuthUserUnparsable :: BL.ByteString -> Property    
+propAuthUserUnparsable bl = property $ isLeft (eitherDecode @(User Auth) bl) ==> do
+  Left err <- evalTest
+    (withPostPath "auth" . withBLBody bl)
+    id
+  err `shouldSatisfy` isParsingError
 
--- withEPostPath :: forall (e :: Type -> Type). Typeable e => EnvEndo
--- withEPostPath = withPostPath $ T.pack (withPluralEnding (nameOf @e))
+propAuthUserDoesntExists :: User Auth -> Property    
+propAuthUserDoesntExists auth = property $ do
+  Left err <- evalTest
+    (withPostPath "auth" . withBody auth)
+    id
+  err `shouldSatisfy` isEntityNotFoundError

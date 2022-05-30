@@ -17,8 +17,12 @@ import Control.Monad.Writer
 import Database.EntityFilters qualified as Database
 import Database.HasDatabase qualified as Database
 import Database.Internal qualified as Database
+import Entity.Article
 import Entity.Internal
+import Entity.Category
+import Entity.Picture
 import Entity.Tag
+import Entity.User
 import Extended.Text (Text)
 import Extended.Text qualified as T
 import HKD.HKD
@@ -136,8 +140,6 @@ class TestEntity a where
 instance TestEntity [Database.EntityFilterParam] where
   addToState fs = modify (\TestState {..} -> TestState {filters = fs, ..})
 
--- instance TestEntity [ID (a Delete)]
-
 instance TestEntity (Entity a Update)
 
 instance TestEntity (ID a)
@@ -150,7 +152,15 @@ data TestState = TestState
     deleteResult :: TestMonadT Integer,
     filters :: [Database.EntityFilterParam],
     getTags :: TestMonadT [Entity Tag (Front Display)],
-    getAuthors :: TestMonadT [Entity Author (Front Display)]
+    getAuthors :: TestMonadT [Entity Author (Front Display)],
+    getUsers :: TestMonadT [Entity User (Front Display)],
+    getUsersDisplay :: TestMonadT [Entity User Display],
+    getCategories :: TestMonadT [Entity Category (Front Display)],
+    getCategoriesID :: TestMonadT [ID (Category (Front Update))],
+    getPictures :: TestMonadT [Picture (Front Display)],
+    getEntityPictures :: TestMonadT [Entity Picture (Front Display)],
+    getArticles :: TestMonadT [Entity Article (Front Display)],
+    userToken :: Maybe Token
   }
 
 initialState :: TestState
@@ -161,7 +171,15 @@ initialState =
       deleteResult = pure defaultDeleteResult,
       filters = [],
       getTags = pure [],
-      getAuthors = pure []
+      getAuthors = pure [],
+      getUsers = pure [],
+      getUsersDisplay = pure [],
+      getCategories = pure [],
+      getCategoriesID = pure [],
+      getPictures = pure [],
+      getEntityPictures = pure [],
+      getArticles = pure [],
+      userToken = Nothing
     }
 
 defaultPostResult :: Int

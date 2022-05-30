@@ -15,6 +15,7 @@ import Mocks.TestMonad
 import Mocks.Utils
 import Test.Hspec
 import Test.QuickCheck
+import Data.Maybe
 
 instance ToJSON (User (Front Create)) where
   toJSON =
@@ -24,13 +25,15 @@ instance ToJSON (User (Front Create)) where
           fieldLabelModifier = camelTo2 '_'
         }
 
-instance ToJSON (User Create) where
-  toJSON =
-    genericToJSON
-      defaultOptions
-        { omitNothingFields = True,
-          fieldLabelModifier = camelTo2 '_'
-        }
+deriving instance ToJSON (User Auth)
+
+-- instance ToJSON (User Create) where
+--   toJSON =
+--     genericToJSON
+--       defaultOptions
+--         { omitNothingFields = True,
+--           fieldLabelModifier = camelTo2 '_'
+--         }
 
 instance Arbitrary (User (Front Create)) where
   arbitrary = do
@@ -65,31 +68,41 @@ instance Arbitrary (User (Front Display)) where
     admin <- arbitrary
     pure User{..}
 
+instance Arbitrary (User Display) where
+  arbitrary = do
+    firstName <- arbitrary
+    lastName <- arbitrary
+    login <- arbitrary
+    token <- arbitrary
+    password <- arbitrary
+    registered <- arbitrary
+    admin <- arbitrary
+    pure User{..}
+
+instance Arbitrary (User Auth) where
+  arbitrary = do
+    firstName <- arbitrary
+    lastName <- arbitrary
+    login <- arbitrary
+    token <- arbitrary
+    password <- arbitrary
+    registered <- arbitrary
+    admin <- arbitrary
+    pure User{..}
+  
+
 instance TestEntity (User Create)
 
--- deriving instance ToJSON (Tag Create)
+instance TestEntity [Token] where
+  addToState [t] = modify $ \TestState{..} -> TestState{userToken = Just t, ..}
+  addToState _ = undefined
 
--- deriving instance ToJSON (Tag (Front Update))
+instance TestEntity (Entity User Display) where
+  getFromTestDatabase _ = join $ gets getUsersDisplay
+  withGetEntities users TestState{..} = TestState{getUsersDisplay = pure users, ..}
 
--- instance Arbitrary (Tag Create) where
---   arbitrary = Tag <$> arbitrary
+instance TestEntity (Entity User (Front Display)) where
+  getFromState = join $ gets getUsers
+  withGetEntities users TestState {..} = TestState {getUsers = pure users, ..}
 
--- instance Arbitrary (Tag (Front Update)) where
---   arbitrary = Tag <$> arbitrary
 
--- instance Arbitrary (Tag (Front Display)) where
---   arbitrary = Tag <$> arbitrary
-
--- instance TestEntity (Tag a)
-
--- -- instance TestEntity (ID (Tag Create))
-
--- instance TestEntity (Entity Tag (Front Update))
-
--- instance TestEntity (Entity Tag (Front Display)) where
---   getFromState = join $ gets getTags
-
---   withGetEntities tags TestState {..} = TestState {getTags = pure tags, ..}
-
--- withGetTags :: [Entity Tag (Front Display)] -> StateEndo
--- withGetTags tags TestState{..} = TestState{getTags = pure tags, ..}

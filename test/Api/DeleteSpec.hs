@@ -10,7 +10,10 @@ import App.Types
 import Data.Data
 import Data.Kind
 import Entity.Author
+import Entity.Category
+import Entity.Picture
 import Entity.Tag
+import Entity.User
 import Extended.Text qualified as T
 import HKD.HKD
 import Mocks.Arbitrary
@@ -23,14 +26,20 @@ import Test.Hspec
 import Test.QuickCheck
 
 spec :: Spec
-spec = describe "Delete API" $ do
-  context "Actually deletes entity from database when all is ok" $ do
+spec = do
+  describe "Actually deletes entity from database when all is ok" $ do
     testDelete @Author
+    testDelete @Category
+    testDelete @Picture
     testDelete @Tag
+    testDelete @User
 
-  context "Throws an appropriate error when there is no entity with that ID" $ do
+  describe "Throws an appropriate error when there is no entity with that ID" $ do
     testDeleteDoesntExists @Author
+    testDeleteDoesntExists @Category
+    testDeleteDoesntExists @Picture
     testDeleteDoesntExists @Tag
+    testDeleteDoesntExists @User
 
 testDelete :: forall (e :: Type -> Type). Typeable e => SpecWith (Arg Property)
 testDelete = it (nameOf @e) $ property $ propDelete @e

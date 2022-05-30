@@ -16,6 +16,7 @@ import Data.Either
 import Data.Kind
 import Database.Internal qualified as Database
 import Entity.Author
+import Entity.Category
 import Entity.Tag
 import Extended.Text qualified as T
 import HKD.HKD
@@ -29,17 +30,18 @@ import Test.Hspec
 import Test.QuickCheck
 
 spec :: Spec
-spec = describe "Put API" $ do
-  context "It actually changes entity in database when all is ok" $ do
+spec = do
+  describe "It actually updates entity when all is ok" $ do
     testPut @Author
     testPut @Tag
 
-  context "Throws an appropriate error when there is no entity with that ID" $ do
+  describe "Throws an appropriate error when there is no entity with that ID" $ do
     testPutDoesntExists @Author
     testPutDoesntExists @Tag
 
-  context "Throws an appropriate error when request body is unparsable" $ do
+  describe "Throws an appropriate error when request body is unparsable" $ do
     testPutUnparsable @Author
+    testPutUnparsable @Category
     testPutUnparsable @Tag
 
 testPut ::

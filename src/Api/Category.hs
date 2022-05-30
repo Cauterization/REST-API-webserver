@@ -16,7 +16,6 @@ import Database.HasDatabase qualified as Database
 import Database.Put qualified as Database
 import Entity.Category (Category (parent))
 import Entity.Internal (Entity (..))
-import Extended.Text (Text)
 import HKD.HKD (Front, Update)
 
 putCategory ::
@@ -33,6 +32,7 @@ putCategory [cID] = do
   text "Successfuly updated."
   where
     validate parent = do
+      when (coerce cID == parent) categoryCycleError
       parents <- Database.getEntitiesWith parent id
       when (coerce @_ @(ID (Category (Front Update))) cID `elem` parents) categoryCycleError
 putCategory _ = idArityMissmatchError "put category api"
