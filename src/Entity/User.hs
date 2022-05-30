@@ -1,6 +1,5 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Entity.User where
 
@@ -13,9 +12,9 @@ import Data.Text (Text)
 import Database.Delete qualified as Database
 import Database.Get qualified as Database
 import Database.Post qualified as Database
-import Database.PostgreSQL.Simple qualified as Postgres
 import Database.Put qualified as Database
 import Entity.Internal (Entity)
+import Extended.Postgres qualified as Postgres
 import GHC.Generics (Generic)
 import HKD.HKD
   ( Contains,

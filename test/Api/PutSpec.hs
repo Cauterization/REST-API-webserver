@@ -1,33 +1,43 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Api.PutSpec where
 
-import App.Error
-import App.Path
-import App.Result
-import App.Types
-import Control.Monad.Catch
-import Data.Aeson
+import App.Result (AppResult (ResText))
+import App.Types (ID, nameOf)
+import Data.Aeson (FromJSON, ToJSON, eitherDecode)
 import Data.ByteString.Lazy qualified as BL
-import Data.Data
-import Data.Either
-import Data.Kind
-import Database.Internal qualified as Database
-import Entity.Author
-import Entity.Category
-import Entity.Tag
-import Extended.Text qualified as T
-import HKD.HKD
-import Mocks.Arbitrary
-import Mocks.Predicates
-import Mocks.Run
-import Mocks.TestMonad
-import Mocks.Utils
+import Data.Data (Typeable)
+import Data.Either (isLeft)
+import Data.Kind (Type)
+import Entity.Author (Author)
+import Entity.Category (Category)
+import Entity.Tag (Tag)
+import HKD.HKD (Front, Update)
+import Mocks.Predicates (isEntityNotFoundError, isParsingError)
+import Mocks.Run (evalTest)
+import Mocks.Utils (mkPathFromID)
 import Mocks.With
+  ( withBLBody,
+    withBody,
+    withFailedPut,
+    withPutPath,
+  )
 import Test.Hspec
+  ( Example (Arg),
+    Spec,
+    SpecWith,
+    describe,
+    it,
+    shouldBe,
+    shouldSatisfy,
+  )
 import Test.QuickCheck
+  ( Arbitrary,
+    Property,
+    Testable (property),
+    (==>),
+  )
 
 spec :: Spec
 spec = do

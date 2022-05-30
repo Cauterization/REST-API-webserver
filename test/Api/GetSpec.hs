@@ -1,38 +1,39 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Api.GetSpec where
 
-import App.Error
-import App.Path
-import App.Result
-import App.Types
-import Control.Monad
-import Control.Monad.Catch
-import Data.Aeson
+import App.Result (AppResult (ResJSON))
+import App.Types (ID, nameOf, withPluralEnding)
+import Data.Aeson (ToJSON, encode)
 import Data.ByteString.Lazy qualified as BL
-import Data.Data
-import Data.Either
-import Data.Kind
-import Database.Internal qualified as Database
-import Entity.Article
-import Entity.Author
+import Data.Data (Typeable)
+import Data.Kind (Type)
+import Entity.Article (Article)
+import Entity.Author (Author)
 import Entity.Category
-import Entity.Picture
-import Entity.Internal
-import Entity.Tag
+import Entity.Internal (Entity (Entity))
+import Entity.Picture (Picture)
+import Entity.Tag (Tag)
 import Extended.Text qualified as T
-import HKD.HKD
-import Mocks.Arbitrary
-import Mocks.Constant
-import Mocks.Predicates
-import Mocks.Run
-import Mocks.TestMonad
-import Mocks.Utils
-import Mocks.With
+import HKD.HKD (Display, Front)
+import Mocks.Constant (testPaginationConstant)
+import Mocks.Predicates (isEntityNotFoundError)
+import Mocks.Run (EnvEndo, evalTest)
+import Mocks.TestMonad (TestEntity (withGetEntities))
+import Mocks.Utils (mkPathFromID)
+import Mocks.With (withGetPath, withLimit, withOffset)
 import Test.Hspec
-import Test.QuickCheck
+  ( Example (Arg),
+    Spec,
+    SpecWith,
+    context,
+    describe,
+    it,
+    shouldBe,
+    shouldSatisfy,
+  )
+import Test.QuickCheck (Arbitrary, Property, Testable (property))
 
 spec :: Spec
 spec = do

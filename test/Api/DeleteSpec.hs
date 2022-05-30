@@ -1,29 +1,33 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Api.DeleteSpec where
 
-import App.Error
-import App.Result
-import App.Types
-import Data.Data
-import Data.Kind
-import Entity.Author
-import Entity.Category
-import Entity.Picture
-import Entity.Tag
-import Entity.User
+import App.Result (AppResult (ResText))
+import App.Types (ID, nameOf)
+import Data.Data (Typeable)
+import Data.Kind (Type)
+import Entity.Author (Author)
+import Entity.Category (Category)
+import Entity.Picture (Picture)
+import Entity.Tag (Tag)
+import Entity.User (User)
 import Extended.Text qualified as T
-import HKD.HKD
-import Mocks.Arbitrary
-import Mocks.Predicates
-import Mocks.Run
-import Mocks.TestMonad
-import Mocks.Utils
-import Mocks.With
+import HKD.HKD (Delete)
+import Mocks.Predicates (isEntityNotFoundError)
+import Mocks.Run (evalTest)
+import Mocks.Utils (mkPathFromID)
+import Mocks.With (withDeletePath, withFailedDelete)
 import Test.Hspec
-import Test.QuickCheck
+  ( Example (Arg),
+    Spec,
+    SpecWith,
+    describe,
+    it,
+    shouldBe,
+    shouldSatisfy,
+  )
+import Test.QuickCheck (Property, Testable (property))
 
 spec :: Spec
 spec = do

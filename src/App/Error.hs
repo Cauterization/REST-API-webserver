@@ -1,5 +1,4 @@
 {-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module App.Error where
@@ -67,7 +66,7 @@ parsingError (T.pack -> err) = do
 
 ambiguousPatterns :: (MonadThrow m, Logger.HasLogger m) => [Path Pattern] -> m a
 ambiguousPatterns ps = do
-  -- Logger.error $ "Ambiguous pattern in router pathes: " <> T.show ps
+  Logger.error $ "Ambiguous patterns in router pathes: " <> T.show ps
   throwM $ RouterAmbiguousPatterns ps
 
 unathorizedError,

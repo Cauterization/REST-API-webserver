@@ -13,7 +13,6 @@ import Entity.Article (Article, defaultOrder, parseOrder)
 import Entity.Internal (Entity)
 import HKD.HKD (Display, Front)
 import Logger qualified
-import qualified Extended.Text as T
 
 getArticles ::
   forall m.

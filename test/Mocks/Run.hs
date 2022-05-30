@@ -1,25 +1,32 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Mocks.Run where
 
-import App.AppT
-import App.Endpoints
-import App.Error
-import App.Path
-import App.Result
-import App.Router
-import Control.Monad.Except
-import Control.Monad.State
+import App.AppT (Env (..))
+import App.Endpoints (Main)
+import App.Error (AppError)
+import App.Path (Path (POST))
+import App.Result (AppResult)
+import App.Router (runRouter)
+import Control.Monad.Except (forM_, join, runExceptT, when)
+import Control.Monad.State (State, runState)
 import Control.Monad.Writer
+  ( MonadWriter (tell),
+    WriterT (runWriterT),
+  )
 import Data.Map qualified as M
 import Extended.Text (Text)
 import Extended.Text qualified as T
 import Logger qualified
-import Mocks.Config
-import Mocks.Endpoints
+import Mocks.Config (testConfig)
+import Mocks.Endpoints ()
 import Mocks.TestMonad
+  ( StateEndo,
+    TestMonad (unTestM),
+    TestState,
+    initialState,
+  )
 
 type TestEnv = Env TestMonad
 

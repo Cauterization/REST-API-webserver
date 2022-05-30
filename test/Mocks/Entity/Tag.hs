@@ -1,36 +1,39 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Mocks.Entity.Tag where
 
-import App.Types
-import Control.Monad.State
-import Data.Aeson
-import Entity.Internal
-import Entity.Tag
-import HKD.HKD
-import Mocks.Arbitrary
+import Control.Monad.State (gets, join)
+import Data.Aeson (ToJSON)
+import Entity.Internal (Entity)
+import Entity.Tag (Tag (Tag))
+import Extended.Text (Text)
+import HKD.HKD (Create, Display, Field, Front, Update)
 import Mocks.TestMonad
-import Test.Hspec
-import Test.QuickCheck
-
--- deriving instance ToJSON (Tag Create)
+  ( TestEntity (getFromState, withGetEntities),
+    TestState
+      ( TestState,
+        deleteResult,
+        filters,
+        getArticles,
+        getAuthors,
+        getCategories,
+        getCategoriesID,
+        getDrafts,
+        getEntityPictures,
+        getPictures,
+        getTags,
+        getUsers,
+        getUsersDisplay,
+        postResult,
+        putResult,
+        userToken
+      ),
+  )
+import Test.QuickCheck (Arbitrary (arbitrary))
 
 deriving instance ToJSON (Tag (Front Create))
 
 deriving instance ToJSON (Tag (Front Update))
 
-instance Arbitrary (Tag Create) where
-  arbitrary = Tag <$> arbitrary
-
-instance Arbitrary (Tag (Front Create)) where
-  arbitrary = Tag <$> arbitrary
-
-instance Arbitrary (Tag (Front Update)) where
-  arbitrary = Tag <$> arbitrary
-
-instance Arbitrary (Tag (Front Display)) where
+instance Arbitrary (Field a '[] Text) => Arbitrary (Tag a) where
   arbitrary = Tag <$> arbitrary
 
 instance TestEntity (Tag a)

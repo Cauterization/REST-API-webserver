@@ -26,7 +26,6 @@ source-repository head
 library
   exposed-modules:
       Api.Article
-      Api.Author
       Api.Category
       Api.Delete
       Api.Draft
@@ -227,9 +226,11 @@ test-suite server-test
       Api.ArticleSpec
       Api.CategorySpec
       Api.DeleteSpec
+      Api.DraftSpec
       Api.GetSpec
       Api.PictureSpec
       Api.PostSpec
+      Api.ProtectedResourcesSpec
       Api.PutSpec
       Api.UserSpec
       App.RouterSpec
@@ -240,10 +241,10 @@ test-suite server-test
       Mocks.Entity.Article
       Mocks.Entity.Author
       Mocks.Entity.Category
+      Mocks.Entity.Draft
       Mocks.Entity.Picture
       Mocks.Entity.Tag
       Mocks.Entity.User
-      Mocks.Get
       Mocks.Predicates
       Mocks.Run
       Mocks.TestMonad

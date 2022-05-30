@@ -1,6 +1,8 @@
 module Mocks.Predicates where
 
 import App.Error
+  ( AppError (..),
+  )
 
 is404Error,
   isParsingError,

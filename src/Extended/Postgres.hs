@@ -1,6 +1,4 @@
 {-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Extended.Postgres
   ( module Database.PostgreSQL.Simple,

@@ -1,16 +1,15 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Mocks.Utils where
 
-import App.Types
-import Data.Typeable
+import App.Types (ID, nameOf, withPluralEnding)
+import Data.Aeson (ToJSON (toJSON), Value (Null))
+import Data.Typeable (Typeable)
 import Extended.Text (Text)
 import Extended.Text qualified as T
-import Data.Aeson
-import HKD.HKD
-import Test.QuickCheck
+import HKD.HKD (NotAllowedFromFront, NotDisplayed, NotUpdated)
+import Test.QuickCheck (Arbitrary (arbitrary))
 
 mkPathFromID :: forall e a. Typeable e => ID (e a) -> Text
 mkPathFromID eID = T.pack (withPluralEnding (nameOf @e)) <> "/" <> T.show eID

@@ -1,25 +1,26 @@
 {-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module App.RouterSpec where
 
-import App.Error
-import App.Result
-import App.Types
-import Data.Data
-import Data.Kind
-import Entity.Tag
+import App.Result (AppResult (ResText))
 import Extended.Text (Text)
 import Extended.Text qualified as T
-import HKD.HKD
-import Mocks.Arbitrary
 import Mocks.Endpoints
-import Mocks.Predicates
-import Mocks.Run
-import Mocks.With
+  ( routerMiddlewareCorrect,
+    routerMiddlewareIncorrect,
+  )
+import Mocks.Predicates (is404Error, isAmbiguousPatternsError)
+import Mocks.Run (evalTest)
+import Mocks.With (withPostPath, woLogger)
 import Test.Hspec
-import Test.QuickCheck
+  ( Spec,
+    describe,
+    it,
+    shouldBe,
+    shouldNotBe,
+    shouldSatisfy,
+  )
+import Test.QuickCheck (Property, Testable (property), (==>))
 
 spec :: Spec
 spec = describe "Router" $ do
@@ -42,7 +43,7 @@ propRouter = property $ do
 
 propRouterAmbiguous :: Property
 propRouterAmbiguous = property $ do
-  Left res <- evalTest (withPostPath "ambiguousPatterns test") id
+  Left res <- evalTest (withPostPath "ambiguousPatterns test" . woLogger) id
   res `shouldSatisfy` isAmbiguousPatternsError
 
 prop404 :: Text -> Property

@@ -1,17 +1,15 @@
-{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Database.User where
 
 import App.Types (Token)
-import Database.Get
-import Database.HasDatabase
-import Database.Internal
-import Entity.Internal
-import Entity.User
+import Database.Get (Gettable, getEntitiesWith)
+import Database.HasDatabase (HasDatabase (FromRowOf, ToRowOf))
+import Database.Internal (getSingle)
+import Entity.Internal (Entity)
+import Entity.User (User)
 import Extended.Text (Text)
-import HKD.HKD
+import HKD.HKD (Display)
 
 getUserByToken ::
   forall m a.

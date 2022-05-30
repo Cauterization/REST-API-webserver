@@ -1,34 +1,63 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Api.PostSpec where
 
-import App.Error
-import App.Path
-import App.Result
-import App.Types
-import Control.Monad
-import Control.Monad.Catch
-import Data.Aeson
+import App.Result (AppResult (ResText))
+import App.Types (nameOf, withPluralEnding)
+import Control.Monad.Catch (MonadThrow (throwM))
+import Data.Aeson (FromJSON, ToJSON, eitherDecode)
 import Data.ByteString.Lazy qualified as BL
-import Data.Data
-import Data.Either
-import Data.Kind
+import Data.Data (Typeable)
+import Data.Either (isLeft)
+import Data.Kind (Type)
 import Database.Internal qualified as Database
-import Entity.Author
-import Entity.Category
-import Entity.Tag
-import Entity.User
+import Entity.Author (Author)
+import Entity.Category (Category)
+import Entity.Draft (Draft)
+import Entity.Tag (Tag)
+import Entity.User (User)
 import Extended.Text qualified as T
-import HKD.HKD
-import Mocks.Arbitrary
-import Mocks.Predicates
-import Mocks.Run
+import HKD.HKD (Create, Front)
+import Mocks.Predicates (isAlreadyExistsError, isParsingError)
+import Mocks.Run (EnvEndo, evalTest)
 import Mocks.TestMonad
-import Mocks.With
+  ( TestState
+      ( TestState,
+        deleteResult,
+        filters,
+        getArticles,
+        getAuthors,
+        getCategories,
+        getCategoriesID,
+        getDrafts,
+        getEntityPictures,
+        getPictures,
+        getTags,
+        getUsers,
+        getUsersDisplay,
+        postResult,
+        putResult,
+        userToken
+      ),
+    defaultPostResult,
+  )
+import Mocks.With (withBLBody, withBody, withPostPath)
 import Test.Hspec
+  ( Example (Arg),
+    Spec,
+    SpecWith,
+    describe,
+    it,
+    shouldBe,
+    shouldSatisfy,
+  )
 import Test.QuickCheck
+  ( Arbitrary,
+    Property,
+    Testable (property),
+    (==>),
+  )
 
 spec :: Spec
 spec = do
@@ -39,6 +68,7 @@ spec = do
 
   describe "Throws an appropriate error when request body is unparsable" $ do
     testPostUnparsable @Author
+    testPostUnparsable @Draft
     testPostUnparsable @Category
     testPostUnparsable @Tag
     testPostUnparsable @User
@@ -101,11 +131,13 @@ propPostUnparsable bl =
           id
       err `shouldSatisfy` isParsingError
 
-propPostAlreadyExists :: forall (e :: Type -> Type). 
-  ( Typeable e
-  , ToJSON (e (Front Create))
-  ) => 
-  e (Front Create) -> Property
+propPostAlreadyExists ::
+  forall (e :: Type -> Type).
+  ( Typeable e,
+    ToJSON (e (Front Create))
+  ) =>
+  e (Front Create) ->
+  Property
 propPostAlreadyExists entity = property $ do
   Left err <-
     evalTest

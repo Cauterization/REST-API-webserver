@@ -1,24 +1,15 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Mocks.Entity.Picture where
 
-import App.Types
-import Control.Monad.State
-import Data.Aeson
-import Entity.Internal
-import Entity.Picture
-import HKD.HKD
-import Mocks.Arbitrary
+import Control.Monad.State (gets, join)
+import Entity.Internal (Entity)
+import Entity.Picture (Picture (Picture), PictureFormat (..))
+import HKD.HKD (Create, Display, Front)
+import Mocks.Arbitrary ()
 import Mocks.TestMonad
-import Test.Hspec
-import Test.QuickCheck
-
--- deriving instance (ToJSON (Picture (Front Create)))
-
--- deriving instance (ToJSON (Category (Front Update)))
-
+  ( TestEntity (getFromState, withGetEntities),
+    TestState (getEntityPictures, getPictures),
+  )
+import Test.QuickCheck (Arbitrary (arbitrary), chooseInt)
 
 instance Arbitrary PictureFormat where
   arbitrary =
@@ -28,20 +19,8 @@ instance Arbitrary PictureFormat where
       2 -> pure GIF
       _ -> undefined
 
-instance Arbitrary (Picture (Front Create)) where
+instance Arbitrary (Picture a) where
   arbitrary = Picture <$> arbitrary <*> arbitrary
-
--- instance Arbitrary (Category (Front Update)) where
---   arbitrary = Category <$> arbitrary <*> arbitrary
-
-instance Arbitrary (Picture (Front Display)) where
-  arbitrary = Picture <$> arbitrary <*> arbitrary
-
--- instance TestEntity (Entity Category (Front Update))
-
--- instance {-# OVERLAPPING #-} TestEntity (ID (Category (Front Update))) where
---   getFromTestDatabase _ = join $ gets getCategoriesID
---   withGetEntities catIDs s = s {getCategoriesID = pure catIDs}
 
 instance TestEntity (Picture Create)
 

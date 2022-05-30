@@ -1,7 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Entity.Category where
 
@@ -13,13 +11,9 @@ import Data.String (IsString)
 import Database.Delete qualified as Database
 import Database.Get qualified as Database
 import Database.Post qualified as Datbase
-import Database.PostgreSQL.Simple qualified as Postgres
-import Database.PostgreSQL.Simple.FromField qualified as Postgres
-import Database.PostgreSQL.Simple.FromRow qualified as Postgres
-import Database.PostgreSQL.Simple.ToField qualified as Postgres
-import Database.PostgreSQL.Simple.Types qualified as Postgres
 import Database.Put qualified as Database
 import Entity.Internal (Entity)
+import Extended.Postgres qualified as Postgres
 import Extended.Text (Text)
 import GHC.Generics (Generic)
 import HKD.HKD (Create, Delete, Display, Field, Front, Update)
@@ -39,7 +33,7 @@ type family CatParent a where
   CatParent (Front Display) = [CategoryName Display]
   CatParent (Front Update) = (ID (Category (Front Update)))
   CatParent Delete = ()
-  CatParent a = Maybe (ID (Category Display)) -- for tests
+  CatParent a = Maybe (ID (Category Display))
 
 deriving instance
   ( Data a,

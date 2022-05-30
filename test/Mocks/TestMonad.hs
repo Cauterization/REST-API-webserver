@@ -1,34 +1,54 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Mocks.TestMonad where
 
-import App.AppT
-import App.Error
-import App.Impure
-import App.Types
+import App.AppT (AppT, Env (envLogger))
+import App.Error (AppError, fromDBError, handleDBErrors)
+import App.Impure (Impure (..))
+import App.Types (ID (ID), Token)
 import Control.Monad.Catch
+  ( Exception (fromException),
+    MonadCatch (..),
+    MonadThrow (..),
+    SomeException (SomeException),
+  )
 import Control.Monad.Except
-import Control.Monad.Reader
+  ( ExceptT (..),
+    MonadError (throwError),
+    MonadTrans (lift),
+    join,
+  )
+import Control.Monad.Reader (asks)
 import Control.Monad.State
-import Control.Monad.Writer
+  ( MonadState (state),
+    State,
+    StateT (StateT),
+    gets,
+    modify,
+  )
+import Control.Monad.Writer (MonadWriter, WriterT (WriterT))
 import Database.EntityFilters qualified as Database
 import Database.HasDatabase qualified as Database
 import Database.Internal qualified as Database
-import Entity.Article
-import Entity.Internal
-import Entity.Category
-import Entity.Picture
-import Entity.Tag
-import Entity.User
+import Entity.Article (Article)
+import Entity.Author (Author)
+import Entity.Category (Category)
+import Entity.Draft (Draft)
+import Entity.Internal (Entity)
+import Entity.Picture (Picture)
+import Entity.Tag (Tag)
+import Entity.User (User)
 import Extended.Text (Text)
 import Extended.Text qualified as T
-import HKD.HKD
+import HKD.HKD (Display, Front, Update)
 import Logger qualified
 import Mocks.Constant
-import Entity.Author
+  ( testDateConstant,
+    testPaginationConstant,
+    testTokenConstant,
+  )
 
 newtype TestMonad a = TestMonad
   { unTestM ::
@@ -160,6 +180,7 @@ data TestState = TestState
     getPictures :: TestMonadT [Picture (Front Display)],
     getEntityPictures :: TestMonadT [Entity Picture (Front Display)],
     getArticles :: TestMonadT [Entity Article (Front Display)],
+    getDrafts :: TestMonadT [Entity Draft (Front Display)],
     userToken :: Maybe Token
   }
 
@@ -179,6 +200,7 @@ initialState =
       getPictures = pure [],
       getEntityPictures = pure [],
       getArticles = pure [],
+      getDrafts = pure [],
       userToken = Nothing
     }
 

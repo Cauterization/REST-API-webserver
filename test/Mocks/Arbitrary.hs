@@ -1,17 +1,14 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Mocks.Arbitrary where
 
-import App.Types
+import App.Types (Date, ID (ID))
 import Data.ByteString.Lazy qualified as BL
-import Entity.Internal
+import Entity.Internal (Entity (Entity))
 import Extended.Text (Text)
 import Extended.Text qualified as T
-import Test.Hspec
-import Test.QuickCheck
+import Test.QuickCheck (Arbitrary (arbitrary))
 
 instance Arbitrary Text where
   arbitrary = T.pack <$> arbitrary

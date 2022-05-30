@@ -1,12 +1,10 @@
 {-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Mocks.Constant where
 
-import App.Types
+import App.Types (Date, PaginationSize, Token)
 import Data.Time qualified as Time
-import Extended.Text
+import Extended.Text (Text)
 
 testPaginationConstant :: PaginationSize
 testPaginationConstant = 20

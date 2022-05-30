@@ -1,19 +1,21 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Mocks.Entity.Category where
 
-import App.Types
-import Control.Monad.State
-import Data.Aeson
-import Entity.Internal
+import App.Types (ID)
+import Control.Monad.State (gets, join)
+import Data.Aeson (ToJSON)
 import Entity.Category
-import HKD.HKD
-import Mocks.Arbitrary
+  ( CatParent,
+    Category (Category),
+    CategoryName (CategoryName),
+  )
+import Entity.Internal (Entity)
+import HKD.HKD (Create, Display, Field, Front, Update)
+import Mocks.Arbitrary ()
 import Mocks.TestMonad
-import Test.Hspec
-import Test.QuickCheck
+  ( TestEntity (getFromState, getFromTestDatabase, withGetEntities),
+    TestState (getCategories, getCategoriesID),
+  )
+import Test.QuickCheck (Arbitrary (arbitrary))
 
 deriving instance (ToJSON (Category (Front Create)))
 
@@ -24,13 +26,12 @@ instance TestEntity (Category a)
 instance Arbitrary (CategoryName a) where
   arbitrary = CategoryName <$> arbitrary
 
-instance Arbitrary (Category (Front Create)) where
-  arbitrary = Category <$> arbitrary <*> arbitrary
-
-instance Arbitrary (Category (Front Update)) where
-  arbitrary = Category <$> arbitrary <*> arbitrary
-
-instance Arbitrary (Category (Front Display)) where
+instance
+  ( Arbitrary (Field a '[] (CategoryName a)),
+    Arbitrary (Field a '[] (CatParent a))
+  ) =>
+  Arbitrary (Category a)
+  where
   arbitrary = Category <$> arbitrary <*> arbitrary
 
 instance TestEntity (Entity Category (Front Update))
