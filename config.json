@@ -1,5 +1,5 @@
 { 
-    "cLogger" : {
+    "Logger" : {
         "" : "Debug | Info | Warning | Error",
         "Verbosity" : "Debug",
 
@@ -8,15 +8,21 @@
        
     },
   
-    "cDatabase" : {
-        "" : "Database connection string",
-        "cConn" : "host='' port=5432 user='' password=1",
+    "Database" : {
+
+        "Host" : "localhost",
+
+        "Port" : 5432,
+
+        "User" : "",
+
+        "Password" : "",
 
         "" : "Pagination size",
-        "cPagSize" : 20
+        "PagSize" : 20
     },
 
-    "cPort" : 3000,
+    "Port" : 3000,
 
-    "cAddress" : "http://localhost"
+    "Address" : "http://localhost"
 }
