@@ -12,7 +12,7 @@ import Database.Delete qualified as Database
 import Database.Get qualified as Database
 import Database.Post qualified as Database
 import Database.Put qualified as Database
-import Entity.Internal (Entity, EntityOrID)
+import Entity.Internal (Entity(..), EntityOrID)
 import Entity.User (User)
 import Extended.Postgres qualified as Postgres
 import GHC.Generics (Generic)
@@ -82,6 +82,9 @@ instance Database.Gettable (Entity Author) (Front Display) where
 deriving instance FromJSON (Author (Front Update))
 
 deriving instance Postgres.ToRow (Author (Front Update))
+
+instance Postgres.ToRow (Entity Author (Front Update)) where
+  toRow Entity {..} = Postgres.toRow entity ++ Postgres.toRow entityID
 
 instance Database.Puttable (Author (Front Update)) where
   putQuery =

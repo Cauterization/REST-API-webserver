@@ -8,7 +8,7 @@ import App.Types (Date, ID (ID))
 import Control.Monad.State (gets, join)
 import Data.Aeson (KeyValue ((.=)), ToJSON (toJSON), Value, object)
 import Database.EntityFilters qualified as Database
-import Entity.Article (Article (..))
+import Entity.Article (Article (..), ArticleFieldsConstraint)
 import Entity.Author (Author (user))
 import Entity.Category
   ( Category (name, parent),
@@ -61,12 +61,7 @@ picToJSON =
     . T.show
 
 instance
-  ( Arbitrary (Field a '[] T.Text),
-    Arbitrary (Field a '[NotAllowedFromFront, Immutable] Date),
-    Arbitrary (Field a '[NotAllowedFromFront, Immutable] (EntityOrID Author a)),
-    Arbitrary (Field a '[] (EntityOrID Category a)),
-    Arbitrary (Field a '[] [EntityOrID Tag a]),
-    Arbitrary (Field a '[] [ID (Picture a)])
+  ( ArticleFieldsConstraint a Arbitrary
   ) =>
   Arbitrary (Article a)
   where

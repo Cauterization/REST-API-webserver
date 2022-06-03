@@ -9,6 +9,7 @@ import App.Types (Date, ID (ID), fieldsQuery)
 import Data.Aeson (FromJSON)
 import Data.Char (toLower)
 import Data.Data (Data)
+import Data.Kind (Type, Constraint)
 import Data.Maybe (catMaybes)
 import Data.String (IsString (fromString))
 import Database.EntityFilters qualified as Database
@@ -48,37 +49,29 @@ data Article a = Article
   }
   deriving stock (Generic)
 
+type ArticleFieldsConstraint a (constr :: Type -> Constraint) =
+  ( constr (Field a '[] Text),
+    constr (Field a '[NotAllowedFromFront, Immutable] Date),
+    constr (Field a '[] Text),
+    constr (Field a '[NotAllowedFromFront, Immutable] (EntityOrID Author a)),
+    constr (Field a '[] (EntityOrID Category a)),
+    constr (Field a '[] [EntityOrID Tag a]),
+    constr (Field a '[] [ID (Picture a)])
+  )
+
 deriving instance
   ( Data a,
-    Data (Field a '[] Text),
-    Data (Field a '[NotAllowedFromFront, Immutable] Date),
-    Data (Field a '[] Text),
-    Data (Field a '[NotAllowedFromFront, Immutable] (EntityOrID Author a)),
-    Data (Field a '[] (EntityOrID Category a)),
-    Data (Field a '[] [EntityOrID Tag a]),
-    Data (Field a '[] [ID (Picture a)])
+    ArticleFieldsConstraint a Data
   ) =>
   Data (Article a)
 
 deriving instance
-  ( Show (Field a '[] Text),
-    Show (Field a '[NotAllowedFromFront, Immutable] Date),
-    Show (Field a '[] Text),
-    Show (Field a '[NotAllowedFromFront, Immutable] (EntityOrID Author a)),
-    Show (Field a '[] (EntityOrID Category a)),
-    Show (Field a '[] [EntityOrID Tag a]),
-    Show (Field a '[] [ID (Picture a)])
+  ( ArticleFieldsConstraint a Show
   ) =>
   Show (Article a)
 
 deriving instance
-  ( Eq (Field a '[] Text),
-    Eq (Field a '[NotAllowedFromFront, Immutable] Date),
-    Eq (Field a '[] Text),
-    Eq (Field a '[NotAllowedFromFront, Immutable] (EntityOrID Author a)),
-    Eq (Field a '[] (EntityOrID Category a)),
-    Eq (Field a '[] [EntityOrID Tag a]),
-    Eq (Field a '[] [ID (Picture a)])
+  ( ArticleFieldsConstraint a Eq
   ) =>
   Eq (Article a)
 

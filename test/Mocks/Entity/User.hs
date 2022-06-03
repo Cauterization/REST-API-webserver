@@ -10,7 +10,7 @@ import Data.Aeson
     genericToJSON,
   )
 import Entity.Internal (Entity)
-import Entity.User (Auth, AuthField, User (..))
+import Entity.User (Auth, AuthField, User (..), UserFieldsConstraint)
 import Extended.Text (Text)
 import HKD.HKD
   ( Create,
@@ -61,13 +61,7 @@ instance ToJSON (User (Front Create)) where
 deriving instance ToJSON (User Auth)
 
 instance
-  ( Arbitrary (Field a '[Immutable] Text),
-    Arbitrary (Field a '[Immutable] Text),
-    Arbitrary (Field a '[Immutable, AuthField] Text),
-    Arbitrary (Field a '[NotAllowedFromFront, Hidden] Text),
-    Arbitrary (Field a '[Immutable, Hidden, AuthField] Text),
-    Arbitrary (Field a '[Immutable, NotAllowedFromFront] Date),
-    Arbitrary (Field a '[Immutable] Bool)
+  ( UserFieldsConstraint a Arbitrary
   ) =>
   Arbitrary (User a)
   where

@@ -68,9 +68,6 @@ instance
     entity <- Postgres.fromRow
     pure Entity {..}
 
-instance Postgres.ToRow (e a) => Postgres.ToRow (Entity e a) where
-  toRow Entity {..} = Postgres.toRow entity ++ Postgres.toRow entityID
-
 type family EntityOrID (e :: Type -> Type) a :: * where
   EntityOrID e (Front Display) = Entity e (Front Display)
   EntityOrID e Display = Entity e Display
