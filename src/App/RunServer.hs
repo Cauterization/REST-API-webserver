@@ -37,6 +37,7 @@ runServer = handle handler $ do
   let logger = Logger.fromConfig cLogger
   whenM (("migrations" `elem`) <$> getArgs) $
     Database.runMigrations @(AppT IO) cDatabase logger
+  logger Logger.Info "Starting server."
   processRequest logger Config {..} connectionDB
   where
     handler (e :: IOException) = Sys.die $ show e <> ". Terminating..."
@@ -51,7 +52,7 @@ processRequest ::
 processRequest logger Config {..} connectionDB = Wai.run cPort $ \req respond -> do
   body <- Wai.strictRequestBody req
   logger Logger.Debug $
-    T.take 1000 $ "Recieved request:\n" .< req
+    T.take 1000 $ "Received request:\n" .< req
   ToResponse {..} <-
     let getFromHeaders p = T.decodeUtf8 <$> lookup p (Wai.requestHeaders req)
      in either responseFromError responseFromResult

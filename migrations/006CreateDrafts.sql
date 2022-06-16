@@ -70,8 +70,8 @@ CREATE OR REPLACE VIEW drafts_view AS (
         INNER JOIN draft_token  ON draft_token.draft_id = D.id
         INNER JOIN authors_view ON authors_view.author_id = D.author_id
         INNER JOIN cat_branches ON cat_branches.id = D.category_id 
-        INNER JOIN draft_tag    ON draft_tag.draft_id = D.id
-        INNER JOIN tags         ON tags.id = draft_tag.tag_id
+        LEFT  JOIN draft_tag    ON draft_tag.draft_id = D.id
+        LEFT  JOIN tags         ON tags.id = draft_tag.tag_id
 
     GROUP BY 
         D.id, D.title, D.created, D.last_update, D.content,
@@ -81,3 +81,25 @@ CREATE OR REPLACE VIEW drafts_view AS (
         branch
 
 );
+
+CREATE OR REPLACE FUNCTION draft_access(text, int) 
+  RETURNS void
+  LANGUAGE plpgsql AS 
+$func$  
+DECLARE
+   ex BOOL := EXISTS (SELECT * FROM drafts_view WHERE token = $1 AND draft_id = $2);
+BEGIN  
+   IF NOT ex 
+   THEN RAISE EXCEPTION 'WRONG TOKEN %', $1 USING ERRCODE = '23505';
+   END IF;
+END
+$func$;
+
+CREATE OR REPLACE FUNCTION token_check (TEXT) 
+  RETURNS INT AS $$
+BEGIN  
+   IF NOT EXISTS (SELECT user_id FROM user_token WHERE token = $1)
+   THEN RAISE EXCEPTION 'TOKEN % DOES NOT EXISTS', $1;
+   ELSE RETURN (SELECT user_id FROM user_token WHERE token = $1);
+   END IF;
+END; $$ LANGUAGE plpgsql;

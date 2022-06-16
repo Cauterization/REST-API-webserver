@@ -60,7 +60,7 @@ instance Database.Gettable (Entity Draft) (Front Display) where
 -- | Put
 deriving newtype instance FromJSON (Draft (Front Update))
 
-instance {-# OVERLAPPING #-} Postgres.ToRow (Entity Draft (Front Update)) where
+instance Postgres.ToRow (Entity Draft (Front Update)) where
   toRow (Entity draftID (Draft Article {..})) =
     Postgres.toRow (title, content, category, tags, pics, draftID, draftID)
 
@@ -81,7 +81,7 @@ instance Database.Deletable Draft where
 -- | Publish
 deriving newtype instance EmptyData (Draft Publish)
 
-instance {-# OVERLAPPING #-} Postgres.ToRow (Entity Draft Publish) where
+instance Postgres.ToRow (Entity Draft Publish) where
   toRow Entity {..} = Postgres.toRow entityID
 
 instance Database.Puttable (Draft Publish) where

@@ -7,13 +7,14 @@ import App.Types (Date)
 import Data.Aeson (FromJSON (..), ToJSON (..), camelTo2, defaultOptions, fieldLabelModifier, genericParseJSON, genericToJSON, omitNothingFields)
 import Data.Aeson qualified as A
 import Data.Data (Data)
+import Data.Kind (Type, Constraint)
 import Data.Generics.Product.Fields qualified as GL
 import Data.Text (Text)
 import Database.Delete qualified as Database
 import Database.Get qualified as Database
 import Database.Post qualified as Database
 import Database.Put qualified as Database
-import Entity.Internal (Entity)
+import Entity.Internal (Entity(..))
 import Extended.Postgres qualified as Postgres
 import GHC.Generics (Generic)
 import HKD.HKD
@@ -37,7 +38,7 @@ data User a = User
     token :: !(Field a '[NotAllowedFromFront, Hidden] Text),
     password :: !(Field a '[Immutable, Hidden, AuthField] Text),
     registered :: !(Field a '[Immutable, NotAllowedFromFront] Date),
-    admin :: !(Field a '[Immutable] Bool)
+    admin :: !(Field a '[Immutable, NotAllowedFromFront] Bool)
   }
   deriving stock (Generic)
 
@@ -48,37 +49,29 @@ instance
   where
   field = GL.field' @name
 
+type UserFieldsConstraint a (constr :: Type -> Constraint) =
+  ( constr (Field a '[Immutable] Text),
+    constr (Field a '[Immutable] Text),
+    constr (Field a '[Immutable, AuthField] Text),
+    constr (Field a '[NotAllowedFromFront, Hidden] Text),
+    constr (Field a '[Immutable, Hidden, AuthField] Text),
+    constr (Field a '[Immutable, NotAllowedFromFront] Date),
+    constr (Field a '[Immutable, NotAllowedFromFront] Bool)
+  )
+
 deriving instance
   ( Data a,
-    Data (Field a '[Immutable] Text),
-    Data (Field a '[Immutable] Text),
-    Data (Field a '[Immutable, AuthField] Text),
-    Data (Field a '[NotAllowedFromFront, Hidden] Text),
-    Data (Field a '[Immutable, Hidden, AuthField] Text),
-    Data (Field a '[Immutable, NotAllowedFromFront] Date),
-    Data (Field a '[Immutable] Bool)
+    UserFieldsConstraint a Data
   ) =>
   Data (User a)
 
 deriving instance
-  ( Show (Field a '[Immutable] Text),
-    Show (Field a '[Immutable] Text),
-    Show (Field a '[Immutable, AuthField] Text),
-    Show (Field a '[NotAllowedFromFront, Hidden] Text),
-    Show (Field a '[Immutable, Hidden, AuthField] Text),
-    Show (Field a '[Immutable, NotAllowedFromFront] Date),
-    Show (Field a '[Immutable] Bool)
+  ( UserFieldsConstraint a Show
   ) =>
   Show (User a)
 
 deriving instance
-  ( Eq (Field a '[Immutable] Text),
-    Eq (Field a '[Immutable] Text),
-    Eq (Field a '[Immutable, AuthField] Text),
-    Eq (Field a '[NotAllowedFromFront, Hidden] Text),
-    Eq (Field a '[Immutable, Hidden, AuthField] Text),
-    Eq (Field a '[Immutable, NotAllowedFromFront] Date),
-    Eq (Field a '[Immutable] Bool)
+  ( UserFieldsConstraint a Eq
   ) =>
   Eq (User a)
 
@@ -124,6 +117,9 @@ deriving instance Postgres.FromRow (User Display)
 deriving instance EmptyData (User Update)
 
 deriving instance Postgres.ToRow (User Update)
+
+instance Postgres.ToRow (Entity User Update) where
+  toRow Entity {..} = Postgres.toRow entity ++ Postgres.toRow entityID
 
 instance Database.Puttable (User Update)
 

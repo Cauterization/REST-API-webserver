@@ -72,7 +72,12 @@ postUser _ = do
   User {..} <- decodedBody @(User (Front Create))
   let hashedPass = mkHash password
   Logger.info "Attempt to post user"
-  let user = User {registered = now, token = userToken, password = hashedPass, ..}
+  let user = User 
+        { registered = now
+        , token = userToken
+        , password = hashedPass
+        , admin = False
+        , ..}
   userID <- Database.postEntity user
   json (userID, userToken)
 

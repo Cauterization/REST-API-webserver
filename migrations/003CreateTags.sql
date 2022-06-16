@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS tags ( 
+
+	id          SERIAL NOT NULL PRIMARY KEY, 
+
+	name        TEXT NOT NULL UNIQUE 
+
+);

@@ -1,5 +1,3 @@
-DROP FUNCTION post_draft;
-
 CREATE OR REPLACE FUNCTION post_draft 
     ( title_var    TEXT
     , created_var  DATE
@@ -15,12 +13,7 @@ DECLARE
 BEGIN
 
     INSERT INTO articles (title, created, content, author, category, published) 
-        VALUES ( title_var
-               , created_var
-               , content_var
-               , (SELECT id FROM authors WHERE user_id = author_var)
-               , category_var, false
-               )
+        VALUES (title_var, created_var, content_var, author_var, category_var, false)
         RETURNING id INTO draft_id_var;
 
     INSERT INTO article_tag (tag_id, article_id)
