@@ -7,14 +7,14 @@ import App.Types (Date)
 import Data.Aeson (FromJSON (..), ToJSON (..), camelTo2, defaultOptions, fieldLabelModifier, genericParseJSON, genericToJSON, omitNothingFields)
 import Data.Aeson qualified as A
 import Data.Data (Data)
-import Data.Kind (Type, Constraint)
 import Data.Generics.Product.Fields qualified as GL
+import Data.Kind (Constraint, Type)
 import Data.Text (Text)
 import Database.Delete qualified as Database
 import Database.Get qualified as Database
 import Database.Post qualified as Database
 import Database.Put qualified as Database
-import Entity.Internal (Entity(..))
+import Entity.Internal (Entity (..))
 import Extended.Postgres qualified as Postgres
 import GHC.Generics (Generic)
 import HKD.HKD

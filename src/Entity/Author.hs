@@ -12,7 +12,7 @@ import Database.Delete qualified as Database
 import Database.Get qualified as Database
 import Database.Post qualified as Database
 import Database.Put qualified as Database
-import Entity.Internal (Entity(..), EntityOrID)
+import Entity.Internal (Entity (..), EntityOrID)
 import Entity.User (User)
 import Extended.Postgres qualified as Postgres
 import GHC.Generics (Generic)

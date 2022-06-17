@@ -17,15 +17,15 @@ import Data.Coerce (coerce)
 import Data.Text (Text)
 import Data.Vector qualified as Vector
 import Entity.Article (Article (..))
-import Entity.Author (Author )
+import Entity.Author (Author)
 import Entity.Category (Category)
 import Entity.Draft (Draft (Draft))
-import Entity.Tag (Tag)
 import Entity.Internal (Entity (..))
 import Entity.Picture (Picture)
+import Entity.Tag (Tag)
 import Entity.User (User)
 import Extended.Text qualified as T
-import HKD.HKD (Display, Front, Create)
+import HKD.HKD (Create, Display, Front)
 
 json :: (Application m, ToJSONResult e) => e -> m AppResult
 json = fmap (ResJSON . encode) . toJSONResult
@@ -41,9 +41,13 @@ instance ToJSONResult a => ToJSONResult [a] where
   toJSONResult = fmap (Array . Vector.fromList) . mapM toJSONResult
 
 deriving instance ToJSONResult (ID (User Create), Token)
+
 deriving instance ToJSONResult (Entity Author (Front Display))
+
 deriving instance ToJSONResult (Entity Category (Front Display))
+
 deriving instance ToJSONResult (Entity Tag (Front Display))
+
 deriving instance ToJSONResult (Entity User (Front Display))
 
 instance ToJSONResult (Entity Draft (Front Display)) where

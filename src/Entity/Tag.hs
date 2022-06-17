@@ -9,7 +9,7 @@ import Database.Delete qualified as Database
 import Database.Get qualified as Database
 import Database.Post qualified as Database
 import Database.Put qualified as Database
-import Entity.Internal (Entity(..))
+import Entity.Internal (Entity (..))
 import Extended.Postgres qualified as Postgres
 import GHC.Generics (Generic)
 import HKD.HKD (Create, Display, Field, Front, Update)
