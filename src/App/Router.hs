@@ -1,38 +1,29 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module App.Router where
 
-import App.Config (Config)
-import App.Internal
-  ( AppError,
-    AppT,
+import App.AppT
+  ( AppT,
     Application,
-    DB,
     Env (Env),
-    ambiguousPatterns,
-    fromDBException,
-    pageNotFoundError,
     runApp,
   )
-import App.QueryParams (QueryParams)
-import App.Result (AppResult, Endpoint)
-import App.Types
-  ( Body,
-    ContentType,
-    Current,
-    ID,
+import App.Config (Config)
+import App.Error (AppError, ambiguousPatterns, pageNotFoundError)
+import App.Path
+  ( Current,
     Path (DELETE, GET, POST, PUBLISH, PUT),
     Pattern,
-    Token,
     getMethod,
     getURL,
   )
-import Control.Monad.Catch
-  ( MonadCatch,
-    MonadThrow (..),
-    handle,
-    try,
-  )
+import App.QueryParams (QueryParams)
+import App.Result (AppResult, Endpoint)
+import App.Types (Body, ContentType, ID, Token)
+import Control.Monad.Catch (MonadCatch, try)
 import Control.Monad.Reader
   ( MonadReader (ask),
     ReaderT (..),
@@ -45,9 +36,7 @@ import Control.Monad.Writer
   )
 import Data.Coerce (coerce)
 import Data.Kind (Type)
-import Database.Internal qualified as Database
-  ( IsDatabase (ConnectionOf),
-  )
+import Database.HasDatabase qualified as Database
 import Extended.Text (Text)
 import Extended.Text qualified as T
 import HKD.HKD (Create, Delete, Display, Front, Publish, Update)
@@ -88,16 +77,13 @@ newtype Router (e :: Type -> Type) (m :: Type -> Type) a = Router
 
 runRouter ::
   forall e m.
-  ( Monad m,
-    MonadThrow m,
-    Logger.RunLogger m,
-    Logger.HasLogger (AppT m),
-    MonadCatch m,
-    Application (AppT m),
-    Routed e (AppT m)
+  ( Application (AppT m),
+    Routed e (AppT m),
+    Monad m,
+    MonadCatch m
   ) =>
   Logger.Logger m ->
-  Database.ConnectionOf (DB m) ->
+  Database.ConnectionOf (AppT m) ->
   Path Current ->
   Body ->
   Maybe ContentType ->
@@ -106,25 +92,13 @@ runRouter ::
   Config ->
   m (Either AppError AppResult)
 runRouter logger connDB path body conentType qparams token config =
-  appHandler logger $
+  try $
     runApp (Env logger connDB path body conentType qparams token config) $
-      do
-        execWriterT (runReaderT (unRouter (router @e @(AppT m))) path)
-          >>= \case
-            Route _ success -> success
-            AmbiguousPatterns ps -> ambiguousPatterns ps
-            _ -> pageNotFoundError
-
-appHandler ::
-  (MonadCatch m) =>
-  Logger.Logger m ->
-  m AppResult ->
-  m (Either AppError AppResult)
-appHandler logger = try . handle (throwWithLog . fromDBException)
-  where
-    throwWithLog err = do
-      logger Logger.Info $ T.show err
-      throwM err
+      execWriterT (runReaderT (unRouter (router @e @(AppT m))) path)
+        >>= \case
+          Route _ success -> success
+          AmbiguousPatterns ps -> ambiguousPatterns ps
+          _ -> pageNotFoundError
 
 withPathCmp :: Endpoint m -> Path Pattern -> Path Current -> RouterResult m
 withPathCmp f pp pc
@@ -150,7 +124,7 @@ addRoute ::
   Path Pattern ->
   Endpoint m ->
   Router (e :: Type -> Type) m ()
-addRoute pp f = ask >>= tell . withPathCmp f pp
+addRoute path endpoint = ask >>= tell . withPathCmp endpoint path
 
 post,
   get,

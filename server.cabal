@@ -26,7 +26,6 @@ source-repository head
 library
   exposed-modules:
       Api.Article
-      Api.Author
       Api.Category
       Api.Delete
       Api.Draft
@@ -37,23 +36,31 @@ library
       Api.Publish
       Api.Put
       Api.User
-      App.App
+      App.AppT
       App.Config
-      App.Internal
+      App.Endpoints
+      App.Error
+      App.Getters
+      App.Impure
       App.Opts
+      App.Path
       App.QueryParams
       App.Result
       App.ResultJSON
       App.Router
+      App.RunServer
       App.Types
+      Database.Article
       Database.Config
-      Database.Database
       Database.Delete
+      Database.Draft
+      Database.EntityFilters
       Database.Get
       Database.HasDatabase
       Database.Internal
       Database.Post
       Database.Put
+      Database.User
       Entity.Article
       Entity.Author
       Entity.Category
@@ -96,7 +103,6 @@ library
       FlexibleContexts
       FlexibleInstances
       ImplicitParams
-      ImportQualifiedPost
       InstanceSigs
       LambdaCase
       MultiParamTypeClasses
@@ -106,11 +112,10 @@ library
       RecordWildCards
       ScopedTypeVariables
       StandaloneDeriving
-      TypeApplications
       TypeFamilies
       TypeOperators
       UndecidableInstances
-      ViewPatterns
+      UndecidableSuperClasses
   ghc-options: -j6  -O0
   build-depends:
       QuickCheck
@@ -169,7 +174,6 @@ executable server-exe
       FlexibleContexts
       FlexibleInstances
       ImplicitParams
-      ImportQualifiedPost
       InstanceSigs
       LambdaCase
       MultiParamTypeClasses
@@ -179,11 +183,10 @@ executable server-exe
       RecordWildCards
       ScopedTypeVariables
       StandaloneDeriving
-      TypeApplications
       TypeFamilies
       TypeOperators
       UndecidableInstances
-      ViewPatterns
+      UndecidableSuperClasses
   ghc-options: -j6  -O0 -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
   build-depends:
       QuickCheck
@@ -226,33 +229,32 @@ test-suite server-test
   main-is: Spec.hs
   other-modules:
       Api.ArticleSpec
-      Api.AuthorSpec
       Api.CategorySpec
+      Api.DeleteSpec
       Api.DraftSpec
+      Api.GetSpec
       Api.PictureSpec
-      Api.TagSpec
+      Api.PostSpec
+      Api.ProtectedResourcesSpec
+      Api.PutSpec
       Api.UserSpec
       App.RouterSpec
-      App.TypesSpec
-      Helpers.App
-      Helpers.Article
-      Helpers.ArticleDB
-      Helpers.Author
-      Helpers.AuthorDB
-      Helpers.Category
-      Helpers.CategoryDB
-      Helpers.Database
-      Helpers.Draft
-      Helpers.DraftDB
-      Helpers.GenericProps
-      Helpers.Internal
-      Helpers.Monad
-      Helpers.Picture
-      Helpers.PictureDB
-      Helpers.Tag
-      Helpers.TagDB
-      Helpers.User
-      Helpers.UserDB
+      Mocks.Arbitrary
+      Mocks.Config
+      Mocks.Constant
+      Mocks.Endpoints
+      Mocks.Entity.Article
+      Mocks.Entity.Author
+      Mocks.Entity.Category
+      Mocks.Entity.Draft
+      Mocks.Entity.Picture
+      Mocks.Entity.Tag
+      Mocks.Entity.User
+      Mocks.Predicates
+      Mocks.Run
+      Mocks.TestMonad
+      Mocks.Utils
+      Mocks.With
       Paths_server
   hs-source-dirs:
       test
@@ -272,7 +274,6 @@ test-suite server-test
       FlexibleContexts
       FlexibleInstances
       ImplicitParams
-      ImportQualifiedPost
       InstanceSigs
       LambdaCase
       MultiParamTypeClasses
@@ -282,12 +283,11 @@ test-suite server-test
       RecordWildCards
       ScopedTypeVariables
       StandaloneDeriving
-      TypeApplications
       TypeFamilies
       TypeOperators
       UndecidableInstances
-      ViewPatterns
-  ghc-options: -j6  -O0 -threaded -rtsopts -with-rtsopts=-N -Wno-missing-methods -Wno-missing-fields
+      UndecidableSuperClasses
+  ghc-options: -j6  -O0 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
     , aeson

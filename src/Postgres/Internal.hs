@@ -1,20 +1,26 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Postgres.Internal where
 
 import Control.Monad (forM_)
 import Control.Monad.Catch
   ( Handler (Handler),
-    MonadThrow (throwM),
+    MonadCatch,
+    MonadThrow (..),
     catches,
   )
+import Control.Monad.IO.Class (MonadIO (..))
 import Data.ByteString qualified as B hiding (putStrLn)
 import Data.FileEmbed (embedDir)
 import Data.Function (on)
 import Data.List qualified as L
 import Data.Pool qualified as Pool
 import Database.Config qualified as Database
-import Database.Internal (IsDatabase)
+import Database.HasDatabase qualified as Database
 import Database.Internal qualified as Database
 import Database.PostgreSQL.Simple.Migration
   ( MigrationCommand (MigrationInitialization, MigrationScript),
@@ -28,97 +34,127 @@ import Database.PostgreSQL.Simple.Migration
     runMigration,
   )
 import Extended.Postgres
+  ( Connection,
+    FormatError,
+    FromRow,
+    SqlError (..),
+    ToRow,
+    close,
+    connectPostgreSQL,
+    execute,
+    formatQuery,
+    query,
+  )
 import Extended.Text qualified as T
 import Logger qualified
 import System.Exit (exitFailure)
 
-data Postgres
+type PGConnection = Pool.Pool Connection
 
-instance IsDatabase Postgres where
-  type QueryOf Postgres = Query
-  type ToRowOf Postgres q = ToRow q
-  type FromRowOf Postgres r = FromRow r
-  type ConnectionOf Postgres = Pool.Pool Connection
-  type DatabaseMonad Postgres = IO
+type PGFromRow = FromRow
 
-  mkConnectionIO Database.Config {..} =
-    Pool.createPool
-      (connectPostgreSQL $ Database.toDBConnectionString Database.Config {..})
-      close
-      1
-      30
-      4
+type PGToRow = ToRow
 
-  runMigrations conf l = do
-    pool <- Database.mkConnectionIO @Postgres conf
-    Pool.withResource pool $ \conn -> do
-      let defaultContext =
-            MigrationContext
-              { migrationContextCommand = MigrationInitialization,
-                migrationContextVerbose = False,
-                migrationContextConnection = conn
-              }
-          migrations =
-            ("(init)", defaultContext) :
-              [ ( k,
-                  defaultContext
-                    { migrationContextCommand =
-                        MigrationScript k v
-                    }
-                )
-                | (k, v) <- sortedMigrations
-              ]
-      forM_ migrations $ \(migrDescr, migr) -> do
-        l Logger.Info $ "Running migration: " <> T.pack migrDescr
-        res <- runMigration migr
-        case res of
-          MigrationSuccess -> return ()
-          MigrationError reason -> do
-            l Logger.Error $ "Migration failed: " <> T.pack reason
-            exitFailure
+type HasPGDatabase m =
+  ( Monad m,
+    MonadIO m,
+    MonadCatch m,
+    Logger.HasLogger m,
+    Database.HasDatabase m,
+    Database.ConnectionOf m ~ PGConnection
+  )
 
-  postToDatabase pc q a = pgHandler $
-    Pool.withResource pc $ \conn ->
-      formatQuery conn q a >>= B.putStr
-        >> query conn q a >>= Database.getSingle
+queryWithlog ::
+  (ToRow a, FromRow r, HasPGDatabase m) =>
+  Database.DBQuery ->
+  a ->
+  m [r]
+queryWithlog (Database.fromQuery -> q) a = pgHandler $ do
+  Logger.sql $ T.show q
+  pc <- Database.getDatabaseConnection
+  (queryToLog, res) <- liftIO $
+    Pool.withResource pc $ \conn -> do
+      queryToLog <- liftIO $ T.decodeUtf8 <$> formatQuery conn q a
+      res <- liftIO $ query conn q a
+      pure (queryToLog, res)
+  Logger.sql queryToLog
+  pure res
 
-  getFromDatabase pc q a = pgHandler $
-    Pool.withResource pc $ \conn ->
-      formatQuery conn q a >>= B.putStr
-        >> query conn q a
+executeWithLog ::
+  (ToRow a, HasPGDatabase m) =>
+  Database.DBQuery ->
+  a ->
+  m Integer
+executeWithLog (Database.fromQuery -> q) a = pgHandler $ do
+  Logger.sql $ T.show q
+  pc <- Database.getDatabaseConnection
+  (queryToLog, res) <- liftIO $
+    Pool.withResource pc $ \conn -> do
+      queryToLog <- liftIO $ T.decodeUtf8 <$> formatQuery conn q a
+      res <- liftIO $ fromIntegral <$> execute conn q a
+      pure (queryToLog, res)
+  Logger.sql queryToLog
+  pure res
 
-  putIntoDatabase pc q a = pgHandler $
-    fmap fromIntegral $
-      Pool.withResource pc $ \conn ->
-        formatQuery conn q a >>= B.putStr
-          >> execute conn q a
+mkConnectionIO :: Database.Config -> IO (Pool.Pool Connection)
+mkConnectionIO c =
+  Pool.createPool
+    (connectPostgreSQL $ Database.toDBConnectionString c)
+    close
+    1
+    30
+    4
 
-  deleteFromDatabase pc q a = pgHandler $
-    fmap fromIntegral $
-      Pool.withResource pc $ \conn ->
-        formatQuery conn q a >>= B.putStr
-          >> execute conn q a
+pgHandler :: (MonadCatch m, Database.HasDatabase m) => m a -> m a
+pgHandler ma =
+  Database.handleDBErrors $
+    catches
+      ma
+      [ Handler handleSqlErrror,
+        Handler handleFormatError
+      ]
+
+handleSqlErrror :: MonadThrow m => SqlError -> m a
+handleSqlErrror SqlError {..} = throwM $ case sqlState of
+  "23503" -> Database.EntityNotFound $ T.decodeUtf8 sqlErrorDetail
+  "23502" -> Database.IsNull $ T.decodeUtf8 sqlErrorDetail
+  "23505" -> Database.AlreadyExists $ T.decodeUtf8 sqlErrorDetail
+  "23514" -> Database.ConstraintViolation $ T.decodeUtf8 sqlErrorMsg
+  _ -> Database.UnknwonError $ T.show SqlError {..}
+
+handleFormatError :: MonadThrow m => FormatError -> m a
+handleFormatError f = throwM $ Database.FormatError $ T.show f
+
+runMigrations :: Database.Config -> Logger.Logger IO -> IO ()
+runMigrations conf l = do
+  pool <- mkConnectionIO conf
+  Pool.withResource pool $ \conn -> do
+    let defaultContext =
+          MigrationContext
+            { migrationContextCommand = MigrationInitialization,
+              migrationContextVerbose = False,
+              migrationContextConnection = conn
+            }
+        migrations =
+          ("(init)", defaultContext) :
+            [ ( k,
+                defaultContext
+                  { migrationContextCommand =
+                      MigrationScript k v
+                  }
+              )
+              | (k, v) <- sortedMigrations
+            ]
+    forM_ migrations $ \(migrDescr, migr) -> do
+      l Logger.Info $ "Running migration: " <> T.pack migrDescr
+      res <- runMigration migr
+      case res of
+        MigrationSuccess -> return ()
+        MigrationError reason -> do
+          l Logger.Error $ "Migration failed: " <> T.pack reason
+          exitFailure
 
 sortedMigrations :: [(FilePath, B.ByteString)]
 sortedMigrations =
   let unsorted = $(embedDir "migrations")
    in L.sortBy (compare `on` fst) unsorted
-
-pgHandler :: IO a -> IO a
-pgHandler =
-  flip
-    catches
-    [ Handler handleSqlErrror,
-      Handler handleFormatError
-    ]
-
-handleSqlErrror :: SqlError -> IO a
-handleSqlErrror SqlError {..} = throwM $ case sqlState of
-  "23503" -> Database.EntityNotFound $ T.decodeUtf8 sqlErrorDetail
-  "23502" -> Database.IsNull $ T.decodeUtf8 sqlErrorDetail
-  "23505" -> Database.AlreadyExists $ T.decodeUtf8 sqlErrorDetail
-  "23514" -> Database.OtherError $ T.decodeUtf8 sqlErrorMsg
-  _ -> Database.UnknwonError $ T.show SqlError {..}
-
-handleFormatError :: FormatError -> IO a
-handleFormatError f = throwM $ Database.UnknwonError $ T.show f

@@ -1,60 +1,54 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Api.DraftSpec where
 
-import App.Result ( AppResult(ResJSON, ResText) )
-import App.ResultJSON ( ToJSONResult(toJSONResult) )
-import App.Types ( ID(ID), Token )
-import Control.Lens ( (^?), (.~) )
-import Data.Aeson ( Value, decode, encode )
-import Data.Aeson.Lens ( key, AsPrimitive(_String) )
-import Data.Data (Typeable)
-import Data.IntMap qualified as IM
-import Data.Kind (Type)
-import Data.Maybe ( isNothing )
-import Data.String ( IsString(fromString) )
-import Entity.Article ( Article(title, author) )
-import Entity.Author ( Author(user) )
-import Entity.Draft ( Draft(unDraft) )
-import Entity.Internal ( Entity(..) )
-import Entity.User ( User(token) )
+import App.Result (AppResult (ResJSON, ResText))
+import App.Types (ID, Token)
+import Data.Aeson (eitherDecode, encode)
+import Data.ByteString.Lazy qualified as BL
+import Data.Either (isLeft)
+import Database.Internal qualified as Database
+import Entity.Article (Article (author))
+import Entity.Author (Author (user))
+import Entity.Draft (Draft (unDraft))
+import Entity.Internal (Entity (..))
+import Entity.User (User)
 import Extended.Text (Text)
 import Extended.Text qualified as T
-import HKD.HKD ( Display, Front, Update, Create )
-import Helpers.App
-    ( evalTest,
-      execTest,
-      runTest,
-      runTestMonadNoMods,
-      withBLBody,
-      withBody,
-      withDeletePath,
-      withGetPath,
-      withLimit,
-      withOffset,
-      withPostPath,
-      withPublishPath,
-      withPutPath,
-      withToken )
-import Helpers.Article ()
-import Helpers.Author ()
-import Helpers.Category ()
-import Helpers.Database
-    ( (>/),
-      withDatabase,
-      TestEntity(extractTestDatabaseFromTestState, alreadyExists,
-                 toFrontCreate, fromDisplay) )
-import Helpers.Draft ()
-import Helpers.GenericProps
-    ( propPostsParsingFail, BigTDB(unBigTDB) )
-import Helpers.Internal
-    ( isEntityNotFoundError,
-      isParsingError,
-      isUnathorizedError,
-      testPaginationConstant )
-import Helpers.Monad ( TDB, TestState(_tsDraftDB, _tsArticleDB) )
-import Helpers.Tag ()
+import HKD.HKD (Create, Delete, Display, Front, Publish, Update)
+import Mocks.Constant (testPaginationConstant)
+import Mocks.Predicates
+  ( isEntityNotFoundError,
+    isParsingError,
+    isUnathorizedError,
+  )
+import Mocks.Run (evalTest)
+import Mocks.TestMonad
+  ( TestEntity (withGetEntities),
+    defaultPostResult,
+  )
+import Mocks.With
+  ( withBLBody,
+    withBody,
+    withDeletePath,
+    withGetPath,
+    withLimit,
+    withOffset,
+    withPostPath,
+    withPublishPath,
+    withPutPath,
+    withToken,
+  )
 import Test.Hspec
-    ( Spec, context, describe, it, shouldBe, shouldSatisfy )
-import Test.QuickCheck ( (==>), Property, Testable(property) )
+  ( Spec,
+    context,
+    describe,
+    it,
+    shouldBe,
+    shouldSatisfy,
+  )
+import Test.QuickCheck (Property, Testable (property), (==>))
 
 spec :: Spec
 spec = do
@@ -66,154 +60,131 @@ spec = do
 
 postSpec :: Spec
 postSpec = describe "POST" $ do
-  it "When all is ok it posts draft into the database" $
-    property propPostsDraft
+  it "Actually posts draft into database when all is ok" $
+    property propPostDraft
+  it "Throws an appropriate error when no token is provided" $
+    property propPostDraftNoToken
+  it "Throws an appropriate error when wrong token is provided" $
+    property propPostDraftWrongToken
 
-  it "Throws error when it fails to parse request body" $
-    property $ propPostsParsingFail @Draft "drafts"
+propPostDraft :: Draft (Front Create) -> Token -> Entity User (Front Display) -> Property
+propPostDraft draft t user = property $ do
+  res <-
+    evalTest
+      ( withPostPath "drafts"
+          . withBody draft
+          . withToken t
+      )
+      (withGetEntities @(Entity User (Front Display)) [user])
+  res `shouldBe` Right (ResText $ T.show defaultPostResult)
 
-  it "Throws error when no user token is provided" $
-    property propPostsDraftNoToken
-
-  it "Throws error when wrong user token is provided" $
-    property propPostsDraftWrongToken
-
-propPostsDraft :: TDB Draft -> TDB User -> Draft Create -> Property
-propPostsDraft dbD dbU draft =
-  property $
-    conditions ==> do
-      (Right (ResText t), st) <-
-        runTest
-          ( withBody (toFrontCreate draft)
-              . withPostPath "drafts"
-              . withToken userToken
-          )
-          ( withDatabase @Draft dbD
-              . withDatabase @User dbU
-          )
-      let Right (ID eID) = T.read @(ID (Draft Display)) t
-      title . unDraft
-        <$> IM.lookup eID (extractTestDatabaseFromTestState @(Draft Create) st)
-          `shouldBe` Just (title $ unDraft draft)
-  where
-    conditions = not (alreadyExists draft dbD) && not (IM.null dbU) && uniqueUser
-    uniqueUser = length (IM.filter ((== userToken) . token) dbU) == 1
-    userToken = token . snd . head $ IM.toList dbU
-
-propPostsDraftNoToken :: Draft (Front Create) -> Property
-propPostsDraftNoToken draft = property $ do
-  Left err <- evalTest (withBody draft . withPostPath "drafts") id
+propPostDraftNoToken :: Draft (Front Create) -> Property
+propPostDraftNoToken draft = property $ do
+  Left err <-
+    evalTest
+      ( withPostPath "drafts"
+          . withBody draft
+      )
+      id
   err `shouldSatisfy` isUnathorizedError
 
-propPostsDraftWrongToken :: Draft (Front Create) -> Token -> TDB User -> Property
-propPostsDraftWrongToken draft t dbU =
-  property $
-    condition ==> do
-      Left err <- evalTest (withBody draft . withToken t . withPostPath "drafts") id
-      err `shouldSatisfy` isEntityNotFoundError
-  where
-    condition = null $ IM.filter ((== t) . token) dbU
+propPostDraftWrongToken :: Draft (Front Create) -> Token -> Property
+propPostDraftWrongToken draft t = property $ do
+  Left err <-
+    evalTest
+      ( withPostPath "drafts"
+          . withBody draft
+          . withToken t
+      )
+      id
+  err `shouldSatisfy` isEntityNotFoundError
 
 getSpec :: Spec
 getSpec = describe "GET" $ do
+  context "single" $ do
+    it "Allows to get draft from database when all is ok" $
+      property propGetDraft
+    it "Throws an appropriate error when there is no draft with that ID" $
+      property propGetDraftDoesntExists
+    it "Throws an appropriate error when no token is provided" $
+      property propGetDraftNoToken
+    it "Throws an appropriate error when wrong token is provided" $
+      property propGetDraftWrongToken
   context "many" $ do
-    it "When all is ok it gets list of drafts" $
+    it "Allows to get paginated list of drafts when all is ok" $
       property propGetDrafts
-
-    it "This list is paginated" $
-      property propGetDraftsIsPaginated
-
-    it "Allows to get various pages of this list" $
-      property propGetDraftsWithlimitOffset
-
-    it "Throws error when no token is provided" $
+    it "Supports arbitrary limit & offset" $
+      property propGetDraftsArbitrary
+    it "Throws an appropriate error when no token is provided" $
       property propGetDraftsNoToken
 
-  context "single" $ do
-    it "When all is ok it allows to get an draft by its own ID" $
-      property propGetDraft
+propGetDraft :: Entity Draft (Front Display) -> User (Front Display) -> Token -> Property
+propGetDraft de@(Entity dID draft) u t = property $ do
+  let uID = entityID . user . entity . author $ unDraft draft
+  res <-
+    evalTest
+      ( withGetPath ("drafts/" <> T.show dID)
+          . withToken t
+      )
+      ( withGetEntities @(Entity User (Front Display)) [Entity uID u]
+          . withGetEntities @(Entity Draft (Front Display)) [de]
+      )
+  res `shouldBe` Right (ResJSON $ encode de)
 
-    it "Throws error when draft with this ID doesn't exists" $
-      property propGetDraftDoesntExists
+propGetDraftDoesntExists :: Entity Draft (Front Display) -> User (Front Display) -> Token -> Property
+propGetDraftDoesntExists de@(Entity dID draft) u t = property $ do
+  let uID = entityID . user . entity . author $ unDraft draft
+  Left err <-
+    evalTest
+      ( withGetPath ("drafts/" <> T.show dID)
+          . withToken t
+      )
+      ( withGetEntities @(Entity User (Front Display)) [Entity uID u]
+      )
+  err `shouldSatisfy` isEntityNotFoundError
 
-    it "Throws error when no token is provided" $
-      property propGetDraftNoToken
+propGetDraftNoToken :: ID (Draft (Front Display)) -> Property
+propGetDraftNoToken dID = property $ do
+  Left err <-
+    evalTest
+      ( withGetPath ("drafts/" <> T.show dID)
+      )
+      id
+  err `shouldSatisfy` isUnathorizedError
 
-    it "Throws error when wrong token is provided" $
-      property propGetDraftWrongToken
+propGetDraftWrongToken :: Entity Draft (Front Display) -> User (Front Display) -> Token -> Property
+propGetDraftWrongToken de@(Entity dID draft) u t = property $ do
+  let uID = entityID . user . entity . author $ unDraft draft
+  Left err <-
+    evalTest
+      ( withGetPath ("drafts/" <> T.show dID)
+          . withToken t
+      )
+      ( withGetEntities @(Entity User (Front Display)) [Entity uID u]
+      )
+  err `shouldSatisfy` isEntityNotFoundError
 
-propGetDrafts :: TDB Draft -> Entity User Display -> Property
-propGetDrafts dbD e =
-  property $
-    condition ==> do
-      Right (ResJSON j) <-
-        evalTest
-          ( withGetPath "drafts"
-              . withToken (token u)
-          )
-          ( withDatabase @Draft dbD
-              . withDatabase @User dbU
-          )
-      let Right ref' = runTestMonadNoMods $ toJSONResult ref
-      j `shouldBe` encode ref'
-  where
-    condition = length (IM.toList dbD) < testPaginationConstant
-    ref =
-      map (\(a, b) -> Entity (ID a) (fromDisplay @(Draft (Front Display)) b)) $
-        IM.toList $
-          IM.filter ((== ID userID) . entityID . user . entity . author . unDraft) dbD
-    Entity (ID userID) u = e
-    dbU = IM.singleton userID u
+propGetDrafts :: [Entity Draft (Front Display)] -> Token -> Property
+propGetDrafts drafts t = property $ do
+  res <-
+    evalTest
+      ( withGetPath "drafts"
+          . withToken t
+      )
+      (withGetEntities @(Entity Draft (Front Display)) drafts)
+  res `shouldBe` Right (ResJSON $ encode $ take testPaginationConstant drafts)
 
-propGetDraftsIsPaginated :: BigTDB Draft -> Entity User Display -> Property
-propGetDraftsIsPaginated (unBigTDB -> dbD) e =
-  property $
-    condition ==> do
-      Right (ResJSON j) <-
-        evalTest
-          ( withGetPath "drafts"
-              . withToken (token u)
-          )
-          ( withDatabase @Draft dbD
-              . withDatabase @User dbU
-          )
-      let Just xs = decode @[Value] j
-      length xs <= testPaginationConstant `shouldBe` True
-  where
-    condition = length (IM.toList dbD) > testPaginationConstant
-    ref =
-      map (\(a, b) -> Entity (ID a) (fromDisplay @(Draft (Front Display)) b)) $
-        IM.toList $
-          IM.filter ((== ID userID) . entityID . user . entity . author . unDraft) dbD
-    Entity (ID userID) u = e
-    dbU = IM.singleton userID u
-
-propGetDraftsWithlimitOffset :: TDB Draft -> Entity User Display -> Int -> Int -> Property
-propGetDraftsWithlimitOffset dbD e limit offset =
-  property $
-    condition ==> do
-      Right (ResJSON j) <-
-        evalTest
-          ( withGetPath "drafts"
-              . withToken (token u)
-              . withLimit limit
-              . withOffset offset
-          )
-          ( withDatabase @Draft dbD
-              . withDatabase @User dbU
-          )
-      let Right ref' = runTestMonadNoMods $ toJSONResult ref
-      j `shouldBe` encode ref'
-  where
-    condition = length (IM.toList dbD) < testPaginationConstant
-    ref =
-      paginate $
-        map (\(a, b) -> Entity (ID a) (fromDisplay @(Draft (Front Display)) b)) $
-          IM.toList $
-            IM.filter ((== ID userID) . entityID . user . entity . author . unDraft) dbD
-    Entity (ID userID) u = e
-    dbU = IM.singleton userID u
-    paginate = take (min limit testPaginationConstant) . drop offset
+propGetDraftsArbitrary :: [Entity Draft (Front Display)] -> Token -> Int -> Int -> Property
+propGetDraftsArbitrary drafts t limit offset = property $ do
+  res <-
+    evalTest
+      ( withGetPath "drafts"
+          . withToken t
+          . withLimit limit
+          . withOffset offset
+      )
+      (withGetEntities @(Entity Draft (Front Display)) drafts)
+  res `shouldBe` Right (ResJSON $ encode $ take (min limit testPaginationConstant) $ drop offset drafts)
 
 propGetDraftsNoToken :: Property
 propGetDraftsNoToken = property $ do
@@ -223,347 +194,189 @@ propGetDraftsNoToken = property $ do
       id
   err `shouldSatisfy` isUnathorizedError
 
-propGetDraft :: TDB Draft -> ID (Draft Display) -> User Display -> Property
-propGetDraft dbD (ID draftID) u =
-  property $
-    conditions ==> do
-      Right (ResJSON j) <-
-        evalTest
-          ( withGetPath ("drafts/" <> T.show draftID)
-              . withToken t
-          )
-          ( withDatabase @Draft dbD
-              . withDatabase @User dbU
-          )
-      j ^? key "title" . _String
-        `shouldBe` title . unDraft <$> IM.lookup draftID dbD
-  where
-    conditions = draftID `elem` IM.keys dbD
-    Just t = token . entity . user . entity . author . unDraft <$> IM.lookup draftID dbD
-    Just (ID userID) = entityID . user . entity . author . unDraft <$> IM.lookup draftID dbD
-    dbU = IM.singleton userID $ (#token .~ t) u
-
-propGetDraftDoesntExists :: TDB Draft -> ID (Draft Display) -> Entity User Display -> Property
-propGetDraftDoesntExists dbD (ID draftID) e =
-  property $
-    conditions ==> do
-      Left err <-
-        evalTest
-          ( withGetPath ("drafts/" <> T.show draftID)
-              . withToken (token u)
-          )
-          ( withDatabase @Draft dbD
-              . withDatabase @User dbU
-          )
-      err `shouldSatisfy` isEntityNotFoundError
-  where
-    conditions = draftID `notElem` IM.keys dbD
-    dbU = IM.singleton userID u
-    Entity (ID userID) u = e
-
-propGetDraftNoToken :: ID (Draft Display) -> Property
-propGetDraftNoToken (ID draftID) = property $ do
-  Left res <-
-    evalTest
-      (withGetPath ("drafts/" <> T.show draftID))
-      id
-  res `shouldSatisfy` isUnathorizedError
-
-propGetDraftWrongToken :: TDB Draft -> ID (Draft Display) -> User Display -> Token -> Property
-propGetDraftWrongToken dbD (ID draftID) u wrongT =
-  property $
-    conditions ==> do
-      Left err <-
-        evalTest
-          ( withGetPath ("drafts/" <> T.show draftID)
-              . withToken wrongT
-          )
-          ( withDatabase @Draft dbD
-              . withDatabase @User dbU
-          )
-      err `shouldSatisfy` isEntityNotFoundError
-  where
-    conditions = draftID `elem` IM.keys dbD && wrongT /= t
-    Just t = token . entity . user . entity . author . unDraft <$> IM.lookup draftID dbD
-    Just (ID userID) = entityID . user . entity . author . unDraft <$> IM.lookup draftID dbD
-    dbU = IM.singleton userID $ (#token .~ t) u
-
 putSpec :: Spec
 putSpec = describe "PUT" $ do
-  it "Actually changes draft" $
+  it "It actually updates draft when all is ok" $
     property propPutDraft
-
-  it "Throws error when draft with this ID doesn't exists" $
+  it "Throws an appropriate error when there is no draft with that ID" $
     property propPutDraftDoesntExists
-
-  it "Throws error when it fails to parse request body" $
-    property propPutDraftParsingFail
-
-  it "Throws error when no token is provided" $
+  it "Throws an appropriate error when request body is unparsable" $
+    property propPutDraftUnparsable
+  it "Throws an appropriate error when no token is provided" $
     property propPutDraftNoToken
-
-  it "Throws error when wrong token is provided" $
+  it "Throws an appropriate error when wrong token is provided" $
     property propPutDraftWrongToken
 
-propPutDraft ::
-  TDB Draft ->
-  Draft (Front Update) ->
-  ID (Draft Display) ->
-  User Display ->
-  Property
-propPutDraft dbD draftU (ID draftID) u =
-  property $
-    conditions ==> do
-      st <-
-        execTest
-          ( withBody draftU
-              . withPutPath ("drafts/" <> T.show draftID)
-              . withToken t
-          )
-          ( withDatabase @Draft dbD
-              . withDatabase @User dbU
-          )
-      IM.lookup draftID (_tsDraftDB st) `shouldBe` Just (draftU >/ oldDraft)
-  where
-    conditions = draftID `elem` IM.keys dbD
-    Just oldDraft = IM.lookup draftID dbD
-    dbU = IM.singleton userID $ (#token .~ t) u
-    Just t = token . entity . user . entity . author . unDraft <$> IM.lookup draftID dbD
-    Just (ID userID) = entityID . user . entity . author . unDraft <$> IM.lookup draftID dbD
-
-propPutDraftDoesntExists ::
-  TDB Draft ->
-  Draft (Front Update) ->
-  ID (Draft Display) ->
-  Entity User Display ->
-  Property
-propPutDraftDoesntExists dbD draftU (ID draftID) e =
-  property $
-    conditions ==> do
-      Left err <-
-        evalTest
-          ( withBody draftU
-              . withPutPath ("drafts/" <> T.show draftID)
-              . withToken (token u)
-          )
-          ( withDatabase @Draft dbD
-              . withDatabase @User dbU
-          )
-      err `shouldSatisfy` isEntityNotFoundError
-  where
-    conditions = draftID `notElem` IM.keys dbD
-    dbU = IM.singleton userID u
-    Entity (ID userID) u = e
-
-propPutDraftParsingFail ::
-  TDB Draft ->
-  Value ->
-  ID (Draft Display) ->
-  User Display ->
-  Property
-propPutDraftParsingFail dbD (fromString . show -> obj) (ID draftID) u =
-  property $
-    conditions ==> do
-      Left err <-
-        evalTest
-          ( withBLBody obj
-              . withPutPath ("drafts/" <> T.show draftID)
-              . withToken (token u)
-          )
-          ( withDatabase @Draft dbD
-              . withDatabase @User dbU
-          )
-      err `shouldSatisfy` isParsingError
-  where
-    conditions = draftID `elem` IM.keys dbD && isNothing (decode @(Draft (Front Update)) obj)
-    dbU = IM.singleton userID u
-    Just t = token . entity . user . entity . author . unDraft <$> IM.lookup draftID dbD
-    Just (ID userID) = entityID . user . entity . author . unDraft <$> IM.lookup draftID dbD
-
-propPutDraftNoToken :: ID (Draft Display) -> Property
-propPutDraftNoToken (ID draftID) = property $ do
-  Left res <-
+propPutDraft :: Entity Draft (Front Display) -> Draft (Front Update) -> User (Front Display) -> Token -> Property
+propPutDraft de@(Entity dID draft) du u t = property $ do
+  let uID = entityID . user . entity . author $ unDraft draft
+  res <-
     evalTest
-      (withPutPath ("drafts/" <> T.show draftID))
-      id
-  res `shouldSatisfy` isUnathorizedError
+      ( withPutPath ("drafts/" <> T.show dID)
+          . withBody du
+          . withToken t
+      )
+      ( withGetEntities @(Entity User (Front Display)) [Entity uID u]
+          . withGetEntities @(Entity Draft (Front Display)) [de]
+      )
+  res `shouldBe` Right (ResText "Successfuly updated.")
 
-propPutDraftWrongToken ::
-  TDB Draft ->
-  Draft (Front Update) ->
-  ID (Draft Display) ->
-  User Display ->
-  Token ->
-  Property
-propPutDraftWrongToken dbD draftU (ID draftID) u wrongToken =
-  property $
-    conditions ==> do
-      Left err <-
-        evalTest
-          ( withBody draftU
-              . withPutPath ("drafts/" <> T.show draftID)
-              . withToken wrongToken
-          )
-          ( withDatabase @Draft dbD
-              . withDatabase @User dbU
-          )
-      err `shouldSatisfy` isEntityNotFoundError
-  where
-    conditions = draftID `elem` IM.keys dbD && wrongToken /= t
-    Just oldDraft = IM.lookup draftID dbD
-    dbU = IM.singleton userID $ (#token .~ t) u
-    Just t = token . entity . user . entity . author . unDraft <$> IM.lookup draftID dbD
-    Just (ID userID) = entityID . user . entity . author . unDraft <$> IM.lookup draftID dbD
-
-deleteSpec :: Spec
-deleteSpec = describe "DELETE" $ do
-  it "Actually deletes draft from database" $
-    property propDeleteDraft
-
-  it "Throws error when draft with this ID doesn't exists" $
-    property propDeleteDraftDoesntExists
-
-  it "Throws error when no token is provided" $
-    property propDeleteDraftNoToken
-
-  it "Throws error when wrong token is provided" $
-    property propDeleteDraftWrongToken
-
-propDeleteDraft :: TDB Draft -> ID (Draft Display) -> User Display -> Property
-propDeleteDraft dbD (ID draftID) u =
-  property $
-    conditions ==> do
-      st <-
-        execTest
-          (withDeletePath ("drafts/" <> T.show draftID) . withToken t)
-          (withDatabase @Draft dbD . withDatabase @User dbU)
-      extractTestDatabaseFromTestState @(Draft Display) st `shouldBe` IM.delete draftID dbD
-  where
-    Just (ID userID) = entityID . user . entity . author . unDraft <$> IM.lookup draftID dbD
-    conditions = draftID `elem` IM.keys dbD
-    dbU = IM.singleton userID $ (#token .~ t) u
-    Just t = token . entity . user . entity . author . unDraft <$> IM.lookup draftID dbD
-
-propDeleteDraftDoesntExists :: TDB Draft -> ID (Draft Display) -> Entity User Display -> Property
-propDeleteDraftDoesntExists dbD (ID draftID) e =
-  property $
-    conditions ==> do
-      Left res <-
-        evalTest
-          ( withDeletePath ("drafts/" <> T.show draftID)
-              . withToken (token u)
-          )
-          (withDatabase @Draft dbD . withDatabase @User dbU)
-      res `shouldSatisfy` isEntityNotFoundError
-  where
-    conditions = draftID `notElem` IM.keys dbD
-    dbU = IM.singleton userID u
-    Entity (ID userID) u = e
-
-propDeleteDraftNoToken :: ID (Draft Display) -> Property
-propDeleteDraftNoToken (ID draftID) = property $ do
-  Left res <-
-    evalTest
-      (withDeletePath ("drafts/" <> T.show draftID))
-      id
-  res `shouldSatisfy` isUnathorizedError
-
-propDeleteDraftWrongToken :: TDB Draft -> ID (Draft Display) -> User Display -> Token -> Property
-propDeleteDraftWrongToken dbD (ID draftID) u wrongT =
-  property $
-    conditions ==> do
-      Left res <-
-        evalTest
-          ( withDeletePath ("drafts/" <> T.show draftID)
-              . withToken wrongT
-          )
-          ( withDatabase @Draft dbD
-              . withDatabase @User dbU
-          )
-      res `shouldSatisfy` isEntityNotFoundError
-  where
-    Just (ID userID) = entityID . user . entity . author . unDraft <$> IM.lookup draftID dbD
-    conditions = draftID `elem` IM.keys dbD && wrongT /= t
-    dbU = IM.singleton userID $ (#token .~ t) u
-    Just t = token . entity . user . entity . author . unDraft <$> IM.lookup draftID dbD
-
-publishSpec :: Spec
-publishSpec = describe "PUBLISH" $ do
-  it "Actually publishes a draft" $
-    property propPublishDraft
-
-  it "Throws error when draft with this ID doesn't exists" $
-    property propPublishDraftDoesntExists
-
-  it "Throws error when no token is provided" $
-    property propPublishDraftNoToken
-
-  it "Throws error when wrong token is provided" $
-    property propPublishDraftWrongToken
-
-propPublishDraft :: TDB Draft -> ID (Draft Display) -> User Display -> Property
-propPublishDraft dbD (ID draftID) u =
-  property $
-    conditions ==> do
-      st <-
-        execTest
-          ( withPublishPath ("drafts/" <> T.show draftID)
-              . withToken t
-          )
-          ( withDatabase @Draft dbD
-              . withDatabase @User dbU
-          )
-      draftID `elem` IM.keys (_tsDraftDB st) `shouldBe` False
-      IM.elems (_tsArticleDB st) `shouldBe` [ref]
-  where
-    conditions = draftID `elem` IM.keys dbD
-    Just (ID userID) = entityID . user . entity . author . unDraft <$> IM.lookup draftID dbD
-    Just t = token . entity . user . entity . author . unDraft <$> IM.lookup draftID dbD
-    dbU = IM.singleton userID $ (#token .~ t) u
-    Just ref = unDraft <$> IM.lookup draftID dbD
-
-propPublishDraftDoesntExists :: TDB Draft -> ID (Draft Display) -> Entity User Display -> Property
-propPublishDraftDoesntExists dbD (ID draftID) e =
-  property $
-    conditions ==> do
-      Left err <-
-        evalTest
-          ( withPublishPath ("drafts/" <> T.show draftID)
-              . withToken (token u)
-          )
-          ( withDatabase @Draft dbD
-              . withDatabase @User dbU
-          )
-      err `shouldSatisfy` isEntityNotFoundError
-  where
-    conditions = draftID `notElem` IM.keys dbD
-    dbU = IM.singleton userID u
-    Entity (ID userID) u = e
-
-propPublishDraftNoToken :: ID (Draft Display) -> Property
-propPublishDraftNoToken (ID draftID) = property $ do
+propPutDraftDoesntExists :: Entity Draft (Front Display) -> Draft (Front Update) -> User (Front Display) -> Token -> Property
+propPutDraftDoesntExists de@(Entity dID draft) du u t = property $ do
+  let uID = entityID . user . entity . author $ unDraft draft
   Left err <-
     evalTest
-      (withPublishPath ("drafts/" <> T.show draftID))
+      ( withPutPath ("drafts/" <> T.show dID)
+          . withBody du
+          . withToken t
+      )
+      ( withGetEntities @(Entity User (Front Display)) [Entity uID u]
+      )
+  err `shouldSatisfy` isEntityNotFoundError
+
+propPutDraftUnparsable :: Entity Draft (Front Display) -> BL.ByteString -> User (Front Display) -> Token -> Property
+propPutDraftUnparsable de@(Entity dID draft) bl u t =
+  property $
+    isLeft (eitherDecode @(Draft (Front Update)) bl) ==> do
+      let uID = entityID . user . entity . author $ unDraft draft
+      Left err <-
+        evalTest
+          ( withPutPath ("drafts/" <> T.show dID)
+              . withBLBody bl
+              . withToken t
+          )
+          ( withGetEntities @(Entity User (Front Display)) [Entity uID u]
+              . withGetEntities @(Entity Draft (Front Display)) [de]
+          )
+      err `shouldSatisfy` isParsingError
+
+propPutDraftNoToken :: ID (Draft (Front Update)) -> Property
+propPutDraftNoToken dID = property $ do
+  Left err <-
+    evalTest
+      ( withPutPath ("drafts/" <> T.show dID)
+      )
       id
   err `shouldSatisfy` isUnathorizedError
 
-propPublishDraftWrongToken :: TDB Draft -> ID (Draft Display) -> User Display -> Token -> Property
-propPublishDraftWrongToken dbD (ID draftID) u wrongToken =
-  property $
-    conditions ==> do
-      Left err <-
-        evalTest
-          ( withPublishPath ("drafts/" <> T.show draftID)
-              . withToken wrongToken
-          )
-          ( withDatabase @Draft dbD
-              . withDatabase @User dbU
-          )
-      err `shouldSatisfy` isEntityNotFoundError
-  where
-    conditions = draftID `elem` IM.keys dbD && wrongToken /= t
-    Just (ID userID) = entityID . user . entity . author . unDraft <$> IM.lookup draftID dbD
-    Just t = token . entity . user . entity . author . unDraft <$> IM.lookup draftID dbD
-    dbU = IM.singleton userID $ (#token .~ t) u
-    Just ref = unDraft <$> IM.lookup draftID dbD
+propPutDraftWrongToken :: Entity Draft (Front Display) -> Draft (Front Update) -> Token -> Property
+propPutDraftWrongToken de@(Entity dID draft) du t = property $ do
+  let uID = entityID . user . entity . author $ unDraft draft
+  Left err <-
+    evalTest
+      ( withPutPath ("drafts/" <> T.show dID)
+          . withBody du
+          . withToken t
+      )
+      ( withGetEntities @(Entity Draft (Front Display)) [de]
+      )
+  err `shouldSatisfy` isEntityNotFoundError
+
+deleteSpec :: Spec
+deleteSpec = describe "DELETE" $ do
+  it "Actually deletes draft from database when all is ok" $
+    property propDeleteDraft
+  it "Throws an appropriate error when there is no draft with that ID" $
+    property propDeleteDraftDoesntExists
+  it "Throws an appropriate error when no token is provided" $
+    property propDeleteDraftNoToken
+  it "Throws an appropriate error when wrong token is provided" $
+    property propDeleteDraftWrongToken
+
+propDeleteDraft :: Entity Draft (Front Display) -> User (Front Display) -> Token -> Property
+propDeleteDraft de@(Entity dID draft) u t = property $ do
+  let uID = entityID . user . entity . author $ unDraft draft
+  res <-
+    evalTest
+      ( withDeletePath ("drafts/" <> T.show dID)
+          . withToken t
+      )
+      ( withGetEntities @(Entity User (Front Display)) [Entity uID u]
+          . withGetEntities @(Entity Draft (Front Display)) [de]
+      )
+  res `shouldBe` Right (ResText "Successfuly deleted.")
+
+propDeleteDraftDoesntExists :: Entity Draft (Front Display) -> User (Front Display) -> Token -> Property
+propDeleteDraftDoesntExists de@(Entity dID draft) u t = property $ do
+  let uID = entityID . user . entity . author $ unDraft draft
+  Left err <-
+    evalTest
+      ( withDeletePath ("drafts/" <> T.show dID)
+          . withToken t
+      )
+      ( withGetEntities @(Entity User (Front Display)) [Entity uID u]
+      )
+  err `shouldSatisfy` isEntityNotFoundError
+
+propDeleteDraftNoToken :: ID (Draft Delete) -> Property
+propDeleteDraftNoToken dID = property $ do
+  Left err <-
+    evalTest
+      (withDeletePath $ "drafts/" <> T.show dID)
+      id
+  err `shouldSatisfy` isUnathorizedError
+
+propDeleteDraftWrongToken :: ID (Draft Delete) -> Token -> Property
+propDeleteDraftWrongToken dID t = property $ do
+  Left err <-
+    evalTest
+      (withDeletePath ("drafts/" <> T.show dID) . withToken t)
+      id
+  err `shouldSatisfy` isEntityNotFoundError
+
+publishSpec :: Spec
+publishSpec = describe "PUBLISH" $ do
+  it "Actually publish draft when all is ok" $
+    property propPublishDraft
+  it "Throws an appropriate error when there is no draft with that ID" $
+    property propPublishDraftDoesntExists
+  it "Throws an appropriate error when no token is provided" $
+    property propPublishDraftNoToken
+  it "Throws an appropriate error when wrong token is provided" $
+    property propPublishDraftWrongToken
+
+propPublishDraft :: Entity Draft (Front Display) -> User (Front Display) -> Token -> Property
+propPublishDraft de@(Entity dID draft) u t = property $ do
+  let uID = entityID . user . entity . author $ unDraft draft
+  res <-
+    evalTest
+      ( withPublishPath ("drafts/" <> T.show dID)
+          . withToken t
+      )
+      ( withGetEntities @(Entity User (Front Display)) [Entity uID u]
+          . withGetEntities @(Entity Draft (Front Display)) [de]
+      )
+  res `shouldBe` Right (ResText "Successfuly published.")
+
+propPublishDraftDoesntExists :: Entity Draft (Front Display) -> User (Front Display) -> Token -> Property
+propPublishDraftDoesntExists de@(Entity dID draft) u t = property $ do
+  let uID = entityID . user . entity . author $ unDraft draft
+  Left err <-
+    evalTest
+      ( withPublishPath ("drafts/" <> T.show dID)
+          . withToken t
+      )
+      ( withGetEntities @(Entity User (Front Display)) [Entity uID u]
+      )
+  err `shouldSatisfy` isEntityNotFoundError
+
+propPublishDraftNoToken :: ID (Draft Publish) -> Property
+propPublishDraftNoToken dID = property $ do
+  Left err <-
+    evalTest
+      ( withPublishPath ("drafts/" <> T.show dID)
+      )
+      id
+  err `shouldSatisfy` isUnathorizedError
+
+propPublishDraftWrongToken :: Entity Draft (Front Display) -> User (Front Display) -> Token -> Property
+propPublishDraftWrongToken de@(Entity dID draft) u t = property $ do
+  let uID = entityID . user . entity . author $ unDraft draft
+  Left err <-
+    evalTest
+      ( withPublishPath ("drafts/" <> T.show dID)
+          . withToken t
+      )
+      ( withGetEntities @(Entity Draft (Front Display)) [de]
+      )
+  err `shouldSatisfy` isEntityNotFoundError

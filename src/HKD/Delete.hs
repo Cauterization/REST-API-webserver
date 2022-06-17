@@ -1,7 +1,7 @@
 module HKD.Delete where
 
-import Data.Data ( Data )
-import HKD.Field ( Field )
+import Data.Data (Data)
+import HKD.Field (Field)
 
 data Delete deriving (Data)
 

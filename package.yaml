@@ -69,7 +69,6 @@ default-extensions:
 - FlexibleContexts
 - FlexibleInstances
 - ImplicitParams
-- ImportQualifiedPost
 - InstanceSigs 
 - LambdaCase
 - MultiParamTypeClasses
@@ -79,11 +78,10 @@ default-extensions:
 - RecordWildCards
 - ScopedTypeVariables
 - StandaloneDeriving
-- TypeApplications
 - TypeFamilies
 - TypeOperators
 - UndecidableInstances
-- ViewPatterns
+- UndecidableSuperClasses
 
 ghc-options: 
   - "-j6 " 
@@ -113,8 +111,6 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    - -Wno-missing-methods
-    - -Wno-missing-fields
     dependencies:
     - server
     - split

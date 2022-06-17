@@ -1,0 +1,1 @@
+ALTER TABLE categories ADD CONSTRAINT parent_key_constraint CHECK (id != parent);

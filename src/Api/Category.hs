@@ -1,36 +1,38 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Api.Category where
 
 import Api.Put (Puttable)
+import App.AppT (Application)
+import App.Error (categoryCycleError, idArityMissmatchError)
+import App.Getters (decodedBody)
 import App.Result (Endpoint, text)
 import App.Types (ID)
-import App.Internal
-    ( decodedBody, Application, categoryCycleError, idArityMissmatchError )
 import Control.Monad (when)
 import Data.Coerce (coerce)
-import Database.Database qualified as Database
-import Database.HasDatabase (Database)
+import Database.Get qualified as Database
+import Database.HasDatabase qualified as Database
+import Database.Put qualified as Database
 import Entity.Category (Category (parent))
 import Entity.Internal (Entity (..))
-import Extended.Text (Text)
 import HKD.HKD (Front, Update)
 
 putCategory ::
   forall m.
   ( Application m,
-    Puttable m (Entity Category) (Front Update),
-    Database.Gettable ID (Category (Front Update)),
-    Database.FromRowOf (Database m) (ID (Category (Front Update))),
-    Database.ToRowOf (Database m) (ID (Category (Front Update)))
+    Puttable m Category (Front Update),
+    Database.FromRowOf m (ID (Category (Front Update)))
   ) =>
   Endpoint m
 putCategory [cID] = do
   c <- decodedBody @(Category (Front Update))
   mapM_ validate $ parent c
-  Database.putEntity @_ @m $ Entity (coerce cID) c
-  text @_ @Text "Successfuly updated."
+  Database.putEntity $ Entity (coerce cID) c
+  text "Successfuly updated."
   where
     validate parent = do
+      when (coerce cID == parent) categoryCycleError
       parents <- Database.getEntitiesWith parent id
-      when (cast cID `elem` parents) categoryCycleError
-    cast = coerce @_ @(ID (Category (Front Update)))
+      when (coerce @_ @(ID (Category (Front Update))) cID `elem` parents) categoryCycleError
 putCategory _ = idArityMissmatchError "put category api"
