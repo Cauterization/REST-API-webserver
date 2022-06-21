@@ -3,7 +3,7 @@
 module App.Path where
 
 import App.Types (ID)
-import Data.Data (Data, Typeable)
+import Data.Data (Typeable)
 import Data.Function (on)
 import Extended.Text (Text)
 import GHC.Generics (Generic)
@@ -18,7 +18,7 @@ data Path a
   | DELETE URL
   | PUBLISH URL
   | Unknown URL
-  deriving (Show, Eq, Generic, Typeable, Data)
+  deriving (Show, Eq, Generic, Typeable)
 
 toPath :: Wai.Request -> Path a
 toPath req =
@@ -42,7 +42,7 @@ getURL = \case
 
 type Method = forall a. [Text] -> Path a
 
-getMethod :: Data a => Path a -> Method
+getMethod :: Path a -> Method
 getMethod = \case
   POST _ -> POST
   GET _ -> GET
@@ -54,8 +54,8 @@ getMethod = \case
 instance Eq (URL -> Path a) where
   (==) = (==) `on` ($ [])
 
-data Pattern deriving (Typeable, Data)
+data Pattern deriving (Typeable)
 
-data Current deriving (Typeable, Data)
+data Current deriving (Typeable)
 
 type IDs = [ID (Path Current)]

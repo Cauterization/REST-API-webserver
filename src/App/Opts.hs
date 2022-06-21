@@ -1,8 +1,7 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+
 module App.Opts where
 
-import Control.Monad (when)
-import Extended.Text (Text)
-import Extended.Text qualified as T
 import Options.Applicative
   ( Parser,
     execParser,

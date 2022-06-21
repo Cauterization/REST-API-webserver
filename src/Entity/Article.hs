@@ -9,7 +9,7 @@ import App.Types (Date, ID (ID), fieldsQuery)
 import Data.Aeson (FromJSON)
 import Data.Char (toLower)
 import Data.Data (Data)
-import Data.Kind (Type, Constraint)
+import Data.Kind (Constraint, Type)
 import Data.Maybe (catMaybes)
 import Data.String (IsString (fromString))
 import Database.EntityFilters qualified as Database
