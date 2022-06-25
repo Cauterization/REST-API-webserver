@@ -1,5 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-
 module HKD.Display where
 
 import Data.Aeson (ToJSON)

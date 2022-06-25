@@ -1,5 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-
 module Database.EntityFilters where
 
 import App.Types (Date)

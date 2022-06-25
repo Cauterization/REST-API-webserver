@@ -1,5 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-
 module App.ResultJSON where
 
 import App.AppT (Application)

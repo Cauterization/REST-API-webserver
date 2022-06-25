@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Database.Draft where
 
 import App.Types (ID, Token)

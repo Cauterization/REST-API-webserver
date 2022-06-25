@@ -1,6 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Api.UserSpec where
 
 import Api.User (mkHash)

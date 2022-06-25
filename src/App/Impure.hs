@@ -1,5 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-
 module App.Impure where
 
 import App.Types (Date, Token)

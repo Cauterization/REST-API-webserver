@@ -1,6 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Extended.Text
   ( module Data.Text,
     module Data.Text.Encoding,

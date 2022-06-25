@@ -1,6 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module App.Getters where
 
 import App.AppT

@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Database.Delete where
 
 import App.Types (ID, nameOf, withPluralEnding)

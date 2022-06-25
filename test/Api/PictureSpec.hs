@@ -1,6 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Api.PictureSpec where
 
 import App.Result (AppResult (ResPicture, ResText))

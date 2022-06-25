@@ -1,6 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Api.ArticleSpec where
 
 import App.Result (AppResult (ResJSON))

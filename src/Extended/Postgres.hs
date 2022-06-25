@@ -1,5 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-
 module Extended.Postgres
   ( module Database.PostgreSQL.Simple,
     module Database.PostgreSQL.Simple.ToField,

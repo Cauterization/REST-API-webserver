@@ -1,5 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-
 module Entity.Tag where
 
 import Data.Aeson (FromJSON, ToJSON)

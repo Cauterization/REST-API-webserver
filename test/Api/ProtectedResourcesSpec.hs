@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Api.ProtectedResourcesSpec where
 
 import App.Result (AppResult (ResText))

@@ -103,6 +103,7 @@ library
       FlexibleContexts
       FlexibleInstances
       ImplicitParams
+      ImportQualifiedPost
       InstanceSigs
       LambdaCase
       MultiParamTypeClasses
@@ -112,10 +113,12 @@ library
       RecordWildCards
       ScopedTypeVariables
       StandaloneDeriving
+      TypeApplications
       TypeFamilies
       TypeOperators
       UndecidableInstances
       UndecidableSuperClasses
+      ViewPatterns
   ghc-options: -j6  -O0
   build-depends:
       QuickCheck
@@ -174,6 +177,7 @@ executable server-exe
       FlexibleContexts
       FlexibleInstances
       ImplicitParams
+      ImportQualifiedPost
       InstanceSigs
       LambdaCase
       MultiParamTypeClasses
@@ -183,10 +187,12 @@ executable server-exe
       RecordWildCards
       ScopedTypeVariables
       StandaloneDeriving
+      TypeApplications
       TypeFamilies
       TypeOperators
       UndecidableInstances
       UndecidableSuperClasses
+      ViewPatterns
   ghc-options: -j6  -O0 -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
   build-depends:
       QuickCheck
@@ -274,6 +280,7 @@ test-suite server-test
       FlexibleContexts
       FlexibleInstances
       ImplicitParams
+      ImportQualifiedPost
       InstanceSigs
       LambdaCase
       MultiParamTypeClasses
@@ -283,10 +290,12 @@ test-suite server-test
       RecordWildCards
       ScopedTypeVariables
       StandaloneDeriving
+      TypeApplications
       TypeFamilies
       TypeOperators
       UndecidableInstances
       UndecidableSuperClasses
+      ViewPatterns
   ghc-options: -j6  -O0 -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck

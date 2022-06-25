@@ -1,6 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Mocks.Utils where
 
 import App.Types (ID, nameOf, withPluralEnding)

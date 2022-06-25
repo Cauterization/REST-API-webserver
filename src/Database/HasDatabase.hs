@@ -1,4 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 
 module Database.HasDatabase where

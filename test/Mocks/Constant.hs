@@ -1,5 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-
 module Mocks.Constant where
 
 import App.Types (Date, PaginationSize, Token)

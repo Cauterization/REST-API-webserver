@@ -1,5 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-
 module HKD.Front where
 
 import Data.Aeson (FromJSON (parseJSON))

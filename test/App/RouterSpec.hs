@@ -1,5 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-
 module App.RouterSpec where
 
 import App.Result (AppResult (ResText))

@@ -1,6 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module App.Error where
 
 import App.Path (Path, Pattern)

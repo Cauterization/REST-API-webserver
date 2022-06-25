@@ -1,5 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-
 module HKD.Update where
 
 import Data.Aeson qualified as J

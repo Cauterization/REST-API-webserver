@@ -1,5 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-
 module Entity.Picture where
 
 import Data.ByteString.Char8 qualified as BC8

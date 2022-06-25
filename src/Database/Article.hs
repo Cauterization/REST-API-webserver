@@ -1,5 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
-
 module Database.Article where
 
 import Database.EntityFilters (EntityFilterParam)

@@ -1,6 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Database.Put where
 
 import App.Types (fieldsOf, nameOf, withPluralEnding)

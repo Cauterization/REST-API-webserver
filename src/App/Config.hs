@@ -1,5 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-
 module App.Config where
 
 import Database.Config qualified as Database

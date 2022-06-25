@@ -1,6 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE TypeApplications #-}
-
 module Api.DraftSpec where
 
 import App.Result (AppResult (ResJSON, ResText))

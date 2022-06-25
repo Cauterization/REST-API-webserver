@@ -1,5 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-
 module App.QueryParams where
 
 import Data.Char (toLower)
