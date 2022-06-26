@@ -12,4 +12,4 @@ read pics
 echo Enter token
 read token
 body={\"title\":\"$title\",\"content\":\"$content\",\"category\":$categoryID,\"tags\":\[$tags\],\"pics\":\[$pics\]}
-echo $(curl -X POST -H "Content-Type: application/json" -H "Authorization:$token" -d $body http://localhost:3000/drafts)
+echo $(curl -g -X POST -H "Content-Type: application/json" -H "Authorization:$token" -d $body http://localhost:3000/drafts)

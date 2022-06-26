@@ -1,0 +1,1 @@
+ALTER TABLE articles ALTER COLUMN author SET NOT NULL;

@@ -27,6 +27,10 @@ BEGIN
         ( SELECT unnest, draft_id_var FROM UNNEST(tags_var)
         );
 
+    INSERT INTO article_picture (picture_id, article_id)
+        ( SELECT unnest, draft_id_var FROM UNNEST(pics_var)
+        );
+
     RETURN draft_id_var;
 
 END; 
