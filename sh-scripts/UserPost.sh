@@ -2,7 +2,7 @@
 echo Enter firstname
 read firstname
 echo Enter lastname
-read lstname
+read lastname
 echo Enter login
 read login
 echo Enter password
