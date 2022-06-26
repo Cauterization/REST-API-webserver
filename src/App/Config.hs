@@ -9,7 +9,7 @@ import Logger qualified
 type Port = Int
 
 data Config = Config
-  { cDatabase :: !Database.Config,
+  { cDB :: !Database.Config,
     cLogger :: !Logger.Config,
     cPort :: !Port,
     cAddress :: !Text

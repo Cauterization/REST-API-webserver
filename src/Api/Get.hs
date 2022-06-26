@@ -1,7 +1,7 @@
 module Api.Get where
 
 import App.AppT (Application, Env (envConfig))
-import App.Config (Config (cDatabase))
+import App.Config (Config (..))
 import App.Getters
   ( getDateParam,
     getNumListParam,
@@ -94,7 +94,7 @@ getFilters = forM (Database.getEntityFilters @e @a) $ \case
 
 getLimit :: Application m => m Database.EntityFilterParam
 getLimit = do
-  maxLimit <- asks (Database.cPagSize . cDatabase . envConfig)
+  maxLimit <- asks (Database.cPagSize . cDB . envConfig)
   Database.EFPInt . maybe maxLimit (min maxLimit) <$> getNumParam "limit"
 
 getOffset :: Application m => m Database.EntityFilterParam

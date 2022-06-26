@@ -14,20 +14,7 @@ data Config = Config
     cPort :: !Int,
     cUser :: !Text,
     cPassword :: !Text,
+    cDatabase :: !Text,
     cPagSize :: !PaginationSize
   }
   deriving (Show, Generic, FromDhall)
-
-toDBConnectionString :: Config -> ByteString
-toDBConnectionString Config {..} =
-  T.encodeUtf8 $
-    mconcat
-      [ "host=",
-        cHost,
-        " port=",
-        T.show cPort,
-        " user=",
-        cUser,
-        " password=",
-        cPassword
-      ]

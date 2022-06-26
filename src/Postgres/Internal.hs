@@ -32,15 +32,16 @@ import Database.PostgreSQL.Simple.Migration
   )
 import Extended.Postgres
   ( Connection,
+    ConnectInfo (..),
     FormatError,
     FromRow,
     SqlError (..),
     ToRow,
     close,
-    connectPostgreSQL,
+    connect,
     execute,
     formatQuery,
-    query,
+    query, 
   )
 import Extended.Text qualified as T
 import Logger qualified
@@ -93,10 +94,19 @@ executeWithLog (Database.fromQuery -> q) a = pgHandler $ do
   Logger.sql queryToLog
   pure res
 
+mkConnectInfo :: Database.Config -> ConnectInfo
+mkConnectInfo Database.Config {..} = ConnectInfo
+  { connectHost = T.unpack cHost
+  , connectPort = fromIntegral cPort
+  , connectUser = T.unpack cUser
+  , connectPassword = T.unpack cPassword
+  , connectDatabase = T.unpack cDatabase
+  }
+
 mkConnectionIO :: Database.Config -> IO (Pool.Pool Connection)
-mkConnectionIO c =
+mkConnectionIO c = 
   Pool.createPool
-    (connectPostgreSQL $ Database.toDBConnectionString c)
+    (connect $ mkConnectInfo c)
     close
     1
     30

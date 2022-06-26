@@ -34,10 +34,10 @@ runServer :: IO ()
 runServer = handle handler $ do
   Options {..} <- runWithOpts
   Config {..} <- Dhall.input Dhall.auto $ T.pack optConfigPath
-  connectionDB <- Database.mkConnectionIO @(AppT IO) cDatabase
+  connectionDB <- Database.mkConnectionIO @(AppT IO) cDB
   let logger = Logger.fromConfig cLogger
   when optRunMigrations $
-    Database.runMigrations @(AppT IO) cDatabase logger
+    Database.runMigrations @(AppT IO) cDB logger
   logger Logger.Info "Starting server."
   processRequest logger Config {..} connectionDB
   where

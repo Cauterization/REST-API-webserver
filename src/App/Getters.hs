@@ -5,7 +5,7 @@ import App.AppT
     HasEnv,
   )
 import App.Config
-  ( Config (Config, cAddress, cDatabase, cLogger, cPort),
+  ( Config (..),
   )
 import App.Error
   ( parsingError,

@@ -1,7 +1,7 @@
 module Mocks.Config where
 
 import App.Config
-  ( Config (Config, cAddress, cDatabase, cLogger, cPort),
+  ( Config (..),
   )
 import Database.Config qualified as Database
 import Logger qualified
@@ -14,13 +14,14 @@ import Mocks.Constant
 testConfig :: Config
 testConfig =
   Config
-    { cDatabase =
+    { cDB =
         Database.Config
           { cPagSize = testPaginationConstant,
             cHost = "",
             cPort = 0,
             cUser = "",
-            cPassword = ""
+            cPassword = "",
+            cDatabase = ""
           },
       cAddress = testAddressConstant,
       cPort = testPortConstant,
