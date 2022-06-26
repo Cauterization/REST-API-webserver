@@ -3,8 +3,7 @@
 module Entity.Category where
 
 import App.Types (ID)
-import Data.Aeson (FromJSON, ToJSON (toJSON))
-import Data.Coerce (coerce)
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Data (Data)
 import Data.String (IsString)
 import Database.Delete qualified as Database
@@ -29,7 +28,7 @@ newtype CategoryName a = CategoryName {unCatName :: Text}
 
 type family CatParent a where
   CatParent Create = Maybe (ID (Category Create))
-  CatParent (Front Display) = [CategoryName Display]
+  CatParent (Front Display) = Maybe (Entity Category (Front Display))
   CatParent (Front Update) = (ID (Category (Front Update)))
   CatParent Delete = ()
   CatParent a = Maybe (ID (Category Display))
@@ -61,17 +60,24 @@ deriving instance Postgres.ToRow (Category Create)
 instance Datbase.Postable Category
 
 -- | Get / Front Display
-instance ToJSON (Category (Front Display)) where
-  toJSON Category {..} = toJSON $ map unCatName $ coerce name : parent
+deriving instance ToJSON (Category (Front Display))
+-- instance ToJSON (Category (Front Display)) where
+--   toJSON Category {..} = toJSON $ map unCatName $ coerce name : parent
 
-instance Postgres.FromRow (Category (Front Display)) where
+instance Postgres.FromRow (Entity Category (Front Display)) where
   fromRow = do
-    name <- Postgres.field
-    parent <- Postgres.fromPGArray <$> Postgres.field
-    pure Category {..}
+    lastName <- Postgres.field
+    lastID <- Postgres.field
+    names <- tail . Postgres.fromPGArray <$> Postgres.field
+    ids <- tail . Postgres.fromPGArray <$> Postgres.field
+    pure $ go (Entity lastID (Category lastName Nothing)) (zip ids names)
+    where
+      go e [] = e
+      go (Entity eID c) ((cID,cName):cs) 
+        = Entity eID c{parent = Just (go (Entity cID (Category cName Nothing)) cs)}
 
 instance Database.Gettable (Entity Category) (Front Display) where
-  getQuery = "SELECT id, last, branch[2:] FROM cat_branches"
+  getQuery = "SELECT last, id, branch, branch_id FROM cat_branches"
 
 -- | Put
 deriving instance FromJSON (Category (Front Update))

@@ -57,14 +57,11 @@ instance (ToJSON (e a), Typeable e) => ToJSON (Entity e a) where
     Object o -> Object $ HMAP.insert "id" (toJSON entityID) o
     x -> object ["id" .= entityID, nameOf @e .= x]
 
-instance
-  (Postgres.FromRow (e a)) =>
-  Postgres.FromRow (Entity e a)
-  where
-  fromRow = do
-    entityID <- Postgres.field
-    entity <- Postgres.fromRow
-    pure Entity {..}
+entityFromRow :: Postgres.FromRow (e a) => Postgres.RowParser (Entity e a)
+entityFromRow = do
+  entityID <- Postgres.field
+  entity <- Postgres.fromRow
+  pure Entity{..}
 
 type family EntityOrID (e :: Type -> Type) a :: * where
   EntityOrID e (Front Display) = Entity e (Front Display)

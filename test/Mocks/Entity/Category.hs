@@ -5,10 +5,11 @@ import Control.Monad.State (gets, join)
 import Data.Aeson (ToJSON)
 import Entity.Category
   ( CatParent,
-    Category (Category),
-    CategoryName (CategoryName),
+    Category (..),
+    CategoryName (..),
   )
-import Entity.Internal (Entity)
+import Entity.Internal (Entity(..))
+import Extended.Text (Text)
 import HKD.HKD (Create, Display, Field, Front, Update)
 import Mocks.Arbitrary ()
 import Mocks.TestMonad
@@ -43,3 +44,7 @@ instance {-# OVERLAPPING #-} TestEntity (ID (Category (Front Update))) where
 instance TestEntity (Entity Category (Front Display)) where
   getFromState = join $ gets getCategories
   withGetEntities cats s = s {getCategories = pure cats}
+
+getCatNames :: Entity Category (Front Display) -> [Text]
+getCatNames (Entity _ (Category{..})) = let name' = unCatName name 
+  in maybe [name'] ((name' :) . getCatNames) parent

@@ -15,7 +15,7 @@ import Database.Post qualified as Database
 import Database.Put qualified as Database
 import Entity.Author (Author)
 import Entity.Category (Category)
-import Entity.Internal (Entity (Entity), EntityOrID)
+import Entity.Internal (Entity (Entity), EntityOrID, entityFromRow)
 import Entity.Picture (Picture)
 import Entity.Tag (Tag (Tag))
 import Entity.User (User)
@@ -132,6 +132,9 @@ instance Postgres.FromRow (Article (Front Display)) where
     pics <- map ID . catMaybes . Postgres.fromPGArray <$> Postgres.field
     pure Article {..}
 
+instance Postgres.FromRow (Entity Article (Front Display)) where
+  fromRow = entityFromRow
+
 instance Database.Gettable (Entity Article) (Front Display) where
   getQuery = articleGetQuery <> "WHERE published"
 
@@ -161,8 +164,7 @@ articleGetQuery =
       fieldsQuery @(User (Front Display)),
       ", ",
       "description, ",
-      "category_id[1], ",
-      "category[1], category[2:], ",
+      "cat_last, cat_id, cat_branch, cat_branch_id, ",
       "tags_names, tags_id, ",
       "pics ",
       "FROM articles_view "
@@ -192,7 +194,7 @@ articlesGetQuery ordering =
       "  AND created     >= COALESCE(crAtGt, created) ",
       "  AND created     <= COALESCE(crAtLt, created) ",
       "  AND login       =  COALESCE(authorF, login) ",
-      "  AND (catF       IS NULL OR category_id @> ARRAY [catF]) ",
+      "  AND (catF       IS NULL OR cat_branch_id @> ARRAY [catF]) ",
       "  AND (tagF       IS NULL OR tags_id @> ARRAY [tagF]) ",
       "  AND (tagsIn     IS NULL OR tags_id && tagsIn) ",
       "  AND (tagsAll    IS NULL OR tags_id @> tagsAll) ",
@@ -202,7 +204,7 @@ articlesGetQuery ordering =
       "      OR content  LIKE CONCAT('%',substring,'%') ",
       "      OR login    LIKE CONCAT('%',substring,'%') ",
       "      OR EXISTS ( SELECT 1 ",
-      "                  FROM UNNEST(category) ",
+      "                  FROM UNNEST(cat_branch) ",
       "                  WHERE unnest LIKE CONCAT('%',substring,'%') ",
       "                ) ",
       "      OR EXISTS ( SELECT 1 ",

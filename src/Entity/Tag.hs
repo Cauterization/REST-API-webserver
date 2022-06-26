@@ -7,7 +7,7 @@ import Database.Delete qualified as Database
 import Database.Get qualified as Database
 import Database.Post qualified as Database
 import Database.Put qualified as Database
-import Entity.Internal (Entity (..))
+import Entity.Internal (Entity (..), entityFromRow)
 import Extended.Postgres qualified as Postgres
 import GHC.Generics (Generic)
 import HKD.HKD (Create, Display, Field, Front, Update)
@@ -44,6 +44,9 @@ instance Database.Postable Tag
 deriving anyclass instance ToJSON (Tag (Front Display))
 
 deriving anyclass instance Postgres.FromRow (Tag (Front Display))
+
+instance Postgres.FromRow (Entity Tag (Front Display)) where
+  fromRow = entityFromRow
 
 instance Database.Gettable (Entity Tag) (Front Display)
 

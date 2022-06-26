@@ -9,7 +9,7 @@ import Database.Get qualified as Database
 import Database.Post qualified as Database
 import Database.Put qualified as Database
 import Entity.Article (Article (..), articleGetQuery)
-import Entity.Internal (Entity (..))
+import Entity.Internal (Entity (..), entityFromRow)
 import Extended.Postgres qualified as Postgres
 import GHC.Generics (Generic)
 import HKD.HKD
@@ -51,6 +51,9 @@ instance Database.Postable Draft where
 -- | Get
 instance Postgres.FromRow (Draft (Front Display)) where
   fromRow = Draft <$> Postgres.fromRow
+
+instance Postgres.FromRow (Entity Draft (Front Display)) where
+  fromRow = entityFromRow
 
 instance Database.Gettable (Entity Draft) (Front Display) where
   getQuery = articleGetQuery <> " WHERE NOT published "

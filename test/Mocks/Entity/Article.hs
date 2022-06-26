@@ -28,7 +28,7 @@ import HKD.HKD
   )
 import Mocks.Constant (testAddressConstant, testPortConstant)
 import Mocks.Entity.Author ()
-import Mocks.Entity.Category ()
+import Mocks.Entity.Category (getCatNames)
 import Mocks.Entity.Tag ()
 import Mocks.TestMonad
   ( TestEntity (applyFilters, getFromState, withGetEntities),
@@ -161,7 +161,7 @@ substrFun (Database.EFPTextOptional (Just t)) = filter (isSubstr t . entity)
     isSubstr s Article {..} =
       let l = login $ entity $ user $ entity author
           c = unCatName $ name $ entity category
-          cs = map unCatName $ parent $ entity category
+          cs = getCatNames category
           ts = map (tag . entity) tags
        in any (t `T.isInfixOf`) ([content, l, c] <> cs <> ts)
 

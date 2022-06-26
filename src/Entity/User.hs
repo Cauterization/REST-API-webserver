@@ -11,7 +11,7 @@ import Database.Delete qualified as Database
 import Database.Get qualified as Database
 import Database.Post qualified as Database
 import Database.Put qualified as Database
-import Entity.Internal (Entity (..))
+import Entity.Internal (Entity (..), entityFromRow)
 import Extended.Postgres qualified as Postgres
 import GHC.Generics (Generic)
 import HKD.HKD
@@ -104,12 +104,18 @@ instance ToJSON (User (Front Display)) where
 
 deriving instance Postgres.FromRow (User (Front Display))
 
+instance Postgres.FromRow (Entity User (Front Display)) where
+  fromRow = entityFromRow
+
 instance Database.Gettable (Entity User) (Front Display)
 
 -- | Put / Update on Auth
 deriving instance FromJSON (User Auth)
 
 deriving instance Postgres.FromRow (User Display)
+
+instance Postgres.FromRow (Entity User Display) where
+  fromRow = entityFromRow
 
 deriving instance EmptyData (User Update)
 

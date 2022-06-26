@@ -9,7 +9,7 @@ import Database.Delete qualified as Database
 import Database.Get qualified as Database
 import Database.Post qualified as Database
 import Database.Put qualified as Database
-import Entity.Internal (Entity (..), EntityOrID)
+import Entity.Internal (Entity (..), EntityOrID, entityFromRow)
 import Entity.User (User)
 import Extended.Postgres qualified as Postgres
 import GHC.Generics (Generic)
@@ -63,6 +63,9 @@ instance Postgres.FromRow (Author (Front Display)) where
     user <- Postgres.fromRow
     description <- Postgres.field
     pure Author {..}
+
+instance Postgres.FromRow (Entity Author (Front Display)) where
+  fromRow = entityFromRow
 
 instance Database.Gettable (Entity Author) (Front Display) where
   getQuery =
